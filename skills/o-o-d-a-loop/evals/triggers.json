@@ -1,0 +1,57 @@
+[
+  {"name": "should-i-take-this-job", "should_trigger": true,
+   "query": "I've got an offer from a smaller company at slightly less money but a much bigger scope. Should I take it?",
+   "why": "A live, consequential, largely one-way choice the user owns. Classify on reversibility, stakes, emotional load and clock, then exit with a committed act or a scheduled decision."},
+
+  {"name": "which-database", "should_trigger": true,
+   "query": "Postgres with a vector extension or a dedicated vector database for this feature? Help me decide.",
+   "why": "A technical decision with a data-model component that clients will depend on, which is one-way. The exit is a pick with a named test, not a comparison table."},
+
+  {"name": "stress-test-a-plan", "should_trigger": true,
+   "query": "Here's my migration plan. Poke holes in it before I take it to the team.",
+   "why": "Explicit devil's-advocate request on a plan. Destruction and creation on the framing, plus the falsification question for each assumption."},
+
+  {"name": "circling-without-converging", "should_trigger": true,
+   "query": "I've been going back and forth on this for two weeks and I keep landing in the same place. I need to actually settle it.",
+   "why": "Stuck in Orient. More information makes it worse because the jam is at the handoff, so the breaker is forcing the Orient-to-Decide transition."},
+
+  {"name": "build-vs-buy", "should_trigger": true,
+   "query": "Do we build the scheduler ourselves or pay for the managed one? The team's split.",
+   "why": "Build versus buy, named in the description. Another party's payoffs are in play, which routes the game-theory lens inside Orient."},
+
+  {"name": "capability-audit", "should_trigger": true,
+   "query": "Why do we keep fumbling incidents at three in the morning? Every one of them goes the same way.",
+   "why": "The second mode: how to get better at a recurring activity. Rate prep depth, automaticity, deliberation load and autonomic drag, then attack the worst term."},
+
+  {"name": "review-a-past-decision", "should_trigger": true,
+   "query": "The rewrite shipped and it went badly. Was the call itself wrong, or did we just get unlucky?",
+   "why": "Post-decision audit without outcome bias. Grade the process, not the outcome, which is exactly the resulting error the skill guards against."},
+
+  {"name": "recurring-decision-to-policy", "should_trigger": true,
+   "query": "Every quarter we argue about whether to cut scope or slip the date, and every quarter it takes a week.",
+   "why": "The Nth instance of a recurring state. The deliverable is an installed policy, moving the decision from runtime to design time."},
+
+  {"name": "factual-question", "should_trigger": false,
+   "query": "What's the difference between serializable and repeatable read isolation?",
+   "why": "Retrieval, not a loop. The skill's scope check says answer factual questions rather than running a session on them."},
+
+  {"name": "decision-already-made", "should_trigger": false,
+   "query": "We've settled on Kafka. Now help me sequence the migration off the old queue.",
+   "why": "Execution planning for a decision already made. Nothing is live, so the loop has nothing to orient on."},
+
+  {"name": "trivial-reversible-pick", "should_trigger": false,
+   "query": "Should I call this field created_at or inserted_at?",
+   "why": "A low-stakes two-way-door pick behind an interface seam. Running the session on it is itself a loop-speed failure."},
+
+  {"name": "statistical-method-choice", "should_trigger": false,
+   "query": "Should I use a t-test or Mann-Whitney for this comparison?",
+   "why": "A methodology question with a knowable right answer, which belongs to statistics. The word should makes it a plausible false positive, but nothing here is uncertain in the decision-theoretic sense."},
+
+  {"name": "teach-the-frameworks", "should_trigger": false,
+   "query": "Teach me game theory properly. I keep nodding along to Nash equilibrium without really getting it.",
+   "why": "Tutoring on a topic belongs to teach-me. The corpus overlaps, but there is no live choice the user owns."},
+
+  {"name": "regulation-request", "should_trigger": false,
+   "query": "I'm too wound up to think straight about any of this. How do I calm down first?",
+   "why": "Nervous-system regulation is an explicit non-goal. The skill detects a degraded state and recommends pausing, but the prescription belongs elsewhere."}
+]

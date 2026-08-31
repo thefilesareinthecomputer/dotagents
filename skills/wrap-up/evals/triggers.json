@@ -1,0 +1,86 @@
+[
+  {
+    "name": "session-scoped-wrap-up",
+    "query": "ok wrap up this session",
+    "should_trigger": true,
+    "why": "The canonical phrasing and the one said most often. Competes with reflect, which also claims wrap-up language - if this fails, the two descriptions are not separable and one has to give."
+  },
+  {
+    "name": "end-the-session",
+    "query": "this session needs to end",
+    "should_trigger": true,
+    "why": "Session scope with no git vocabulary and no use of the word wrap. Checks the trigger is not keyed on a single phrase."
+  },
+  {
+    "name": "close-it-out",
+    "query": "close out the session",
+    "should_trigger": true,
+    "why": "Directly overlaps reflect's current description, which claims 'close out the session'. This is the head-to-head case."
+  },
+  {
+    "name": "bare-wrap-up",
+    "query": "alright, wrap up",
+    "should_trigger": true,
+    "why": "No object stated. Ambiguous in principle but in practice means the session, and /wrap-up covers a wrong guess."
+  },
+  {
+    "name": "three-verbs-reflect-notes-push",
+    "query": "reflect notes push",
+    "should_trigger": true,
+    "why": "Three of the five chain verbs named together. The shorthand form, no session word present."
+  },
+  {
+    "name": "three-verbs-notes-commit-sync",
+    "query": "notes, commit, then sync it up",
+    "should_trigger": true,
+    "why": "A different three of the five, in a different order, phrased as a sentence rather than a list."
+  },
+  {
+    "name": "end-of-day",
+    "query": "that's everything for today",
+    "should_trigger": true,
+    "why": "Session end implied rather than stated. The softest true case; a miss here is acceptable, a miss on the explicit ones is not."
+  },
+  {
+    "name": "task-scoped-wrap-up",
+    "query": "let's wrap up this task and move on",
+    "should_trigger": false,
+    "why": "The stated worry. Same verb, smaller object. Firing a three-gate session closeout on a task boundary is the main false-positive risk."
+  },
+  {
+    "name": "feature-scoped-closeout",
+    "query": "close out this bug and we'll do the next one",
+    "should_trigger": false,
+    "why": "Closeout language scoped to a unit of work, with an explicit signal that the session continues."
+  },
+  {
+    "name": "context-pressure",
+    "query": "context is running high",
+    "should_trigger": false,
+    "why": "A warning, not an instruction. The right response is to report remaining room and offer the closeout, not to start it."
+  },
+  {
+    "name": "running-long",
+    "query": "we're running long on this one",
+    "should_trigger": false,
+    "why": "Same class as above, phrased about duration rather than context. Must not be read as a closeout request."
+  },
+  {
+    "name": "mid-session-commit",
+    "query": "commit what we have so far so I don't lose it",
+    "should_trigger": false,
+    "why": "A mid-session save is a plain commit. One verb, and the sentence says the session continues."
+  },
+  {
+    "name": "docs-only",
+    "query": "update the docs with what we did",
+    "should_trigger": false,
+    "why": "notes on its own. Should not escalate into memory writes and a push."
+  },
+  {
+    "name": "push-only",
+    "query": "just push this up",
+    "should_trigger": false,
+    "why": "repo-device-sync owns a bare push intent. One verb is never the chain."
+  }
+]

@@ -1,0 +1,152 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+    "dbt_version": "1.9.0",
+    "project_name": "bad_project"
+  },
+  "sources": {
+    "source.bad_project.crm.customers": {
+      "name": "customers",
+      "resource_type": "source",
+      "unique_id": "source.bad_project.crm.customers",
+      "original_file_path": "models/staging/crm/__sources.yml"
+    },
+    "source.bad_project.crm.accounts": {
+      "name": "accounts",
+      "resource_type": "source",
+      "unique_id": "source.bad_project.crm.accounts",
+      "original_file_path": "models/staging/crm/__sources.yml",
+      "freshness": {
+        "warn_after": {"count": 12, "period": "hour"}
+      }
+    },
+    "source.bad_project.billing.invoices": {
+      "name": "invoices",
+      "resource_type": "source",
+      "unique_id": "source.bad_project.billing.invoices",
+      "original_file_path": "models/staging/billing/__sources.yml"
+    }
+  },
+  "nodes": {
+    "model.bad_project.stg_crm__customers_joined": {
+      "name": "stg_crm__customers_joined",
+      "resource_type": "model",
+      "unique_id": "model.bad_project.stg_crm__customers_joined",
+      "original_file_path": "models/staging/crm/stg_crm__customers_joined.sql",
+      "config": {"materialized": "table"},
+      "depends_on": {
+        "nodes": [
+          "source.bad_project.crm.customers",
+          "source.bad_project.crm.accounts"
+        ]
+      }
+    },
+    "model.bad_project.stg_billing__invoices": {
+      "name": "stg_billing__invoices",
+      "resource_type": "model",
+      "unique_id": "model.bad_project.stg_billing__invoices",
+      "original_file_path": "models/staging/billing/stg_billing__invoices.sql",
+      "config": {"materialized": "view"},
+      "depends_on": {"nodes": ["model.bad_project.stg_crm__customers_joined"]}
+    },
+    "model.bad_project.fct_sales_direct": {
+      "name": "fct_sales_direct",
+      "resource_type": "model",
+      "unique_id": "model.bad_project.fct_sales_direct",
+      "original_file_path": "models/marts/finance/fct_sales_direct.sql",
+      "config": {"materialized": "table"},
+      "depends_on": {"nodes": ["source.bad_project.billing.invoices"]}
+    },
+    "model.bad_project.fct_no_strategy": {
+      "name": "fct_no_strategy",
+      "resource_type": "model",
+      "unique_id": "model.bad_project.fct_no_strategy",
+      "original_file_path": "models/marts/finance/fct_no_strategy.sql",
+      "config": {"materialized": "incremental", "on_schema_change": "fail"},
+      "depends_on": {"nodes": ["model.bad_project.stg_billing__invoices"]}
+    },
+    "model.bad_project.fct_merge_no_key": {
+      "name": "fct_merge_no_key",
+      "resource_type": "model",
+      "unique_id": "model.bad_project.fct_merge_no_key",
+      "original_file_path": "models/marts/finance/fct_merge_no_key.sql",
+      "config": {
+        "materialized": "incremental",
+        "incremental_strategy": "merge",
+        "on_schema_change": "ignore"
+      },
+      "depends_on": {"nodes": ["model.bad_project.stg_billing__invoices"]}
+    },
+    "model.bad_project.fct_key_expression": {
+      "name": "fct_key_expression",
+      "resource_type": "model",
+      "unique_id": "model.bad_project.fct_key_expression",
+      "original_file_path": "models/marts/finance/fct_key_expression.sql",
+      "config": {
+        "materialized": "incremental",
+        "incremental_strategy": "merge",
+        "unique_key": "concat(user_id, session_number)",
+        "on_schema_change": "sync_all_columns",
+        "event_time": "dw_loaded_at"
+      },
+      "depends_on": {"nodes": ["model.bad_project.stg_billing__invoices"]}
+    },
+    "model.bad_project.fct_overwrite_unpartitioned": {
+      "name": "fct_overwrite_unpartitioned",
+      "resource_type": "model",
+      "unique_id": "model.bad_project.fct_overwrite_unpartitioned",
+      "original_file_path": "models/marts/finance/fct_overwrite_unpartitioned.sql",
+      "config": {
+        "materialized": "incremental",
+        "incremental_strategy": "insert_overwrite",
+        "on_schema_change": "append_new_columns"
+      },
+      "depends_on": {"nodes": ["model.bad_project.stg_billing__invoices"]}
+    },
+    "model.bad_project.fct_microbatch_bare": {
+      "name": "fct_microbatch_bare",
+      "resource_type": "model",
+      "unique_id": "model.bad_project.fct_microbatch_bare",
+      "original_file_path": "models/marts/finance/fct_microbatch_bare.sql",
+      "config": {
+        "materialized": "incremental",
+        "incremental_strategy": "microbatch",
+        "unique_key": ["id"],
+        "on_schema_change": "append_new_columns"
+      },
+      "depends_on": {"nodes": ["model.bad_project.stg_billing__invoices"]}
+    },
+    "snapshot.bad_project.snap_in_models": {
+      "name": "snap_in_models",
+      "resource_type": "snapshot",
+      "unique_id": "snapshot.bad_project.snap_in_models",
+      "original_file_path": "models/marts/finance/snap_in_models.sql",
+      "config": {
+        "strategy": "timestamp",
+        "unique_key": "customer_id"
+      },
+      "depends_on": {"nodes": ["model.bad_project.stg_billing__invoices"]}
+    },
+    "snapshot.bad_project.snap_arrival_stamp": {
+      "name": "snap_arrival_stamp",
+      "resource_type": "snapshot",
+      "unique_id": "snapshot.bad_project.snap_arrival_stamp",
+      "original_file_path": "snapshots/snap_arrival_stamp.yml",
+      "config": {
+        "strategy": "timestamp",
+        "updated_at": "_loaded_at",
+        "unique_key": "customer_id"
+      },
+      "depends_on": {"nodes": ["model.bad_project.stg_billing__invoices"]}
+    }
+  },
+  "macros": {},
+  "docs": {},
+  "exposures": {},
+  "metrics": {},
+  "groups": {},
+  "selectors": {},
+  "disabled": {},
+  "parent_map": {},
+  "child_map": {}
+}

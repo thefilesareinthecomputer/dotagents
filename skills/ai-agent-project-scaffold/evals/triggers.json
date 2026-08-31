@@ -1,0 +1,53 @@
+[
+  {"name": "build-me-an-agent", "should_trigger": true,
+   "query": "Build me an agent that watches our contracts folder and summarizes anything new that lands in it.",
+   "why": "The core build request. Intake runs first, the stack is committed slot by slot, and the run may rightly conclude that a scheduled script beats an agent."},
+
+  {"name": "add-an-ai-feature-to-an-existing-app", "should_trigger": true,
+   "query": "Add an AI feature to our Rails app that suggests tags for each post as the author writes it.",
+   "why": "Adding an AI subsystem to an existing repo is explicitly this skill's, not ai-engineering's. The existing footprint becomes an intake constraint rather than a reason to skip intake."},
+
+  {"name": "scaffold-a-project", "should_trigger": true,
+   "query": "Scaffold an agent project for a local-first coding assistant that runs against Ollama.",
+   "why": "Direct scaffold request with two intake fields already answered. The rest still get gathered, and the exit contract holds every slot to a named component or a justified not needed."},
+
+  {"name": "stack-for-a-committed-build", "should_trigger": true,
+   "query": "We've committed to building a document-extraction service this quarter. Which stack should we use?",
+   "why": "The hardest positive. It is phrased as a stack question, which reads like ai-engineering, but a specific system is being built, so it needs intake and a committed stack rather than a survey of options."},
+
+  {"name": "vague-ai-idea", "should_trigger": true,
+   "query": "I want to build something with AI for our sales team. Not sure what yet.",
+   "why": "Too vague to answer the intake fields, so this skill calls interview-me and idea-refine to get the idea into focus, then carries it into a stack."},
+
+  {"name": "agent-where-a-script-would-do", "should_trigger": true,
+   "query": "Build me an agent that renames files in this folder to match our naming convention.",
+   "why": "Fires precisely so the premise gets challenged. Every build-me-an-agent request comes here, and the intake concluding no agent is needed is a correct outcome, not a miss."},
+
+  {"name": "options-with-no-build", "should_trigger": false,
+   "query": "What are my options for a vector store if we're OSS-only?",
+   "why": "Belongs to ai-engineering, which owns open-ended options questions. No system is named and nothing is being built, so there is nothing to run intake on."},
+
+  {"name": "orienting-on-a-layer", "should_trigger": false,
+   "query": "What's the current state of agent memory frameworks? Just orienting, nothing to build yet.",
+   "why": "Belongs to ai-engineering. Build intent is explicitly disclaimed, which is the discriminator on this seam."},
+
+  {"name": "write-an-mcp-server", "should_trigger": false,
+   "query": "Write an MCP server that exposes our internal ticketing API.",
+   "why": "Belongs to build-mcp-server. This skill names which MCP servers a stack needs; building one is never hand-rolled here."},
+
+  {"name": "log-a-tool-failure", "should_trigger": false,
+   "query": "Log that the framework we picked last month broke on install under the new Python.",
+   "why": "Belongs to ai-engineering-update, which owns field notes. A component that fights back during a build produces a note there, not a new scaffold run."},
+
+  {"name": "scaffold-a-plain-web-app", "should_trigger": false,
+   "query": "Scaffold a new Next.js dashboard for our internal metrics.",
+   "why": "General application work with no AI subsystem, so it routes to agent-skills. Guards against firing on the word scaffold alone."},
+
+  {"name": "fix-the-scaffolded-code", "should_trigger": false,
+   "query": "The agent loop we scaffolded last week crashes when a tool returns null. Fix it.",
+   "why": "Implementation and debugging belong to agent-skills. Scaffolding is the starting line; this skill does not reimplement build, test or review."},
+
+  {"name": "research-before-choosing", "should_trigger": false,
+   "query": "Research which agent frameworks support streaming tool calls, with sources and dates.",
+   "why": "Belongs to deep-research. A verified-facts request with no system to build and no stack to commit."}
+]

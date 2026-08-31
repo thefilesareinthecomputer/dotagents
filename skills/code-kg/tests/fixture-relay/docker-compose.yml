@@ -1,0 +1,20 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8420:8420"
+    volumes:
+      - ./migrations:/srv/relay/migrations:ro
+      - relay-memory:/srv/relay/data
+
+  web:
+    image: nginx:alpine
+    ports:
+      - "127.0.0.1:8421:80"
+    volumes:
+      - ./web/public:/usr/share/nginx/html:ro
+
+volumes:
+  relay-memory:

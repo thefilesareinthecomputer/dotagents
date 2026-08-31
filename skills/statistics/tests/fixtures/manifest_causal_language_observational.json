@@ -1,0 +1,30 @@
+{
+  "manifest_version": 1,
+  "tool": "hand-written",
+  "command": "test",
+  "data": {
+    "source": "orders.csv",
+    "n": 240,
+    "rows_total": 244,
+    "rows_dropped": 4,
+    "rows_dropped_reported": true
+  },
+  "design": {"observational": true, "randomized_assignment": false},
+  "randomization": {"seeded": true, "seed": 7, "reps": 10000},
+  "comparisons": {"tried": 1, "correction": null},
+  "results": [
+    {
+      "name": "difference in mean (treated - control)",
+      "n": 240,
+      "estimate": 3.42,
+      "effect_size": {"name": "cohen_d", "value": 0.31},
+      "interval": {"kind": "percentile bootstrap", "level": 0.95, "lo": 0.88, "hi": 5.97},
+      "p_value": 0.013,
+      "method": "permutation test, 10000 reps",
+      "assumption": "the permutation test assumes exchangeability under the null"
+    }
+  ],
+  "claims": ["the loyalty program caused a higher mean basket value"],
+  "assumptions": ["the permutation test assumes exchangeability under the null"],
+  "notes": ["4 of 244 rows unusable (3 missing, 1 non-numeric)"]
+}

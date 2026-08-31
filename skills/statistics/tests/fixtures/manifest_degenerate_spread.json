@@ -1,0 +1,32 @@
+{
+  "manifest_version": 1,
+  "tool": "hand-written",
+  "command": "outliers",
+  "data": {
+    "source": "billing.csv",
+    "column": "status_flag",
+    "n": 5000,
+    "rows_total": 5000,
+    "rows_dropped": 0,
+    "rows_dropped_reported": true,
+    "degenerate_scale": true
+  },
+  "design": {"observational": true, "randomized_assignment": false},
+  "randomization": {"seeded": true, "seed": 3, "reps": 2000},
+  "comparisons": {"tried": 1, "correction": null},
+  "results": [
+    {
+      "name": "modified z outliers on status_flag",
+      "n": 5000,
+      "estimate": 0.0,
+      "effect_size": null,
+      "interval": null,
+      "p_value": null,
+      "method": "modified z against the median absolute deviation",
+      "assumption": "the modified z assumes the column has a scale to measure against"
+    }
+  ],
+  "claims": ["every distinct value in this column is flagged at the 3.5 cutoff"],
+  "assumptions": ["the modified z assumes the column has a scale to measure against"],
+  "notes": []
+}

@@ -1,0 +1,77 @@
+[
+  {"name": "is-this-difference-real", "should_trigger": true,
+   "query": "Group A averaged 4.1 and group B averaged 4.8 on the same task. Is that difference real or am I reading noise?",
+   "why": "The core domain-free question. Must fire with no domain context at all, and the answer is an effect size with an interval plus a permutation test, not a bare p-value."},
+
+  {"name": "how-big-a-sample", "should_trigger": true,
+   "query": "How many responses do I need before I can tell whether the new version is better?",
+   "why": "Sample size and power. The skill's job is to get the minimum effect worth detecting stated first, since without it the question has no answer."},
+
+  {"name": "is-this-streak-meaningful", "should_trigger": true,
+   "query": "I've won seven in a row. Does that mean anything or is it just what chance looks like?",
+   "why": "Domain-free streak question. Runs occur in random sequences far more often than intuition allows, and the streak was noticed because it was extreme."},
+
+  {"name": "what-does-this-correlation-tell-me", "should_trigger": true,
+   "query": "These two columns have a correlation of 0.62. What does that actually tell me?",
+   "why": "Correlation interpretation - r-squared as the share of variance, the disqualifiers (outliers, nonlinearity, restricted range), and the refusal to use causal language on observational data."},
+
+  {"name": "audit-a-writeup", "should_trigger": true,
+   "query": "Can you check this analysis before I send it? It says the improvement was significant at p equals 0.03.",
+   "why": "The auditor case. A p-value with no effect size, no interval and no n is three named defects, and the skill should report them by code rather than warning vaguely."},
+
+  {"name": "outlier-or-real", "should_trigger": true,
+   "query": "A few values in this column are way bigger than the rest. Should I drop them?",
+   "why": "Robust statistics and outlier handling. The answer depends on what the outlier is for, and the skill must refuse silent deletion."},
+
+  {"name": "small-sample-interval", "should_trigger": true,
+   "query": "I only have 12 measurements. Can I still say anything useful about the average?",
+   "why": "Interval on a small sample, where the honest contribution is reporting the width. Domain-free and a common real moment."},
+
+  {"name": "threshold-for-a-data-check", "should_trigger": true,
+   "query": "What threshold should this data quality check fire at? Right now it's three sigma and it alerts every single day.",
+   "why": "The threshold handoff. Where the check runs belongs to data-engineering; how the number is chosen is this skill, and three sigma on skewed data is the canonical failure."},
+
+  {"name": "var-on-returns", "should_trigger": true,
+   "query": "What's the value at risk on this returns series over a ten day horizon?",
+   "why": "Market risk as calculation. Requires the confidence level, horizon and estimation window stated, and empirical rather than normal quantiles because of fat tails."},
+
+  {"name": "did-my-model-actually-improve", "should_trigger": true,
+   "query": "My new model scores 0.91 against the old one's 0.89. Did it actually improve?",
+   "why": "Evaluation as inference - paired comparison on the same test set, bootstrap interval on the difference, and the count of configurations tried."},
+
+  {"name": "is-this-bet-plus-ev", "should_trigger": true,
+   "query": "The price is 2.10 and I think the true probability is about 52 percent. Is that a positive expected value bet?",
+   "why": "Edge and expected value as arithmetic. The skill computes it, puts an interval on the probability estimate, and does not tell anyone to place or size a bet."},
+
+  {"name": "backtest-too-good", "should_trigger": true,
+   "query": "My backtest returns 40 percent a year. What should I check before I believe it?",
+   "why": "Backtest honesty - look-ahead, survivorship, costs, and above all how many parameter combinations were tried before this one was reported."},
+
+  {"name": "leaky-metric", "should_trigger": true,
+   "query": "My classifier gets 99.8 percent accuracy on the holdout. That seems too good.",
+   "why": "Leakage detected in a result, which is this skill's half of that boundary. The answer is the leakage catalog and a check on what each feature knows at prediction time."},
+
+  {"name": "pipeline-load-strategy", "should_trigger": false,
+   "query": "Should I load this source incrementally with a merge or just do a full refresh every night?",
+   "why": "Platform and ingestion mechanics belong to data-engineering. No inference question is present, and firing here would poach a sibling's trigger."},
+
+  {"name": "where-quality-checks-go", "should_trigger": false,
+   "query": "Where in the pipeline should our quality checks run, and which ones should block the load?",
+   "why": "Placement and blocking policy belong to data-engineering. The deliberate contrast with the threshold case - this skill owns how the number is chosen, not where the check sits."},
+
+  {"name": "warehouse-modeling", "should_trigger": false,
+   "query": "Should one row of my sales fact table be an order or an order line?",
+   "why": "Grain is dimensional modeling. Adjacent vocabulary (rows, tables, measures) makes it a plausible false positive."},
+
+  {"name": "which-model-to-train", "should_trigger": false,
+   "query": "Which algorithm should I use for this classification problem, and how do I engineer the features?",
+   "why": "Model building - framing, features, training - is machine-learning's half. This skill treats a model as an instrument to measure, not an artifact to construct."},
+
+  {"name": "chart-request", "should_trigger": false,
+   "query": "Make me a chart showing revenue by region over the last four quarters.",
+   "why": "Visualization belongs to dataviz. No question about whether a number is real, only about how it is drawn."},
+
+  {"name": "plain-arithmetic", "should_trigger": false,
+   "query": "Add up column C in this spreadsheet and give me the total.",
+   "why": "A computation with no inference in it. Guards against firing on anything numeric."}
+]

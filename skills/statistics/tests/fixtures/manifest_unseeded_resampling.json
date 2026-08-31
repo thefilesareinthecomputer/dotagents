@@ -1,0 +1,30 @@
+{
+  "manifest_version": 1,
+  "tool": "hand-written",
+  "command": "boot",
+  "data": {
+    "source": "orders.csv",
+    "n": 240,
+    "rows_total": 244,
+    "rows_dropped": 4,
+    "rows_dropped_reported": true
+  },
+  "design": {"observational": true, "randomized_assignment": false},
+  "randomization": {"seeded": false, "seed": null, "reps": 10000},
+  "comparisons": {"tried": 1, "correction": null},
+  "results": [
+    {
+      "name": "median basket value",
+      "n": 240,
+      "estimate": 38.5,
+      "effect_size": null,
+      "interval": {"kind": "percentile bootstrap", "level": 0.95, "lo": 36.1, "hi": 40.8},
+      "p_value": null,
+      "method": "percentile bootstrap, 10000 reps",
+      "assumption": "the percentile bootstrap assumes the sample is representative"
+    }
+  ],
+  "claims": ["the median basket value is around 38.5"],
+  "assumptions": ["the percentile bootstrap assumes the sample is representative"],
+  "notes": ["4 of 244 rows unusable (3 missing, 1 non-numeric)"]
+}

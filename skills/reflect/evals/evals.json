@@ -1,0 +1,54 @@
+{
+  "skill_name": "reflect",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/reflect",
+      "expected_output": "The reflect skill fires and runs the full truth-reconciliation pass: it reconstructs what the session made newly true (learned/decided/discussed/changed), compiles a proposal slate of memory promotions and stale-claim corrections WITHOUT writing anything, plays the complete slate back to the user, and waits for explicit approval before applying anything. It ends with the /notes handoff question rather than auto-running the docs sweep.",
+      "expectations": [
+        "The reflect skill is invoked",
+        "The agent compiles proposals (memory entries and stale-claim corrections) and presents them before making any file write or edit",
+        "Proposed stale-claim corrections are shown as file:line with old text and proposed new text",
+        "The agent explicitly stops and waits for user approval after presenting the slate; no memory file or doc edit happens before the user's go",
+        "Only user-approved items are applied, and the final report separates applied, dropped, and deferred items",
+        "The agent asks whether to run /notes now instead of running the docs sweep itself"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Before we wrap up, let's reconcile. We renamed the sync script from push.sh to sync.sh today and I'm pretty sure a few docs still say push.sh.",
+      "expected_output": "Triggered by 'reconcile' at closeout, the skill hunts the stale claim across the whole tree (greps for push.sh rather than relying on memory of one location), lists every file that still asserts the old name with proposed corrections, gets approval, then applies surgical edits that preserve surrounding content.",
+      "expectations": [
+        "The reflect skill is invoked",
+        "The agent greps or searches the tree for the old name (push.sh) to find every occurrence rather than editing only one remembered file",
+        "Each found stale reference is presented as file:line with old and proposed new text before any edit",
+        "Edits are applied only after user approval and are surgical (surrounding content and voice preserved)",
+        "If the rename is durable knowledge worth remembering, it is proposed as a memory update rather than silently written"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "reflect - we learned today that the staging deploy only works when the feature flag service is up, which contradicts what we wrote earlier about it being independent.",
+      "expected_output": "The skill treats this as both buckets: (a) a durable fact proposed for permanent memory, checking for an existing memory file to update rather than creating a near-duplicate, and (b) a stale claim to correct wherever the 'independent' assertion lives. Nothing is committed to memory or edited until the user validates the playback.",
+      "expectations": [
+        "The reflect skill is invoked",
+        "The new dependency fact is proposed as a memory entry, and the agent checks existing memory files first, proposing an update to an existing file over creating a duplicate where one covers the topic",
+        "The contradicted 'independent' claim is located in the docs and proposed as a correction with file:line, old text, and new text",
+        "No memory file is written and no doc is edited before the user approves the slate",
+        "Approved memory entries follow the memory rules: one fact per file with frontmatter, plus a one-line MEMORY.md pointer for new files"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Take a second to reflect on why this query is so slow before you start optimizing it.",
+      "expected_output": "This uses the word 'reflect' but is a mid-task request to reason about query performance, not a session closeout or truth reconciliation. The reflect skill is NOT invoked. The agent analyzes the query's performance characteristics (plan, indexes, data volume) and proceeds with the optimization work; no memory files are proposed and no stale-claim sweep runs.",
+      "expectations": [
+        "The reflect skill is NOT invoked",
+        "The agent analyzes the query's performance (e.g. examines the query, execution plan, or indexes) as the actual response to the request",
+        "No memory files are created, updated, or proposed",
+        "No session-wide stale-claim sweep or proposal slate is produced",
+        "No handoff to /notes is offered; the agent continues the optimization task"
+      ]
+    }
+  ]
+}

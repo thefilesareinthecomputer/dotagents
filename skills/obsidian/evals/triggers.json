@@ -1,0 +1,49 @@
+[
+  {"name": "author-note-in-vault", "should_trigger": true,
+   "query": "Add a new note for this week's reading under my vault's Notes folder and link it back to the Books note.",
+   "why": "Authoring a .md inside a vault. The skill's core case: probe the vault, report the profile, wait for confirmation, then write wikilinks and plural frontmatter keys."},
+
+  {"name": "callout-syntax-question", "should_trigger": true,
+   "query": "How do I make a callout that starts collapsed, and can I put a link inside it?",
+   "why": "A pure Obsidian syntax question. Callouts and their fold markers are Obsidian-only syntax the skill owns, even with no file being written."},
+
+  {"name": "frontmatter-tags-not-rendering", "should_trigger": true,
+   "query": "The tags in my notes stopped showing up in the properties panel after the last update. Here's the top of one file: tag: projects",
+   "why": "A properties defect. Singular reserved keys silently fail in 1.9+, which is a named anti-pattern in this skill."},
+
+  {"name": "html-comments-showing", "should_trigger": true,
+   "query": "The instructions I left inside my template notes render as visible junk while I'm editing. How should I be writing those instead?",
+   "why": "The Live Preview render target. HTML comments are only invisible in Reading view, and the skill's answer is a callout or italics."},
+
+  {"name": "embed-image-sized", "should_trigger": true,
+   "query": "How do I pull a specific section of another note into this one, and can I show an image at a fixed width?",
+   "why": "Embeds and transclusion with sizing, Obsidian-only syntax covered by the skill's EMBEDS reference."},
+
+  {"name": "rebuild-index-note", "should_trigger": true,
+   "query": "Rebuild INDEX.md at the root of my vault so every note is listed with its section headings underneath.",
+   "why": "The bundled index_vault.py hub note: a markdown file listing files and heading trees as wiki-links. Distinct from obsidian-kg's graph-derived index, which reports orphans, broken links and hubs by degree."},
+
+  {"name": "dataview-inline-field", "should_trigger": true,
+   "query": "I want a table of every project note with its status. My vault has Dataview turned on.",
+   "why": "Plugin syntax gated on detection. The skill emits Dataview forms only when the probe finds the plugin enabled, which the user has confirmed here."},
+
+  {"name": "github-readme-alerts", "should_trigger": false,
+   "query": "Add a warning box to the README in this repo so people don't run the migration twice.",
+   "why": "Generic markdown in a git repo with no vault markers. GitHub alert syntax looks like a callout, which makes this the closest false positive, but the skill defers to plain markdown outside a vault."},
+
+  {"name": "plain-markdown-docs", "should_trigger": false,
+   "query": "Format this changelog as markdown with a heading per release and a bullet list under each.",
+   "why": "Ordinary markdown with no Obsidian feature named and no vault in play. Belongs to plain markdown authoring, not this skill."},
+
+  {"name": "backlinks-question", "should_trigger": false,
+   "query": "Which notes in my vault link to Soil Amendments, and what were they saying about it?",
+   "why": "Link graph traversal belongs to obsidian-kg. Vault vocabulary and wikilinks make this a plausible false positive, but nothing is being authored or edited."},
+
+  {"name": "make-vault-searchable", "should_trigger": false,
+   "query": "My vault has about four thousand notes now. Can you make it searchable so I can actually find things in it?",
+   "why": "Indexing a corpus for retrieval belongs to obsidian-kg. This skill's only index is the INDEX.md hub note, not a queryable store."},
+
+  {"name": "session-docs-sweep", "should_trigger": false,
+   "query": "We're done for the day. Write up what we did into the project docs.",
+   "why": "The end-of-session documentation sweep belongs to notes. Markdown is the medium but the repo docs are not a vault."}
+]

@@ -1,0 +1,4 @@
+id,amount,status
+inv-001,120,paid
+inv-002,90,open
+inv-003,240,void

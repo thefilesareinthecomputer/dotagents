@@ -1,0 +1,6 @@
+@import "base.css";
+
+#console {
+  font-family: monospace;
+  background: url(https://example.com/bg.png);
+}

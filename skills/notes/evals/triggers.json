@@ -1,0 +1,92 @@
+[
+  {
+    "name": "canonical-docs-sweep",
+    "query": "update the docs with what we did",
+    "should_trigger": true,
+    "why": "The settled boundary: wrap-up explicitly disclaims this as notes on its own. If it does not fire here, the two descriptions are not separable."
+  },
+  {
+    "name": "take-notes",
+    "query": "take notes on this session",
+    "should_trigger": true,
+    "why": "The phrasing the skill is named for. No file names, no git vocabulary."
+  },
+  {
+    "name": "write-up-the-session",
+    "query": "write up what we got done today",
+    "should_trigger": true,
+    "why": "Session-scoped documentation with no use of the words notes or docs. Checks the trigger is not keyed on a single phrase."
+  },
+  {
+    "name": "stale-plan-file",
+    "query": "tasks/plan.md is out of date, fold today's work into it",
+    "should_trigger": true,
+    "why": "Names a hot file the skill governs and asks for the merge, which is step 3 of the sweep."
+  },
+  {
+    "name": "archive-finished-work",
+    "query": "the shipped items are still sitting in the plan, move them into completed",
+    "should_trigger": true,
+    "why": "Step 4 relocation to tasks/completed/ in the user's own words. Cold storage belongs to this skill and nowhere else."
+  },
+  {
+    "name": "hot-file-over-budget",
+    "query": "todo.md has grown to 300 lines, that's a dumping ground now",
+    "should_trigger": true,
+    "why": "The size gate and the reduction pass. A complaint rather than an instruction, so the softer of the true cases, but the remedy is this sweep."
+  },
+  {
+    "name": "capture-before-forgetting",
+    "query": "let's get what we figured out written down before we lose it",
+    "should_trigger": true,
+    "why": "Documentation intent with no file named and no session-end language. Competes with reflect, which claims durable knowledge; the object here is the written record, not memory."
+  },
+  {
+    "name": "session-closeout",
+    "query": "wrap up the session",
+    "should_trigger": false,
+    "why": "wrap-up. Whole-session closeout runs notes as one link in a longer chain; the sweep must not claim the chain."
+  },
+  {
+    "name": "chain-naming-notes",
+    "query": "notes, commit, then sync it up",
+    "should_trigger": false,
+    "why": "wrap-up. The hardest false case: the word notes is right there, but three of the chain verbs named together is the closeout, not the sweep."
+  },
+  {
+    "name": "truth-reconciliation",
+    "query": "reconcile what we learned this session",
+    "should_trigger": false,
+    "why": "reflect. Memory promotion and stale-claim correction happen before the docs sweep and are a separate procedure with its own approval gate."
+  },
+  {
+    "name": "save-to-memory",
+    "query": "remember that the daemon only listens on localhost",
+    "should_trigger": false,
+    "why": "reflect. Memory writes are reflect's, and notes governs six repo paths that do not include memory."
+  },
+  {
+    "name": "orientation",
+    "query": "get me up to speed on this repo",
+    "should_trigger": false,
+    "why": "hi. Reading the same living docs, but read-only and at the start of a session rather than the end."
+  },
+  {
+    "name": "single-readme-edit",
+    "query": "add the install one-liner I just gave you to the README",
+    "should_trigger": false,
+    "why": "A plain Edit. The file is in scope for the sweep, but one dictated line is not a session reconstruction, a size gate, or a cold-storage pass."
+  },
+  {
+    "name": "in-code-documentation",
+    "query": "add a docstring explaining what this function returns",
+    "should_trigger": false,
+    "why": "A plain Edit in source. Notes governs six repo-root paths; comments and docstrings are not among them."
+  },
+  {
+    "name": "changelog-entry",
+    "query": "add an entry to CHANGELOG.md for the release",
+    "should_trigger": false,
+    "why": "A plain Edit. The skill states explicitly that a published CHANGELOG is a release artifact and out of scope, distinct from tasks/completed/."
+  }
+]

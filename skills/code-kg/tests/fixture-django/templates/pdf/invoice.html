@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ invoice.number }}</title>
+</head>
+<body>
+  <table>
+    <thead>
+      <tr><th>Description</th><th>Qty</th><th>Unit</th></tr>
+    </thead>
+    <tbody>
+      {% for line in invoice.lines.all %}
+      <tr><td>{{ line.description }}</td><td>{{ line.quantity }}</td><td>{{ line.unit_price }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

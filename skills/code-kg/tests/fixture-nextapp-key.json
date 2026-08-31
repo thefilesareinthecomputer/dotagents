@@ -1,0 +1,11 @@
+{
+  "_note": "Structural ground truth for fixture-nextapp is asserted directly in test_code_kg.py (TestNextjsProfile, TestDataInventoryAndInspectSqlite). This key holds only the canned agent-style queries wired by test_canned_queries: top3[0] must appear in the top-3 search results.",
+  "queries": [
+    {"q": "invoices page fetch", "top3": ["src/app/invoices/page.tsx", "src/services/api.ts", "src/services/csrf.ts"]},
+    {"q": "csrf token check", "top3": ["src/services/csrf.ts", "src/services/api.ts", "src/middleware.ts"]},
+    {"q": "health api route", "top3": ["src/app/api/health/route.ts", "src/services/csrf.ts", "src/app/page.tsx"]},
+    {"q": "button table components", "top3": ["src/components/Button.tsx", "src/components/Table.tsx", "src/components/index.ts"]},
+    {"q": "invoice type shape", "top3": ["src/shared/types.ts", "src/app/invoices/page.tsx", "src/services/api.ts"]},
+    {"q": "observe agent tool", "top3": [".claude/tools/observe.ts", ".claude/skills/demo-skill/SKILL.md", "package.json"]}
+  ]
+}

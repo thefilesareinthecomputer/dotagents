@@ -1,0 +1,7 @@
+{
+  "useMarkdownLinks": false,
+  "newLinkFormat": "absolute",
+  "attachmentFolderPath": "assets/img",
+  "strictLineBreaks": true,
+  "alwaysUpdateLinks": true
+}

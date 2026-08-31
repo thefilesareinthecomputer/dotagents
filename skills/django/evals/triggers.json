@@ -1,0 +1,37 @@
+[
+  {"name": "cold-start-api", "should_trigger": true,
+   "query": "Start a new Django REST API for a booking system.",
+   "why": "Greenfield path. Must fire before settings are written - DEFAULT_PERMISSION_CLASSES has to be set on day one or the API ships open."},
+
+  {"name": "inherit-existing-repo", "should_trigger": true,
+   "query": "I just cloned this Django repo and have no idea how it's laid out. Where do I start?",
+   "why": "Brownfield path - orientation. Most Django work is on an existing codebase, and the skill must serve that, not just scaffolding."},
+
+  {"name": "drf-serializer-work", "should_trigger": true,
+   "query": "Add an endpoint that lets users update their profile.",
+   "why": "Serializer plus permission work. This is exactly where writable is_staff and fields='__all__' get introduced."},
+
+  {"name": "slow-endpoint", "should_trigger": true,
+   "query": "The /api/orders/ endpoint takes 8 seconds to return 50 rows.",
+   "why": "Textbook N+1. Should route to measurement (CaptureQueriesContext) before any select_related guessing."},
+
+  {"name": "migration-safety", "should_trigger": true,
+   "query": "I need to add a NOT NULL column to a table with 40 million rows without taking the site down.",
+   "why": "Zero-downtime migration - the two-release pattern. Getting this wrong locks a production table."},
+
+  {"name": "is-my-api-exposed", "should_trigger": true,
+   "query": "Is my DRF API actually requiring auth? I never set permissions anywhere.",
+   "why": "The single highest-value trigger: the answer is almost certainly 'no, it is public'."},
+
+  {"name": "flask-app", "should_trigger": false,
+   "query": "Add a route to my Flask app that returns the current user.",
+   "why": "Different framework. Guards against firing on any Python web work."},
+
+  {"name": "generic-python", "should_trigger": false,
+   "query": "Why is this list comprehension slower than the for loop?",
+   "why": "Plain Python. No Django surface."},
+
+  {"name": "sqlalchemy-orm", "should_trigger": false,
+   "query": "How do I do an eager join in SQLAlchemy?",
+   "why": "Adjacent concept (N+1 and eager loading) but a different ORM. Must not poach it."}
+]

@@ -1,0 +1,309 @@
+{
+  "_comment": "Hand-authored ground truth for tests/fixture-relay. symbols maps file -> exact {qualname: kind} set; resolved_edges rows are (src, kind, target, dst) that MUST exist resolved; entry_points, tiers and unresolved are exact sets.",
+  "symbols": {
+    "src/relay/__init__.py": {},
+    "src/relay/errors.py": {
+      "RelayError": "class",
+      "ConfigError": "class", "ConfigError.__init__": "method",
+      "ToolNotFound": "class", "ToolNotFound.__init__": "method",
+      "ToolFailed": "class", "ToolFailed.__init__": "method",
+      "BudgetExceeded": "class", "BudgetExceeded.__init__": "method",
+      "MemoryCorrupt": "class",
+      "wrap_unknown": "function"
+    },
+    "src/relay/config.py": {
+      "Config": "class", "Config.with_overrides": "method",
+      "Config.describe": "method",
+      "_read_env": "function", "_int_field": "function",
+      "_validate": "function", "load_config": "function"
+    },
+    "src/relay/llm/__init__.py": {},
+    "src/relay/llm/client.py": {
+      "RetryPolicy": "class", "RetryPolicy.delay_for": "method",
+      "RetryPolicy.should_retry": "method",
+      "TokenBudget": "class", "TokenBudget.__init__": "method",
+      "TokenBudget.charge": "method", "TokenBudget.remaining": "method",
+      "TokenBudget.estimate": "method",
+      "LLMClient": "class", "LLMClient.__init__": "method",
+      "LLMClient.complete_step": "method",
+      "LLMClient._call_with_retry": "method",
+      "LLMClient._transport": "method", "LLMClient._record": "method",
+      "LLMClient.parse_tool_request": "method",
+      "LLMClient.call_stats": "method"
+    },
+    "src/relay/llm/prompts.py": {
+      "render_system_prompt": "function", "render_step_prompt": "function",
+      "render_summary_prompt": "function", "context_block": "function"
+    },
+    "src/relay/llm/parsing.py": {
+      "ParseFailure": "class", "ParseFailure.describe": "method",
+      "ToolCall": "class",
+      "extract_fences": "function", "extract_json_block": "function",
+      "parse_tool_call": "function", "_split_args": "function",
+      "_coerce": "function"
+    },
+    "src/relay/tools/__init__.py": {},
+    "src/relay/tools/registry.py": {
+      "ToolSpec": "class", "ToolSpec.signature": "method",
+      "ToolRegistry": "class", "ToolRegistry.__init__": "method",
+      "ToolRegistry.register": "method", "ToolRegistry.names": "method",
+      "ToolRegistry.describe_all": "method",
+      "ToolRegistry.filtered": "method", "ToolRegistry.dispatch": "method",
+      "get_registry": "function", "tool": "function"
+    },
+    "src/relay/tools/shell_tool.py": {
+      "_check_command": "function", "_clip": "function",
+      "run_shell": "function"
+    },
+    "src/relay/tools/web_tool.py": {
+      "_refusing_fetcher": "function", "install_fetcher": "function",
+      "validate_url": "function", "fetch_url": "function"
+    },
+    "src/relay/tools/sql_tool.py": {
+      "validate_select": "function", "apply_migrations": "function",
+      "_format_rows": "function", "query_memory": "function"
+    },
+    "src/relay/tools/file_tool.py": {
+      "_confine": "function", "read_file": "function",
+      "list_dir": "function"
+    },
+    "src/relay/memory/__init__.py": {},
+    "src/relay/memory/store.py": {
+      "Record": "class", "Record.age_s": "method",
+      "Record.to_json": "method",
+      "MemoryStore": "class", "MemoryStore.__init__": "method",
+      "MemoryStore.close": "method", "MemoryStore.append": "method",
+      "MemoryStore.latest": "method", "MemoryStore.history": "method",
+      "MemoryStore.search": "method",
+      "MemoryStore.integrity_check": "method",
+      "MemoryStore.counts": "method", "MemoryStore._to_record": "method"
+    },
+    "src/relay/memory/recall.py": {
+      "tokenize": "function", "overlap_score": "function",
+      "recency_factor": "function", "score": "function",
+      "recall": "function"
+    },
+    "src/relay/memory/compact.py": {
+      "CompactionPlan": "class", "CompactionPlan.worth_running": "method",
+      "CompactionResult": "class", "CompactionResult.describe": "method",
+      "plan_compaction": "function", "compact": "function"
+    },
+    "src/relay/planner.py": {
+      "Step": "class", "Step.describe": "method",
+      "Plan": "class", "Plan.append": "method",
+      "Plan.tool_names": "method", "Plan.describe": "method",
+      "route_keyword": "function",
+      "Planner": "class", "Planner.__init__": "method",
+      "Planner.plan": "method", "Planner._split_goal": "method",
+      "Planner._args_for": "method",
+      "Planner.replan_after_failure": "method"
+    },
+    "src/relay/executor.py": {
+      "StepResult": "class",
+      "RunResult": "class", "RunResult.summary": "method",
+      "Executor": "class", "Executor.__init__": "method",
+      "Executor.run": "method", "Executor._run_step": "method",
+      "Executor._persist": "method"
+    },
+    "src/relay/telemetry.py": {
+      "Timer": "class", "Timer.__init__": "method",
+      "Timer.elapsed_s": "method",
+      "Telemetry": "class", "Telemetry.__init__": "method",
+      "Telemetry.event": "method", "Telemetry.timer": "method",
+      "Telemetry.snapshot": "method"
+    },
+    "src/relay/audit.py": {
+      "AuditEntry": "class", "AuditEntry.canonical": "method",
+      "AuditEntry.digest": "method",
+      "ChainReport": "class", "ChainReport.describe": "method",
+      "AuditLog": "class", "AuditLog.__init__": "method",
+      "AuditLog._recover_tail": "method", "AuditLog._recover_seq": "method",
+      "AuditLog._last_line": "method", "AuditLog.append": "method",
+      "AuditLog.verify_chain": "method"
+    },
+    "src/relay/scheduler.py": {
+      "Job": "class", "Job.due": "method", "Job.reschedule": "method",
+      "Scheduler": "class", "Scheduler.__init__": "method",
+      "Scheduler.add": "method", "Scheduler.remove": "method",
+      "Scheduler.due_jobs": "method", "Scheduler.tick": "method",
+      "Scheduler.snapshot": "method"
+    },
+    "src/relay/limits.py": {
+      "Bucket": "class", "Bucket.refill": "method",
+      "Bucket.try_take": "method", "Bucket.retry_after_s": "method",
+      "Decision": "class", "Decision.headers": "method",
+      "RateLimiter": "class", "RateLimiter.__init__": "method",
+      "RateLimiter.check": "method", "RateLimiter.prune": "method",
+      "RateLimiter.snapshot": "method"
+    },
+    "src/relay/report.py": {
+      "_step_rows": "function", "as_tree": "function",
+      "as_text": "function", "as_markdown": "function",
+      "failure_digest": "function"
+    },
+    "src/relay/server/__init__.py": {},
+    "src/relay/server/app.py": {
+      "RelayServer": "class", "RelayServer.__init__": "method",
+      "RelayServer.dispatch": "method",
+      "RelayServer.serve_forever": "method",
+      "_make_handler_class": "function"
+    },
+    "src/relay/server/handlers.py": {
+      "_query_param": "function", "health": "function",
+      "show_config": "function", "list_routes": "function",
+      "memory_search": "function", "start_run": "function",
+      "latest_run": "function"
+    },
+    "src/relay/cli.py": {
+      "cmd_run": "function", "cmd_serve": "function",
+      "cmd_compact": "function", "cmd_tools": "function",
+      "cmd_memory": "function", "build_parser": "function",
+      "main": "function"
+    },
+    "src/relay/legacy/old_planner.py": {
+      "OldPlanner": "class", "OldPlanner.__init__": "method",
+      "OldPlanner.expand": "method", "legacy_route": "function"
+    },
+    "src/relay/experimental/graph_notes.py": {
+      "build_adjacency": "function", "orphan_keys": "function"
+    },
+    "web/src/types.ts": {
+      "RunSummary": "interface", "MemoryHit": "interface",
+      "RouteEntry": "interface", "ConfigView": "interface",
+      "FetchState": "type", "ApiError": "interface", "Result": "type"
+    },
+    "web/src/api.ts": {
+      "request": "function", "getHealth": "function",
+      "getConfig": "function", "searchMemory": "function",
+      "startRun": "function", "latestRun": "function"
+    },
+    "web/src/state.ts": {
+      "AppState": "interface", "Listener": "type",
+      "subscribe": "function", "publish": "function",
+      "submitGoal": "function", "refreshMemory": "function",
+      "loadLatest": "function", "currentState": "function"
+    },
+    "web/src/format.ts": {
+      "formatRunLine": "function", "truncate": "function",
+      "formatElapsed": "function", "statusColor": "function"
+    },
+    "web/src/console.ts": {
+      "ConsoleLine": "interface", "ConsoleBuffer": "class",
+      "logInfo": "function", "logError": "function"
+    },
+    "web/src/router.ts": {
+      "View": "type", "Route": "interface", "RouteListener": "type",
+      "parseHash": "function", "toHash": "function",
+      "HashRouter": "class"
+    },
+    "web/src/components/RunList.tsx": {
+      "RunListProps": "interface", "RunList": "class"
+    },
+    "web/src/components/RunDetail.tsx": {
+      "RunDetail": "class"
+    },
+    "web/src/main.tsx": {
+      "mount": "function"
+    },
+    "scripts/lib.sh": {
+      "announce": "function", "require_binary": "function"
+    },
+    "scripts/dev.sh": {},
+    "scripts/release.sh": {},
+    "scripts/graveyard/rotate_logs.sh": {
+      "rotate": "function"
+    },
+    "migrations/001_init.sql": {
+      "records": "table", "records_key": "index",
+      "latest_records": "view"
+    },
+    "migrations/002_runs.sql": {
+      "runs": "table", "runs_started": "index",
+      "run_failure_rate": "view"
+    }
+  },
+  "resolved_edges": [
+    ["src/relay/config.py", "from-import", "relay.errors", "src/relay/errors.py"],
+    ["src/relay/llm/__init__.py", "from-import", "relay.llm.client", "src/relay/llm/client.py"],
+    ["src/relay/llm/client.py", "from-import", "relay.llm.parsing", "src/relay/llm/parsing.py"],
+    ["src/relay/llm/client.py", "from-import", "relay.llm.prompts", "src/relay/llm/prompts.py"],
+    ["src/relay/llm/client.py", "from-import", "relay.config", "src/relay/config.py"],
+    ["src/relay/tools/__init__.py", "from-import-sub", "relay.tools.file_tool", "src/relay/tools/file_tool.py"],
+    ["src/relay/tools/__init__.py", "from-import-sub", "relay.tools.shell_tool", "src/relay/tools/shell_tool.py"],
+    ["src/relay/tools/__init__.py", "from-import-sub", "relay.tools.sql_tool", "src/relay/tools/sql_tool.py"],
+    ["src/relay/tools/__init__.py", "from-import-sub", "relay.tools.web_tool", "src/relay/tools/web_tool.py"],
+    ["src/relay/tools/registry.py", "from-import", "relay.errors", "src/relay/errors.py"],
+    ["src/relay/tools/sql_tool.py", "path-ref", "migrations/001_init.sql", "migrations/001_init.sql"],
+    ["src/relay/tools/sql_tool.py", "path-ref", "migrations/002_runs.sql", "migrations/002_runs.sql"],
+    ["src/relay/executor.py", "from-import", "relay.audit", "src/relay/audit.py"],
+    ["src/relay/executor.py", "from-import", "relay.planner", "src/relay/planner.py"],
+    ["src/relay/executor.py", "from-import", "relay.memory.recall", "src/relay/memory/recall.py"],
+    ["src/relay/executor.py", "from-import", "relay.memory.store", "src/relay/memory/store.py"],
+    ["src/relay/executor.py", "from-import", "relay.telemetry", "src/relay/telemetry.py"],
+    ["src/relay/executor.py", "pkg-init", "relay.audit", "src/relay/__init__.py"],
+    ["src/relay/planner.py", "from-import", "relay.llm.client", "src/relay/llm/client.py"],
+    ["src/relay/planner.py", "from-import", "relay.tools.registry", "src/relay/tools/registry.py"],
+    ["src/relay/memory/recall.py", "from-import", "relay.memory.store", "src/relay/memory/store.py"],
+    ["src/relay/memory/compact.py", "from-import", "relay.memory.store", "src/relay/memory/store.py"],
+    ["src/relay/server/__init__.py", "from-import", "relay.server.app", "src/relay/server/app.py"],
+    ["src/relay/server/app.py", "from-import-sub", "relay.server.handlers", "src/relay/server/handlers.py"],
+    ["src/relay/server/app.py", "from-import", "relay.limits", "src/relay/limits.py"],
+    ["src/relay/server/handlers.py", "from-import", "relay.executor", "src/relay/executor.py"],
+    ["src/relay/server/handlers.py", "from-import-sub", "relay.server.app", "src/relay/server/app.py"],
+    ["src/relay/cli.py", "from-import", "relay.scheduler", "src/relay/scheduler.py"],
+    ["src/relay/cli.py", "from-import", "relay.report", "src/relay/report.py"],
+    ["src/relay/cli.py", "from-import", "relay.memory.compact", "src/relay/memory/compact.py"],
+    ["src/relay/cli.py", "from-import", "relay.server.app", "src/relay/server/app.py"],
+    ["src/relay/experimental/graph_notes.py", "from-import", "relay.memory.store", "src/relay/memory/store.py"],
+    ["tests/test_planner.py", "from-import", "relay.planner", "src/relay/planner.py"],
+    ["tests/test_experimental.py", "from-import", "relay.experimental.graph_notes", "src/relay/experimental/graph_notes.py"],
+    ["pyproject.toml", "import", "relay.cli", "src/relay/cli.py"],
+    ["web/src/api.ts", "import", "@relay/types", "web/src/types.ts"],
+    ["web/src/state.ts", "import", "./api", "web/src/api.ts"],
+    ["web/src/format.ts", "import", "@relay/types", "web/src/types.ts"],
+    ["web/src/main.tsx", "import", "./components/RunList", "web/src/components/RunList.tsx"],
+    ["web/src/main.tsx", "import", "./components/RunDetail", "web/src/components/RunDetail.tsx"],
+    ["web/src/main.tsx", "import", "./router", "web/src/router.ts"],
+    ["web/src/main.tsx", "import", "./console", "web/src/console.ts"],
+    ["web/src/components/RunList.tsx", "import", "../state", "web/src/state.ts"],
+    ["web/src/components/RunDetail.tsx", "import", "../format", "web/src/format.ts"],
+    ["web/public/index.html", "script", "../src/main.tsx", "web/src/main.tsx"],
+    ["web/public/index.html", "link", "styles.css", "web/public/styles.css"],
+    ["scripts/dev.sh", "source", "scripts/lib.sh", "scripts/lib.sh"],
+    ["scripts/release.sh", "source", "scripts/lib.sh", "scripts/lib.sh"],
+    ["Dockerfile", "copy", "pyproject.toml", "pyproject.toml"],
+    ["Dockerfile", "copy", "src/relay/cli.py", "src/relay/cli.py"],
+    ["Dockerfile", "copy", "src/relay/legacy/old_planner.py", "src/relay/legacy/old_planner.py"],
+    ["docker-compose.yml", "copy", "Dockerfile", "Dockerfile"],
+    ["docker-compose.yml", "copy", "migrations/001_init.sql", "migrations/001_init.sql"],
+    [".github/workflows/ci.yml", "script", "scripts/release.sh", "scripts/release.sh"],
+    ["README.md", "link", "src/relay/planner.py", "src/relay/planner.py"],
+    ["docs/architecture.md", "link", "../src/relay/audit.py", "src/relay/audit.py"]
+  ],
+  "entry_points": [
+    ["src/relay/cli.py", "main-guard"],
+    ["pyproject.toml", "script"],
+    ["Dockerfile", "dockerfile"],
+    ["docker-compose.yml", "compose"],
+    [".github/workflows/ci.yml", "workflow"],
+    ["scripts/dev.sh", "shebang"],
+    ["scripts/release.sh", "shebang"],
+    ["web/public/index.html", "page"],
+    ["tests/test_planner.py", "main-guard"],
+    ["tests/test_memory.py", "main-guard"],
+    ["tests/test_experimental.py", "main-guard"],
+    ["tests/test_tools.py", "main-guard"],
+    ["tests/test_audit.py", "main-guard"],
+    ["tests/test_scheduler.py", "main-guard"],
+    ["tests/test_report.py", "main-guard"],
+    ["tests/test_compact.py", "main-guard"]
+  ],
+  "tiers": {
+    "unreachable": ["scripts/graveyard/rotate_logs.sh"],
+    "test-only": ["src/relay/experimental/graph_notes.py"],
+    "weak-only": ["src/relay/legacy/old_planner.py"]
+  },
+  "unresolved": [
+    ["src/relay/legacy/old_planner.py", "from-import", "relay.removed.heuristics"]
+  ]
+}

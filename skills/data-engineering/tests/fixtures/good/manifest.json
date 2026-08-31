@@ -1,0 +1,139 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12.json",
+    "dbt_version": "1.9.0",
+    "project_name": "good_project"
+  },
+  "sources": {
+    "source.good_project.crm.customers": {
+      "name": "customers",
+      "resource_type": "source",
+      "unique_id": "source.good_project.crm.customers",
+      "original_file_path": "models/staging/crm/__sources.yml",
+      "loaded_at_field": "_loaded_at",
+      "freshness": {
+        "warn_after": {"count": 12, "period": "hour"},
+        "error_after": {"count": 24, "period": "hour"}
+      }
+    },
+    "source.good_project.billing.invoices": {
+      "name": "invoices",
+      "resource_type": "source",
+      "unique_id": "source.good_project.billing.invoices",
+      "original_file_path": "models/staging/billing/__sources.yml",
+      "loaded_at_field": "_loaded_at",
+      "freshness": {
+        "warn_after": {"count": 6, "period": "hour"},
+        "error_after": {"count": 12, "period": "hour"}
+      }
+    }
+  },
+  "nodes": {
+    "model.good_project.stg_crm__customers": {
+      "name": "stg_crm__customers",
+      "resource_type": "model",
+      "unique_id": "model.good_project.stg_crm__customers",
+      "original_file_path": "models/staging/crm/stg_crm__customers.sql",
+      "config": {"materialized": "view"},
+      "depends_on": {"nodes": ["source.good_project.crm.customers"]}
+    },
+    "model.good_project.stg_billing__invoices": {
+      "name": "stg_billing__invoices",
+      "resource_type": "model",
+      "unique_id": "model.good_project.stg_billing__invoices",
+      "original_file_path": "models/staging/billing/stg_billing__invoices.sql",
+      "config": {"materialized": "view"},
+      "depends_on": {"nodes": ["source.good_project.billing.invoices"]}
+    },
+    "model.good_project.int_customer_invoices_joined": {
+      "name": "int_customer_invoices_joined",
+      "resource_type": "model",
+      "unique_id": "model.good_project.int_customer_invoices_joined",
+      "original_file_path": "models/intermediate/int_customer_invoices_joined.sql",
+      "config": {"materialized": "ephemeral"},
+      "depends_on": {
+        "nodes": [
+          "model.good_project.stg_crm__customers",
+          "model.good_project.stg_billing__invoices"
+        ]
+      }
+    },
+    "model.good_project.dim_customer": {
+      "name": "dim_customer",
+      "resource_type": "model",
+      "unique_id": "model.good_project.dim_customer",
+      "original_file_path": "models/marts/sales/dim_customer.sql",
+      "config": {"materialized": "table"},
+      "depends_on": {"nodes": ["model.good_project.int_customer_invoices_joined"]}
+    },
+    "model.good_project.fct_invoice_line": {
+      "name": "fct_invoice_line",
+      "resource_type": "model",
+      "unique_id": "model.good_project.fct_invoice_line",
+      "original_file_path": "models/marts/sales/fct_invoice_line.sql",
+      "config": {
+        "materialized": "incremental",
+        "incremental_strategy": "merge",
+        "unique_key": ["invoice_id", "line_number"],
+        "on_schema_change": "append_new_columns",
+        "event_time": "invoiced_at",
+        "begin": "2020-01-01"
+      },
+      "depends_on": {"nodes": ["model.good_project.int_customer_invoices_joined"]}
+    },
+    "snapshot.good_project.customer_snapshot": {
+      "name": "customer_snapshot",
+      "resource_type": "snapshot",
+      "unique_id": "snapshot.good_project.customer_snapshot",
+      "original_file_path": "snapshots/customer_snapshot.yml",
+      "config": {
+        "strategy": "timestamp",
+        "updated_at": "source_modified_at",
+        "unique_key": "customer_id",
+        "hard_deletes": "new_record"
+      },
+      "depends_on": {"nodes": ["model.good_project.stg_crm__customers"]}
+    },
+    "test.good_project.unique_stg_crm__customers_customer_id": {
+      "name": "unique_stg_crm__customers_customer_id",
+      "resource_type": "test",
+      "unique_id": "test.good_project.unique_stg_crm__customers_customer_id",
+      "original_file_path": "models/staging/crm/__models.yml",
+      "config": {"severity": "error"},
+      "depends_on": {"nodes": ["model.good_project.stg_crm__customers"]}
+    },
+    "test.good_project.unique_stg_billing__invoices_invoice_id": {
+      "name": "unique_stg_billing__invoices_invoice_id",
+      "resource_type": "test",
+      "unique_id": "test.good_project.unique_stg_billing__invoices_invoice_id",
+      "original_file_path": "models/staging/billing/__models.yml",
+      "config": {"severity": "error"},
+      "depends_on": {"nodes": ["model.good_project.stg_billing__invoices"]}
+    },
+    "test.good_project.not_null_dim_customer_customer_key": {
+      "name": "not_null_dim_customer_customer_key",
+      "resource_type": "test",
+      "unique_id": "test.good_project.not_null_dim_customer_customer_key",
+      "original_file_path": "models/marts/sales/__models.yml",
+      "config": {"severity": "error"},
+      "depends_on": {"nodes": ["model.good_project.dim_customer"]}
+    },
+    "test.good_project.unique_fct_invoice_line_key": {
+      "name": "unique_fct_invoice_line_key",
+      "resource_type": "test",
+      "unique_id": "test.good_project.unique_fct_invoice_line_key",
+      "original_file_path": "models/marts/sales/__models.yml",
+      "config": {"severity": "error"},
+      "depends_on": {"nodes": ["model.good_project.fct_invoice_line"]}
+    }
+  },
+  "macros": {},
+  "docs": {},
+  "exposures": {},
+  "metrics": {},
+  "groups": {},
+  "selectors": {},
+  "disabled": {},
+  "parent_map": {},
+  "child_map": {}
+}

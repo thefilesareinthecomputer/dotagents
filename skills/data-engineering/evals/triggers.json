@@ -1,0 +1,81 @@
+[
+  {"name": "onboard-new-source", "should_trigger": true,
+   "query": "We need to start pulling data from a vendor's Postgres database into our lakehouse. What's the right way to land it?",
+   "why": "Source onboarding, the most common front-line moment. The answer turns on the source's change-capture capability, which is a profiling question before it is a tooling one."},
+
+  {"name": "cdc-mechanism-choice", "should_trigger": true,
+   "query": "Should we use log-based replication or just poll on a last_modified column?",
+   "why": "Change-capture mechanism selection. The trap is that cursor polling cannot see deletes or intermediate states, which is a downstream correctness problem rather than a latency preference."},
+
+  {"name": "silent-row-loss", "should_trigger": true,
+   "query": "Some rows never show up in our silver tables but every pipeline run is green. Where do I even start?",
+   "why": "The signature symptom in the failure index. Must fire so the symptom gets classified as scope, extract, or downstream predicate before anything is widened."},
+
+  {"name": "dbt-project-review", "should_trigger": true,
+   "query": "Can you review how our dbt project is laid out? We have about 200 models and it's getting hard to navigate.",
+   "why": "dbt project design, and the case the manifest auditor serves."},
+
+  {"name": "incremental-strategy", "should_trigger": true,
+   "query": "My incremental model on Databricks keeps leaving stale rows behind even though it runs in full mode.",
+   "why": "The dynamic-partition-overwrite footgun stated as a symptom. High-value trigger because every run reports success."},
+
+  {"name": "profile-unfamiliar-source", "should_trigger": true,
+   "query": "I've been given access to a source system nobody here has used before. What do I check before we commit to it?",
+   "why": "Profiling as an admission gate. The deliverable is a go/no-go plus either a change request to the source owner or a screen specification."},
+
+  {"name": "validation-suite-design", "should_trigger": true,
+   "query": "What data quality checks should we actually be running on this pipeline, and where do they go?",
+   "why": "Validation design, including the response policy for a failed check and the trap of a check that cannot fail."},
+
+  {"name": "bill-grew", "should_trigger": true,
+   "query": "Our platform bill nearly doubled last month and the data volume didn't change. Help me work out why.",
+   "why": "Cost diagnosis. Turns on establishing the billing unit before proposing a lever."},
+
+  {"name": "forecast-before-commitment", "should_trigger": true,
+   "query": "I have to give the client a spend estimate for this platform before we sign anything. How do I approach it?",
+   "why": "Cost at architecture altitude. The skill teaches drivers and guardrails rather than worked list prices, and should say so."},
+
+  {"name": "bundle-promotion", "should_trigger": true,
+   "query": "How should I promote these jobs from dev to prod with asset bundles?",
+   "why": "Deployment, including the development-versus-production mode mechanism and the channel-sequencing law."},
+
+  {"name": "terraform-vs-workload", "should_trigger": true,
+   "query": "Should our catalogs and schemas be created in Terraform or in the deployment config with the jobs?",
+   "why": "The layer seam stated as the user's own question. One of the two standard violations."},
+
+  {"name": "governance-setup", "should_trigger": true,
+   "query": "We need to set up column masking and row filters for PII across a few dozen tables. What's the right structure?",
+   "why": "Governance mechanics, and the per-object grant to tag-driven policy migration."},
+
+  {"name": "dedup-matching", "should_trigger": true,
+   "query": "We have customer records from four systems with no shared ID and we need one record per customer.",
+   "why": "Entity resolution and survivorship. The separable-problems point is the value: matching is technical, survivorship is a business rule set that has to be elicited."},
+
+  {"name": "inherited-platform-audit", "should_trigger": true,
+   "query": "I just took over someone else's Databricks setup. How do I work out what's actually here and whether it's any good?",
+   "why": "Brownfield judgment at architecture altitude, which is a different task from building something new."},
+
+  {"name": "slow-merge", "should_trigger": true,
+   "query": "This MERGE takes forty minutes on a table that isn't that big. What's wrong with it?",
+   "why": "Line-of-code altitude on optimization. Should reach triage order and layout, not generic SQL advice."},
+
+  {"name": "grain-question-routes-away", "should_trigger": false,
+   "query": "Should one row of my sales fact table be an order, an order line, or a shipment?",
+   "why": "Grain belongs to dimensional-data-modeling, which should fire instead. This skill must not poach it, or the two compete for one trigger and both lose."},
+
+  {"name": "scd-question-routes-away", "should_trigger": false,
+   "query": "Customers move between segments. Do I overwrite the segment or keep the old value?",
+   "why": "SCD semantics belong to dimensional-data-modeling, which should fire instead. This skill owns how history gets loaded, not what history should mean."},
+
+  {"name": "rag-pipeline", "should_trigger": false,
+   "query": "I need to chunk and embed these documents and put them in a vector store for retrieval.",
+   "why": "AI engineering. Adjacent vocabulary (pipeline, ingestion, embeddings) makes this the most likely false positive."},
+
+  {"name": "dockerfile-build", "should_trigger": false,
+   "query": "My Docker image is 3GB and takes forever to build. How do I slim it down?",
+   "why": "Container work belongs to the docker skill, even though image builds appear in the deployment layer stack."},
+
+  {"name": "generic-sql-rewrite", "should_trigger": false,
+   "query": "Rewrite this query to use a CTE instead of a subquery so it reads better.",
+   "why": "Readability refactor with no platform, pipeline or cost dimension. Guards against firing on anything SQL-shaped."}
+]

@@ -1,0 +1,61 @@
+{
+  "skill_name": "notes",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/notes",
+      "expected_output": "The notes skill fires and performs the full documentation sweep in order: it reconstructs the session (completed, learned, resolved, decided, planned, implemented), cross-checks against git status/diff/log, measures the hot files, settles the tasks/ bundle, relocates finished work into today's cold-storage file, compresses what survives, and only then reconciles README.md and SPEC.md before re-measuring and reporting.",
+      "expectations": [
+        "The notes skill is invoked",
+        "The transcript shows session reconstruction before any file edit, listing concrete items (completed / learned / decided / planned) drawn from the session",
+        "git status and git diff or git log are consulted to validate claimed work against the actual tree",
+        "Each doc that exists (SPEC.md, README.md, tasks/plan.md, tasks/todo.md) is read before it is edited",
+        "No edit to README.md or SPEC.md occurs before the last edit to a tasks/ file: the bundle settles first and the root docs are written once, at the end",
+        "The h1-h5 headings of README.md and SPEC.md are listed before either is edited, and only the sections that map to a fold-in or an invalidated claim are touched",
+        "Completed items appear in tasks/completed/plan-completed-YYYY-MM-DD.md under a '## YYYY-MM-DD' header using today's date obtained from the environment (e.g. date +%F)",
+        "No file outside tasks/plan.md, tasks/todo.md, tasks/SPEC-FEATURE-NAME.md, tasks/completed/, README.md and SPEC.md is edited; AGENTS.md, rules files, secondary specs and any published CHANGELOG.md are left alone",
+        "A final report lists which docs were updated or created and what moved to cold storage"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "That refactor is done and the tests pass. Before we stop, write up the session so the docs reflect where things stand.",
+      "expected_output": "The notes skill triggers on the 'write up the session' phrasing at session end. It updates the repo's living docs surgically (merging, not rewriting), marks finished tasks done in tasks/plan.md and relocates them into today's tasks/completed/plan-completed-YYYY-MM-DD.md cold file, and does not fabricate progress or delete existing content.",
+      "expectations": [
+        "The notes skill is invoked",
+        "Existing hot docs are edited surgically: prior content, voice, and unrelated sections are preserved rather than the file being rewritten wholesale",
+        "Finished tasks/plan.md items are marked done and relocated into the tasks/completed/ per-date cold store rather than deleted",
+        "Decisions recorded in the docs include the rationale (the why), not just the outcome",
+        "Compression shortens the narration but never the reasoning: a rationale too long for a hot file is moved to SPEC.md or cold storage, not reduced to a claim with no why behind it",
+        "A settled design decision moves verbatim into today's cold-storage file leaving a one-line claim and pointer in tasks/plan.md; live gotchas and failure modes stay in tasks/plan.md",
+        "If a hot file ends over budget, the report gives the number and why it did not come down, rather than naming what should move and deferring the reduction to a later sweep",
+        "No accomplishment is written that cannot be traced to a real change in the tree or the conversation",
+        "The user is never referred to by name anywhere in the updated docs"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Take notes on this session. It's a fresh prototype repo, there's no SPEC.md or tasks/plan.md yet, we just built the first working version of the CLI.",
+      "expected_output": "The skill handles a repo with missing docs correctly: it creates the hot files that the work clearly warrants (e.g. tasks/plan.md and/or root SPEC.md, not under .claude/), records what was built with file paths, and does NOT create today's cold-storage file when there is no finished work to move into it.",
+      "expectations": [
+        "The notes skill is invoked",
+        "New hot docs are created at the repo root, not under .claude/",
+        "Created docs describe the session's real output with concrete file paths",
+        "tasks/completed/plan-completed-YYYY-MM-DD.md is created only if genuinely finished work is being moved into it",
+        "The final report states which files were created and anything deliberately left out"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Quick thing before you continue with the migration: add a note in the code explaining why we retry three times in the upload handler.",
+      "expected_output": "This is a mid-task request for a code comment, not a session closeout. The notes skill is NOT invoked. The agent simply adds the explanatory comment to the upload handler and continues the in-flight migration work; no living docs are swept and no cold-storage files are touched.",
+      "expectations": [
+        "The notes skill is NOT invoked",
+        "A code comment explaining the retry rationale is added near the retry logic in the upload handler",
+        "SPEC.md, README.md, tasks/plan.md, and tasks/todo.md are not modified as part of this request",
+        "No file under tasks/completed/ is created or modified",
+        "The agent returns to (or remains available for) the in-progress migration task rather than starting an end-of-session sweep"
+      ]
+    }
+  ]
+}

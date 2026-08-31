@@ -1,0 +1,61 @@
+[
+  {"name": "casual-push", "should_trigger": true,
+   "query": "ok push this up",
+   "why": "The most common phrasing and the one the description calls out. Any push intent is the trigger, however casual, because the ritual is the point and running git push directly is the failure."},
+
+  {"name": "ship-it", "should_trigger": true,
+   "query": "ship it",
+   "why": "Push intent with no git vocabulary whatsoever. Tests that the trigger reads intent rather than keywords."},
+
+  {"name": "commit-it-all", "should_trigger": true,
+   "query": "just commit it all",
+   "why": "Commit intent, and the word all is the exact hazard Phase 3.5 exists for: git commit writes the whole index, so the staged set gets checked before the message is written."},
+
+  {"name": "save-before-i-close", "should_trigger": true,
+   "query": "Save this somewhere before I shut the laptop.",
+   "why": "Commit intent phrased as a worry rather than a command. The softest true case, and the one where a miss means work sits uncommitted on one device."},
+
+  {"name": "am-i-up-to-date", "should_trigger": true,
+   "query": "Was I working on this from the other machine yesterday? Check whether I am current before we start.",
+   "why": "Phase 1 assess. Fetch and diff origin before trusting local state, since starting on stale state is half of what this ritual prevents."},
+
+  {"name": "pull-the-other-machine", "should_trigger": true,
+   "query": "Pull down whatever the desktop pushed.",
+   "why": "Inbound reconcile. The deletion pre-flight runs before every pull, because an incoming untrack commit deletes files that are then invisible to git status."},
+
+  {"name": "diverged-branches", "should_trigger": true,
+   "query": "Git says my branch and origin have both moved on. What do I do?",
+   "why": "Divergence is the stop-and-ask condition: show both sides, propose a merge, and never force-push, rebase pushed commits or hard reset."},
+
+  {"name": "branch-parity", "should_trigger": true,
+   "query": "Get main and develop pointing at the same commit again.",
+   "why": "Phase 4 parity convention. The trailing branch advances by push refspec, never by checkout, because checking out across a commit that untracks files deletes them silently."},
+
+  {"name": "station-drift-check", "should_trigger": true,
+   "query": "Check this machine against the station spec.",
+   "why": "Phase 5, which is scoped to this repo and named in the skill. Live plugins, settings, hooks and CLI deps get diffed against the spec, with fixes proposed rather than applied."},
+
+  {"name": "local-branch-only", "should_trigger": false,
+   "query": "Cut a branch off develop so I can try something without breaking anything.",
+   "why": "In-repo branch work that never touches origin, which the when-not-to-use section excludes outright."},
+
+  {"name": "local-merge-no-push", "should_trigger": false,
+   "query": "Merge my feature branch back into develop locally. I am not pushing anything yet.",
+   "why": "Same exclusion, stated explicitly by the user. Git verbs are present but no origin interaction is, which makes this the hardest false positive in the set."},
+
+  {"name": "git-concept-question", "should_trigger": false,
+   "query": "What is the actual difference between rebase and merge?",
+   "why": "A general git question. The skill is a ritual for a multi-device repo, not a git tutor."},
+
+  {"name": "history-lookup", "should_trigger": false,
+   "query": "Who changed this line last and what was the commit message?",
+   "why": "A read-only history query. No commit, push or pull intent, and nothing about origin state."},
+
+  {"name": "gitignore-edit", "should_trigger": false,
+   "query": "Add .env to the gitignore file.",
+   "why": "A plain file edit. It becomes this skill's problem only when the resulting untrack is committed, since that is a distributed deletion, but editing the file is not yet that."},
+
+  {"name": "wrap-up-the-session", "should_trigger": false,
+   "query": "Wrap up the session.",
+   "why": "Belongs to wrap-up, which owns the session closeout chain and calls this skill as one link in it. Firing here would start the sync without the notes and memory steps that precede it."}
+]

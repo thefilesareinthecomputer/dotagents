@@ -1,0 +1,34 @@
+{
+  "manifest_version": 1,
+  "tool": "hand-written",
+  "command": "evaluate",
+  "data": {
+    "source": "preds.csv",
+    "n": 5000,
+    "rows_total": 5000,
+    "rows_dropped": 0,
+    "rows_dropped_reported": true
+  },
+  "design": {
+    "observational": true,
+    "randomized_assignment": false,
+    "evaluation_data": "train"
+  },
+  "randomization": {"seeded": true, "seed": 11, "reps": 2000},
+  "comparisons": {"tried": 1, "correction": null},
+  "results": [
+    {
+      "name": "AUC",
+      "n": 5000,
+      "estimate": 0.94,
+      "effect_size": {"name": "auc", "value": 0.94},
+      "interval": {"kind": "percentile bootstrap", "level": 0.95, "lo": 0.93, "hi": 0.95},
+      "p_value": null,
+      "method": "bootstrap over rows, 2000 reps",
+      "assumption": "the rows scored are exchangeable with the rows the model will meet"
+    }
+  ],
+  "claims": ["the model separates the two classes well on the rows it was fit on"],
+  "assumptions": ["the rows scored are exchangeable with the rows the model will meet"],
+  "notes": []
+}

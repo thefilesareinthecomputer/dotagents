@@ -1,0 +1,30 @@
+name: Bug report
+description: A skill, subagent, command, hook, or script behaves incorrectly.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: For a security vulnerability, use **Report a vulnerability** under this repository's Security tab instead.
+
+  - type: input
+    id: entry
+    attributes:
+      label: Which entry
+      placeholder: skills/docker/SKILL.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: Include the prompt you used if a skill fired wrongly or failed to fire, plus your OS, Claude Code version, and commit.
+    validations:
+      required: true

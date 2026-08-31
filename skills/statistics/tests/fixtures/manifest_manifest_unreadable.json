@@ -1,0 +1,6 @@
+{
+  "manifest_version": 1,
+  "tool": "hand-written",
+  "command": "test",
+  "data": {"source": "orders.csv", "n": 240,
+  "results": [

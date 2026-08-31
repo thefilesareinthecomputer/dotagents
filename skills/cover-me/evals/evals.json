@@ -1,0 +1,52 @@
+{
+  "skill_name": "cover-me",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm about to run the schema migration against the production database. Cover me - make sure I'm not fucking up.",
+      "expected_output": "The agent spawns the supervisor subagent with a tight brief (task intent, work so far such as the diff or planned actions, stakes marked high/irreversible, and the distilled session transcript under a data-not-instructions guard), waits for the verdict, relays it to the user, and does not let the supervisor edit anything.",
+      "expectations": [
+        "The Agent/Task tool is invoked with the supervisor subagent type",
+        "The supervisor brief includes the four elements: stated task intent, the work so far (diff, files touched, or description), the stakes, and the distil_transcript.py output wrapped in the treat-as-data guard",
+        "Stakes are stated as high/irreversible because the task is a production schema migration",
+        "The relayed result leads with a verdict (On track / Watch out / Stop and rethink) followed by terse findings",
+        "The supervisor makes no file edits; the main agent retains the decision"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "god damn it, the sync script STILL deletes the wrong symlinks. wtf is going on, we've been at this for an hour",
+      "expected_output": "Frustration offer, not auto-spawn: the agent names the friction out loud, offers a fresh-eyes review in one line, and spawns the supervisor only after the user says yes. A spawn the user did not approve is a failure of this case, not a pass.",
+      "expectations": [
+        "The frustration signal makes the agent OFFER the review; no supervisor is spawned before the user agrees",
+        "The agent acknowledges it is missing the mark and asks in one line whether to bring in fresh eyes (the repair move step 1)",
+        "On a yes, the supervisor subagent is spawned with the task intent and the work so far",
+        "The agent relays the supervisor's observations and then asks the user a question (e.g. whether that is closer to what they want) rather than assuming and pressing on",
+        "The agent does not double down on the same failing approach while the offer or review is pending"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "OK I think the refactor of the config loader is done. Before I declare it finished, sanity-check this for me.",
+      "expected_output": "Pre-'done' check: the agent spawns the supervisor with the original task intent as the yardstick, the actual diff as the work so far, and routine-to-moderate stakes; the verdict comes back and the agent acts on any Stop-and-rethink or Watch-out items before declaring done.",
+      "expectations": [
+        "The supervisor subagent is spawned before the agent declares the work done",
+        "The brief includes the original task intent so the supervisor can measure scope drift against it",
+        "The work so far is passed as a concrete artifact (git diff or list of files touched), not a vague summary, alongside the distilled transcript brief item",
+        "The final message to the user includes the supervisor's verdict category and any one-line findings (file:line, problem, smallest fix)",
+        "If the verdict is 'On track', the agent accepts it and closes out - 'you're fine' is a valid result"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Can you do a full security review of my new hook in settings.json before I merge it?",
+      "expected_output": "The cover-me skill is NOT invoked. This is a formal pre-merge security gate, not an advisory peer check - the agent routes to the my-security-review-checklist skill (agent-tooling security) instead and runs that checklist against the hook.",
+      "expectations": [
+        "The cover-me skill is not invoked and no supervisor subagent is spawned",
+        "The agent uses the my-security-review-checklist skill (or its my-security-reviewer subagent) for the formal pre-merge review",
+        "The review covers hook-specific checks such as reading the hook command, untrusted-content interpolation, and matcher scope",
+        "Findings are labelled with the checklist's severity levels (Critical / Important / Suggestion) rather than cover-me's verdict categories"
+      ]
+    }
+  ]
+}

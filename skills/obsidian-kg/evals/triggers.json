@@ -1,0 +1,53 @@
+[
+  {"name": "what-links-to-this-note", "should_trigger": true,
+   "query": "What links to Soil Amendments, and what was each of those notes saying about it?",
+   "why": "Backlinks with context. The engine names the section each inbound link sits in, which is exactly the second half of the question."},
+
+  {"name": "make-corpus-queryable", "should_trigger": true,
+   "query": "My vault is up around four thousand notes and I can't find anything in it anymore. Can you make it queryable?",
+   "why": "The setup case: init, profile, ingest. A corpus larger than context is the condition the skill exists for."},
+
+  {"name": "answer-from-large-corpus", "should_trigger": true,
+   "query": "Somewhere in my journal I worked out how to zone the irrigation. What did I settle on?",
+   "why": "A factual question answered from a corpus too large to read. Search returns heading-bounded sections with line ranges, then the underlying markdown gets read before asserting the answer."},
+
+  {"name": "how-are-these-connected", "should_trigger": true,
+   "query": "Are these two notes related at all? I can't remember whether one grew out of the other.",
+   "why": "Graph traversal: path and neighbors over the resolved link graph, which no amount of grepping produces."},
+
+  {"name": "themes-over-a-window", "should_trigger": true,
+   "query": "What was I mostly writing about in the spring, compared with the rest of the year?",
+   "why": "Aggregation over dated entries. themes reports over-represented terms in a window against the rest of the corpus, not merely frequent ones."},
+
+  {"name": "broken-links-worklist", "should_trigger": true,
+   "query": "I renamed a bunch of notes and I think I broke links. Which ones point at nothing now?",
+   "why": "links --unresolved is a worklist of broken and ambiguous links with the note that wrote each one."},
+
+  {"name": "non-vault-markdown-tree", "should_trigger": true,
+   "query": "Our docs directory has around nine hundred markdown files. Which one covers the retry policy for the payments service?",
+   "why": "The corpus is any markdown on disk, not just an Obsidian vault. Absence of a .obsidian folder makes this a contested case, but the vault path is only an argument."},
+
+  {"name": "add-callout-to-note", "should_trigger": false,
+   "query": "Add a warning callout at the top of my daily note about the deploy freeze.",
+   "why": "Authoring inside a vault belongs to obsidian. This engine is not a document store or editor and writes to vault markdown only for the index file it is asked for."},
+
+  {"name": "fix-frontmatter-across-notes", "should_trigger": false,
+   "query": "The tags in my project notes aren't rendering. Can you fix the frontmatter across all of them?",
+   "why": "Editing notes belongs to obsidian. Touching many files at once resembles corpus work, which makes this the closest false positive, but the deliverable is edited markdown, not a query."},
+
+  {"name": "current-state-of-the-web", "should_trigger": false,
+   "query": "What's the current state of local embedding models, and which ones are worth using now?",
+   "why": "Web research belongs to deep-research. The corpus on disk has no answer to a currency question."},
+
+  {"name": "code-search-small-repo", "should_trigger": false,
+   "query": "Where is the auth middleware defined in this repo?",
+   "why": "Code search over a repo that fits in context. Not a markdown corpus, and grep or a direct read is the right tool."},
+
+  {"name": "summarize-one-note", "should_trigger": false,
+   "query": "Give me a summary of this one note I'm looking at.",
+   "why": "A single file that fits in context. Reading it directly beats building a graph, and no aggregation or traversal is being asked for."},
+
+  {"name": "graph-derived-index", "should_trigger": true,
+   "query": "Give me a health report on the vault: which notes nothing links to, which links are broken, and which notes are the hubs.",
+   "why": "The graph-derived index and stats. Distinct from obsidian's INDEX.md hub note, which lists files and headings rather than orphans, degree and unresolved links."}
+]

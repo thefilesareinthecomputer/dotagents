@@ -1,0 +1,76 @@
+{
+  "skill_name": "ai-engineering-update",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Any new agent frameworks worth knowing about? Fold anything good into the AI tooling catalog.",
+      "expected_output": "The ai-engineering-update skill is invoked: seed sources and/or web research surface candidates, each is verified (what it is, status, license) before classification, findings are piped through ledger.py ingest (duplicates report unchanged), new triage rows are classified via seed-sections.tsv or rules.tsv, link-ledger.md is regenerated via ledger.py render, and a summary reports counts added/reclassified/unchanged.",
+      "expectations": [
+        "The ai-engineering-update skill is invoked",
+        "Discovery uses the seed sources and/or WebSearch/deep-research, and candidate repos are verified (purpose, status, license) before being classified",
+        "New URLs are added via ledger.py ingest, with already-known links reporting unchanged rather than being re-added",
+        "Any new triage rows are classified by editing seed-sections.tsv or rules.tsv (data edits), then re-ingested - not by editing ledger.py code",
+        "link-ledger.md is regenerated with ledger.py render and is never hand-edited",
+        "The final report summarizes counts: added, unchanged/duplicates, reclassified, and any opinion changes worth noting"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Check the AI tooling catalog for staleness and dead links.",
+      "expected_output": "The ai-engineering-update skill is invoked and runs the freshness pass: ledger.py check with a TTL and --probe flags stale/dead rows, dead rows are investigated (moved/renamed/abandoned) and flagged non-destructively, and the ledger is re-rendered with a summary of what changed.",
+      "expectations": [
+        "The ai-engineering-update skill is invoked",
+        "ledger.py check is run with a --ttl value and --probe (optionally --limit) to flag stale rows and mark dead ones",
+        "Rows found dead are investigated and updated or flagged, not silently deleted - catalog rows for abandoned projects get a status/caution, preserving history",
+        "ledger.py render is run afterward to regenerate link-ledger.md",
+        "The report states how many rows were stale, how many dead, and what was done about each"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Add these AI links to the catalog: https://github.com/example-org/agent-kit and https://example-tool.dev/docs",
+      "expected_output": "The ai-engineering-update skill is invoked and the links are ingested through the deterministic engine: ledger.py ingest canonicalizes and dedupes them, any GitHub repo without a seed-sections entry lands in triage and gets classified via a seed-sections.tsv (or rules.tsv) row, and link-ledger.md is regenerated.",
+      "expectations": [
+        "The ai-engineering-update skill is invoked",
+        "The URLs are added via ledger.py ingest rather than by hand-editing catalog files or link-ledger.md",
+        "Duplicate handling is honored: a link already in the catalog is reported unchanged, not re-added",
+        "A GitHub/DeepWiki repo landing in triage is classified by adding an owner/repo → sections row to seed-sections.tsv (or a domain rule to rules.tsv) using the existing section vocabulary, then re-ingested or set",
+        "ledger.py render is run and the report states which links were new versus already known"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Update our npm dependencies to their latest versions and fix anything that breaks.",
+      "expected_output": "The ai-engineering-update skill is NOT invoked; this is a project dependency upgrade, not maintenance of the AI tooling catalog. The agent performs a normal dependency update workflow (package manager commands, run tests, fix breakage) without touching ledger.py or the catalog files.",
+      "expectations": [
+        "The ai-engineering-update skill is NOT invoked",
+        "ledger.py is not run and no catalog files (catalog.tsv, seed-sections.tsv, rules.tsv, link-ledger.md) are read or modified",
+        "The agent handles it as a standard dependency upgrade: package manager update commands, followed by running the test suite and fixing any breakage"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Heads up, LightRAG fell over on us today - it OOMed once we passed about 50k documents on a 16GB box. Worth remembering.",
+      "expected_output": "The ai-engineering-update skill is invoked for its record job: the observation is written as a field note via ledger.py field-note against LightRAG's catalogued URL, with a verdict of broken or caution, the finding stated in one line, and the scope carrying the condition it held under (roughly 50k documents, 16GB). The agent does not edit field-notes.tsv or field-notes.md by hand, and does not delete or overwrite any existing note about the tool.",
+      "expectations": [
+        "The ai-engineering-update skill is invoked, without waiting for a scheduled maintenance pass",
+        "The observation is recorded with ledger.py field-note against the tool's canonical catalogued URL, not by hand-editing field-notes.tsv or the generated field-notes.md",
+        "A verdict from the closed set (works, caution, broken, superseded) is chosen, and the scope field carries the condition the finding held under rather than being left blank",
+        "Existing notes about the tool are left intact - the store is append-only, so a new observation never overwrites an earlier one",
+        "The agent does not silently promote the observation into agent-stack-map.md as if it were researched third-party fact"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Go re-verify the harnesses section of the AI stack map - I don't trust those star counts and licenses any more.",
+      "expected_output": "The verify job runs against the claims queue rather than the liveness probe: ledger.py check --claims --section harnesses produces the work list, each row is re-verified against a live source, agent-stack-map.md is corrected with dates, and only the rows actually checked are stamped with ledger.py verified.",
+      "expectations": [
+        "The claims queue is used (ledger.py check --claims, scoped by section) rather than the liveness probe, which only establishes that a URL resolves",
+        "Rows are re-verified against a live source rather than from training memory",
+        "agent-stack-map.md is corrected with the verification date attached to each changed claim",
+        "Only rows that were actually checked get stamped with ledger.py verified - the date is the value of the field",
+        "A figure that cannot be confirmed is left as verify rather than filled with a plausible number"
+      ]
+    }
+  ]
+}

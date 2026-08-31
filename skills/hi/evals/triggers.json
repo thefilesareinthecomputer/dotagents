@@ -1,0 +1,86 @@
+[
+  {
+    "name": "canonical-get-up-to-speed",
+    "query": "get me up to speed",
+    "should_trigger": true,
+    "why": "The phrasing the skill is named for and the one said most often at session start. If this misses, nothing else matters."
+  },
+  {
+    "name": "where-did-we-leave-off",
+    "query": "where did we leave off",
+    "should_trigger": true,
+    "why": "Session-start orientation with no repo or status vocabulary. Checks the trigger reads intent rather than keying on the word 'status'."
+  },
+  {
+    "name": "returning-after-a-break",
+    "query": "I've been away for a couple of weeks, what's the state of this repo",
+    "should_trigger": true,
+    "why": "The situation the ritual exists for: no session context to answer from, so the answer has to come from docs, memory and git."
+  },
+  {
+    "name": "orient-before-work",
+    "query": "orient yourself before we start on anything",
+    "should_trigger": true,
+    "why": "Explicit orientation with an explicit before-work marker. The clearest read of session-start scope."
+  },
+  {
+    "name": "repo-status-cold",
+    "query": "what's going on in this repo right now",
+    "should_trigger": true,
+    "why": "Whole-workspace state, unscoped to any task. Branch, uncommitted work, active initiatives, what did not finish."
+  },
+  {
+    "name": "agent-is-lost",
+    "query": "you seem to have lost the thread, re-anchor on where the project actually is",
+    "should_trigger": true,
+    "why": "The skill claims re-anchoring when the agent is lost, and the object is workspace state rather than the current task. The softest true case."
+  },
+  {
+    "name": "background-test-status",
+    "query": "what's the status of that test suite you kicked off a few minutes ago",
+    "should_trigger": false,
+    "why": "Mid-session status of a running command. Answer from the background job's output; no neighbor skill, and a full orientation sweep here is pure waste."
+  },
+  {
+    "name": "in-flight-build",
+    "query": "is that build done yet",
+    "should_trigger": false,
+    "why": "Same class as the test-run check, phrased shorter. In-flight command state, answered directly from session context."
+  },
+  {
+    "name": "where-are-we-on-this-task",
+    "query": "where are we on the refactor we started an hour ago",
+    "should_trigger": false,
+    "why": "The hardest false case: it uses the skill's own 'where are we' trigger phrase but scopes it to work done inside this session, which the agent already knows. Orientation is for state the session does not hold."
+  },
+  {
+    "name": "session-closeout",
+    "query": "alright, wrap up the session",
+    "should_trigger": false,
+    "why": "wrap-up. Closeout is the opposite end of the session from orientation, and hi writes nothing."
+  },
+  {
+    "name": "docs-sweep",
+    "query": "update the docs with what we did",
+    "should_trigger": false,
+    "why": "notes. Reading the living docs is part of hi, but writing them is the docs sweep, and hi is read-only."
+  },
+  {
+    "name": "truth-reconciliation",
+    "query": "reconcile what we learned today against what's written down",
+    "should_trigger": false,
+    "why": "reflect. Memory promotion and stale-claim correction, not a state briefing."
+  },
+  {
+    "name": "targeted-memory-lookup",
+    "query": "what did we decide about the sync script, search your memory",
+    "should_trigger": false,
+    "why": "mem-search. One targeted recall, not the six-source orientation ritual."
+  },
+  {
+    "name": "inbox-check",
+    "query": "check my inbox",
+    "should_trigger": false,
+    "why": "agent-mail. Peer mail is its own boot rule and is not one of the sources hi reads."
+  }
+]

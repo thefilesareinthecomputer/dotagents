@@ -1,0 +1,80 @@
+[
+  {
+    "name": "send-to-peer-repo",
+    "query": "send a message to the agent in ~/dev/raziel asking for its schema",
+    "should_trigger": true,
+    "why": "The canonical send: a named peer repo and a request. If this misses, the skill has no reason to exist."
+  },
+  {
+    "name": "check-my-inbox",
+    "query": "check my inbox",
+    "should_trigger": true,
+    "why": "The boot rule in the user's own words. Ambiguous against human mail in principle, but 'my inbox' in an agent repo means the agent-root inbox."
+  },
+  {
+    "name": "any-mail-from-peers",
+    "query": "did the other agent send anything back",
+    "should_trigger": true,
+    "why": "Receiving side with no inbox or mail vocabulary. Checks the trigger reads inter-agent intent rather than a keyword."
+  },
+  {
+    "name": "hand-off-to-another-repo",
+    "query": "hand this task off to whoever owns the frontend repo",
+    "should_trigger": true,
+    "why": "A handoff-type message across repo boundaries. No send or message verb, which is the point."
+  },
+  {
+    "name": "reply-to-a-message",
+    "query": "reply to that request from the peer agent and mark it resolved",
+    "should_trigger": true,
+    "why": "The response leg plus mark.sh closure. Names the two steps the skill insists never get hand-edited."
+  },
+  {
+    "name": "notify-peer-of-a-change",
+    "query": "let the agent that owns the API repo know we changed the contract",
+    "should_trigger": true,
+    "why": "An fyi-type message. The verb is notify, not send, and the recipient is another repo's agent."
+  },
+  {
+    "name": "inbox-outstanding",
+    "query": "is anything still outstanding in the inbox",
+    "should_trigger": true,
+    "why": "The closing sweep rather than the listing. Distinguishing the two is the skill's own rule."
+  },
+  {
+    "name": "human-email-client",
+    "query": "email the client a status update on the migration",
+    "should_trigger": false,
+    "why": "Human email. No skill here; the agent drafts or sends through whatever mail tooling the user has. Agent-mail writes markdown files into a peer repo and never reaches a person's mailbox."
+  },
+  {
+    "name": "human-email-inbox",
+    "query": "check my email, did anything come in from the vendor",
+    "should_trigger": false,
+    "why": "Human email. The hardest false case: same verb and same noun as the boot rule, but a named human counterparty settles it."
+  },
+  {
+    "name": "draft-an-email",
+    "query": "draft an email to the vendor about the invoice",
+    "should_trigger": false,
+    "why": "Human email. Prose for a person, with no recipient repo and no inbox folder."
+  },
+  {
+    "name": "human-chat-message",
+    "query": "message the team on Slack that the deploy is done",
+    "should_trigger": false,
+    "why": "Human chat. Message and notify are agent-mail verbs, but the channel is a person-facing one."
+  },
+  {
+    "name": "subagent-prompt",
+    "query": "spawn a subagent and tell it to audit the config files",
+    "should_trigger": false,
+    "why": "The Agent tool, or cover-me if the intent is review. A subagent receives a prompt at spawn and has no inbox; mail is between independent agents that outlive a turn."
+  },
+  {
+    "name": "github-issue-comment",
+    "query": "post a comment on the GitHub issue so the other team sees it",
+    "should_trigger": false,
+    "why": "The gh CLI. Cross-team communication through a hosted tracker, not a same-machine file drop into a peer repo."
+  }
+]

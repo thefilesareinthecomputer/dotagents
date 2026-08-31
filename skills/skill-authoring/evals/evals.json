@@ -1,0 +1,53 @@
+{
+  "skill_name": "skill-authoring",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Make a skill to summarize pull request diffs into a one-paragraph changelog entry.",
+      "expected_output": "The skill-authoring profile fires and the new skill is built to the house rules: directory and frontmatter name match in lowercase-hyphen form, the description is third person and enumerates concrete when-to-fire conditions (user phrasings/situations), any custom metadata like a version lives under metadata: or a body footer rather than as top-level keys, and the body stays under 500 lines.",
+      "expectations": [
+        "The skill-authoring skill is invoked",
+        "A new SKILL.md is created in a directory whose name exactly matches the frontmatter name field, lowercase letters/digits/hyphens only",
+        "The description is written in third person and lists explicit trigger conditions (example user phrasings or situations), not just a summary of what the skill does",
+        "No custom top-level frontmatter keys (e.g. version, last-modified) appear; such values go under metadata: or in a plain body footer",
+        "The SKILL.md body is under 500 lines"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Audit my skills - check everything under ~/.agents/skills/ for problems.",
+      "expected_output": "The skill triggers on 'audit my skills' and runs the audit checklist across skills/*/SKILL.md: frontmatter parses, name matches directory, description length/person/trigger conditions, no non-standard top-level fields, body length, reference depth, and path hygiene (no hardcoded /Users/<name>/ paths). Findings are reported per skill with the specific violation.",
+      "expectations": [
+        "The skill-authoring skill is invoked",
+        "Every SKILL.md under the skills directory is checked, not just one or two",
+        "Checks visibly include: frontmatter name matching the directory name, description having when-to-fire conditions, and no custom top-level frontmatter keys outside the standard and Claude Code sets",
+        "Hardcoded user-specific absolute paths (/Users/<name>/) are flagged where present",
+        "The report names each offending file with the concrete violation, rather than giving a generic pass/fail"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I wrote a skill for formatting SQL but Claude never uses it automatically. Why isn't my skill triggering?",
+      "expected_output": "The skill triggers on the 'why isn't my skill triggering' phrasing. The diagnosis follows description discipline: it reads the skill's description, checks whether it enumerates when-to-fire conditions (user phrasings, file types, situations) rather than only stating what the skill does, verifies third-person phrasing and positive framing, and, if auto-firing remains unreliable, recommends disable-model-invocation: true for explicit invocation rather than inflating the description.",
+      "expectations": [
+        "The skill-authoring skill is invoked",
+        "The agent reads the problem skill's frontmatter description before diagnosing",
+        "The diagnosis addresses whether the description lists concrete trigger conditions (WHEN clauses), identifying their absence as a primary cause if missing",
+        "A concrete rewritten description or specific added when-to-fire conditions are proposed",
+        "disable-model-invocation: true (explicit invocation) is mentioned as the fallback if auto-firing stays unreliable, instead of endlessly inflating the description"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Add a rate limiter to the /api/upload endpoint in our Express app - 10 requests per minute per user.",
+      "expected_output": "Ordinary application code, not agent tooling: the skill-authoring skill is NOT invoked. The agent implements the rate limiter in the Express app (middleware on the upload route) and does not create or modify any SKILL.md, agents/*.md, commands/*.md, or hooks configuration.",
+      "expectations": [
+        "The skill-authoring skill is NOT invoked",
+        "Rate-limiting middleware is implemented and applied to the /api/upload route in the application code",
+        "No SKILL.md, subagent definition, slash command file, or hook configuration is created or edited",
+        "No skill-audit checklist or frontmatter discussion appears in the response",
+        "The work follows normal engineering flow (implement and verify the endpoint behavior)"
+      ]
+    }
+  ]
+}

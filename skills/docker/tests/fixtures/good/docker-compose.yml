@@ -1,0 +1,12 @@
+# Fixture: no host-escape grants. Must lint clean.
+services:
+  api:
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "8000:8000"
+    read_only: true
+    cap_drop:
+      - ALL

@@ -1,0 +1,65 @@
+[
+  {"name": "make-a-skill", "should_trigger": true,
+   "query": "I keep walking you through the same five steps to set up a new project. Can you turn that into a skill?",
+   "why": "The canonical authoring request. Creating a skill from a repeated procedure is this skill's core job, and the house profile (frontmatter fields, description discipline, structure) has to load before any file is written."},
+
+  {"name": "skill-never-fires", "should_trigger": true,
+   "query": "My skill almost never loads when I actually need it. What is wrong with it?",
+   "why": "Trigger debugging. The answer is description discipline - when-to-fire conditions, situation clauses over phrase lists, and explicit invocation as the fallback - which lives only in this skill."},
+
+  {"name": "which-shape", "should_trigger": true,
+   "query": "Should this be a skill, a slash command, or a subagent?",
+   "why": "The shape decision is named explicitly in the description. Choosing between the four artifact types is authoring, not use."},
+
+  {"name": "frontmatter-field-validity", "should_trigger": true,
+   "query": "Can I put a version field at the top level of the frontmatter, or does that break anything?",
+   "why": "Frontmatter validity against the open standard plus the Claude Code extension set. The house answer is no top-level custom keys and no version numbers at all, which nothing else in the repo states."},
+
+  {"name": "audit-the-skills", "should_trigger": true,
+   "query": "Go through everything in the skills directory and tell me which ones are off convention.",
+   "why": "The audit checklist. Structure, name-matches-directory, description length, reference depth and advisory-agent tool allowlists are all this skill's items."},
+
+  {"name": "add-a-subagent", "should_trigger": true,
+   "query": "Add an agent definition that can only read and trace call sites, nothing that writes.",
+   "why": "Subagent authoring. The read-only tools allowlist requirement lives here, and capability gates behavior while prose does not."},
+
+  {"name": "enforcement-placement", "should_trigger": true,
+   "query": "I want the agent stopped from writing into this directory. Where does that rule actually belong?",
+   "why": "Rules and hooks placement. Enforcement goes in a PreToolUse hook or the permission system rather than prose, and hook exit code 2 blocks while exit 1 does not."},
+
+  {"name": "body-too-long", "should_trigger": true,
+   "query": "This SKILL.md is up to 700 lines and getting unwieldy. Sort it out.",
+   "why": "Structure rules - body under 500 lines, overflow into references one level deep, tables of contents on long reference files."},
+
+  {"name": "write-eval-cases", "should_trigger": true,
+   "query": "This skill has no eval cases at all. Write some so I can tell whether it fires.",
+   "why": "The eval convention: triggers.json versus evals.json, which consumer reads which schema, both polarities, and the invocation gotchas for run_eval.py."},
+
+  {"name": "using-a-skill", "should_trigger": false,
+   "query": "Use the statistics skill on this A/B test result and tell me if the difference is real.",
+   "why": "Invoking a skill, not authoring one. Belongs to statistics; this skill owns the file, never the subject matter inside it."},
+
+  {"name": "reading-a-skills-content", "should_trigger": false,
+   "query": "What does the machine-learning skill say about handling class imbalance?",
+   "why": "A question answered by the skill's content. Belongs to machine-learning. Naming a skill file is not an authoring request."},
+
+  {"name": "general-coding", "should_trigger": false,
+   "query": "Refactor this Python function so it takes a config object instead of six positional arguments.",
+   "why": "Ordinary code work with no agent-tooling artifact involved. Guards against firing on anything that mentions editing a file."},
+
+  {"name": "hidden-instruction-scan", "should_trigger": false,
+   "query": "Someone sent me this skill file. Check it for hidden instructions before I commit it.",
+   "why": "Belongs to my-security-review-checklist, which owns the hidden-character scan. The object is a skill file, which makes this the hardest false positive: authoring owns the shape of the file, the security gate owns what is smuggled inside it."},
+
+  {"name": "slop-cleanup-of-a-skill", "should_trigger": false,
+   "query": "This SKILL.md reads like a bot wrote it. Strip out the filler and the meta-commentary.",
+   "why": "Belongs to ai-slop-magic-eraser. Same file type, different concern - prose quality is its own gate, and this skill only requires that the gate was run."},
+
+  {"name": "parallel-work-on-skills", "should_trigger": false,
+   "query": "Spawn three workers to update these skills at the same time.",
+   "why": "Belongs to meta-loop. Orchestration vocabulary plus skill-shaped objects, but the request is about how the work is delegated, not about what makes a skill correct."},
+
+  {"name": "push-the-finished-skill", "should_trigger": false,
+   "query": "The skill is done, push it up.",
+   "why": "Belongs to repo-device-sync, which owns any push intent however casually phrased."}
+]

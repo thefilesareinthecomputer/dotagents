@@ -1,0 +1,53 @@
+[
+  {"name": "teach-me-a-topic", "should_trigger": true,
+   "query": "Teach me how Kalman filters actually work. I've read the Wikipedia page twice and it hasn't landed.",
+   "why": "The core case with no source material and a self-declared novice. Intake, pretest, worked teaching, then the closed-book cert."},
+
+  {"name": "quiz-me", "should_trigger": true,
+   "query": "Quiz me on this until I can hold my own in the design review tomorrow.",
+   "why": "An explicit request to be tested. Closed-book retrieval with explanatory feedback and a predicted score before the answers are revealed."},
+
+  {"name": "make-this-stick", "should_trigger": true,
+   "query": "I just read this paper end to end and I know I'll have forgotten it by Thursday. Make it stick.",
+   "why": "Substantial source material plus stated intent to retain. Exposure points at sections, then the Feynman phase forces closed-book explanation."},
+
+  {"name": "after-a-research-brief", "should_trigger": true,
+   "query": "That brief is good. Now get me genuinely up to speed on it, not just briefed.",
+   "why": "The handoff right after a deep-research brief, which the description names explicitly. Research produced the material; this turns it into certified understanding."},
+
+  {"name": "re-cert-a-topic", "should_trigger": true,
+   "query": "Am I still solid on consensus protocols, or have I lost it since we last went through this?",
+   "why": "Re-cert on a topic with an existing LEARNING file: a fresh inline cert from the re-test pack plus at least one new transfer question."},
+
+  {"name": "study-guide-request", "should_trigger": true,
+   "query": "Write me a study guide on options pricing that I can work through on the plane, then test me when I'm back.",
+   "why": "Guide-first mode. The guide goes to LEARNING with status guide, and certification still happens inline in a later session."},
+
+  {"name": "explain-to-others", "should_trigger": true,
+   "query": "I have to present the new pricing model to the board on Friday and defend it. Drill me on it.",
+   "why": "Teaching in order to explain to a stated audience, which is the protege effect the EXPLAIN phase runs on. The user is producing, not receiving."},
+
+  {"name": "codebase-orientation", "should_trigger": false,
+   "query": "Help me learn this repo. Where does a request actually go once it hits the router?",
+   "why": "Codebase priming, not topic tutoring. The skill names this exclusion directly, and the word learn makes it the closest false positive."},
+
+  {"name": "one-line-fact", "should_trigger": false,
+   "query": "What's the default isolation level in Postgres?",
+   "why": "A one-line factual question. Just answer it; running the protocol on a casual question is a listed anti-pattern."},
+
+  {"name": "explain-this-snippet", "should_trigger": false,
+   "query": "What is this decorator doing here?",
+   "why": "A short explanation about code in front of us. No topic, no session, no certification. Belongs to a direct answer."},
+
+  {"name": "currency-question", "should_trigger": false,
+   "query": "What's the state of play on the EU AI Act right now?",
+   "why": "Fact-finding and currency belong to deep-research. Teaching can follow the brief, but the brief has to exist first."},
+
+  {"name": "summary-for-someone-else", "should_trigger": false,
+   "query": "Summarize this spec into a page my team can read. I don't need to know it in depth myself.",
+   "why": "Plain writing. The user has explicitly disclaimed any intent to learn it, which is the listed exclusion."},
+
+  {"name": "decision-not-learning", "should_trigger": false,
+   "query": "I understand both approaches well enough. I need to pick one by Friday.",
+   "why": "A live decision the user owns belongs to o-o-d-a-loop. Understanding is stated as already sufficient, so there is nothing to certify."}
+]

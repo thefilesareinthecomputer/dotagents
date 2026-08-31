@@ -1,0 +1,62 @@
+{
+  "skill_name": "my-security-review-checklist",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I just added a PostToolUse hook to ~/.claude/settings.json that pipes the tool output through a shell script. Run the security review before I commit it.",
+      "expected_output": "The checklist runs as a pre-merge gate: the hook command and its script are read line-by-line, checked for untrusted tool-output interpolation into shell commands, matcher scope, timeout/fail-closed behavior, and secrets; findings come back labelled Critical / Important / Suggestion, with anything touching command execution treated as Critical until proven otherwise.",
+      "expectations": [
+        "The actual hook entry in settings.json and the script it invokes are read, not just described",
+        "The review explicitly checks whether untrusted prompt/file/tool content is interpolated into the shell command (checklist section 3)",
+        "Hook scope (specific matcher vs catch-all) and timeout/fail-closed behavior are assessed",
+        "Each finding is labelled Critical, Important, or Suggestion",
+        "The verdict states whether the change is safe to commit or which Critical/Important findings block it"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Before I merge this change to my sync script in ~/.agents - it moves and symlinks files under ~/.claude - give it the security review.",
+      "expected_output": "Shell-and-script safety review: the script is checked for set -euo pipefail, quoted expansions, guarded destructive ops (no rm/mv on possibly-empty variables), no eval or curl|bash, a dry-run path, and reversibility (archive + git) since it operates on a synced source of truth; findings are severity-labelled and Criticals block merge.",
+      "expectations": [
+        "The script is read line-by-line and checked for set -euo pipefail and quoted variable expansions",
+        "Destructive operations (rm, mv, ln, redirects) are checked for empty-variable guards and explicit paths (the rm -rf \"$DIR/\" with DIR=\"\" failure mode)",
+        "The review checks for a dry-run path and for reversibility (archive + git) given the script touches the synced ~/.agents / ~/.claude tree",
+        "Symlink targets are validated so nothing writes through a link into the source of truth unexpectedly",
+        "Findings carry Critical / Important / Suggestion labels and the merge verdict is explicit"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Scan my shared skills for hardcoded personal stuff - paths with my username, emails, that kind of thing - and clean it up before I push.",
+      "expected_output": "Portability/personal-constant pass (checklist section 8): a recursive grep for username-bearing absolute paths (/Users/<name>/, /home/<name>/) and a sweep for personal constants (names, emails, handles, personal repo URLs, vault/project names); hits are fixed (rewritten to ~/ in docs or \"$HOME/...\" in shell, or replaced with runtime discovery), then the scan is re-run to confirm zero hits.",
+      "expectations": [
+        "A grep-based scan for /Users/[^/]+/ and /home/[^/]+/ patterns is actually run over the shared files (excluding runtime dirs like .claude/ and __archive/)",
+        "Personal constants beyond paths - names, emails, handles, personal repo URLs, private vault/project names - are also swept for",
+        "Found hits are fixed, not just flagged: paths rewritten to ~/ (prose) or \"$HOME/...\" (shell), hardcoded context replaced with runtime discovery such as git rev-parse or env vars",
+        "Universal paths like ~/.claude/... are correctly left alone - only username-bearing paths are treated as defects",
+        "The scan is re-run after fixes and the report confirms zero remaining hits"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "How should I sanitize user comments in my React app so they can't inject scripts? I want to lock down XSS before launch.",
+      "expected_output": "The my-security-review-checklist skill is NOT invoked. Web-app security (XSS, input sanitization in a product frontend) is out of scope for this agent-tooling checklist - the agent uses agent-skills:security-and-hardening instead and answers with web-app hardening guidance.",
+      "expectations": [
+        "The my-security-review-checklist skill is not invoked",
+        "The agent routes to agent-skills:security-and-hardening (or otherwise applies web-app security practice), matching the checklist's own scope note",
+        "The answer addresses XSS/output-encoding/sanitization for the web app rather than agent-tooling concerns like hooks, settings.json, or sync scripts"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I found an MCP server on a community marketplace that adds browser automation. Check it out before I install and trust it.",
+      "expected_output": "Plugin/MCP trust review (checklist section 5): the source org/scope is verified as the official one rather than a look-alike, version pinning is checked as deliberate, and the package's shipped hooks/agents/commands are skimmed for what they actually do before any trust decision; the verdict says install or don't, with severity-labelled reasons.",
+      "expectations": [
+        "The package's org/scope/marketplace name is verified against the official source, explicitly checking for look-alike names",
+        "Version pinning (or a deliberate @latest choice) is assessed",
+        "The plugin's shipped hooks, agents, and commands are inspected for what they execute, not just its README claims",
+        "The final recommendation is an explicit trust/don't-trust verdict with Critical/Important findings called out before installation"
+      ]
+    }
+  ]
+}

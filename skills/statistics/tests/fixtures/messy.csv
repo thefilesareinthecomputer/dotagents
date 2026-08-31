@@ -1,0 +1,11 @@
+region;amount;flag
+north;"$1,200.50";1
+south;$980.00;0
+east;N/A;1
+west;(150.25);0
+north;  2 300 ;1
+south;not a number;0
+east;$1,050.75;1
+west;$990.10;0
+north;-;1
+south;$1,150.00;0

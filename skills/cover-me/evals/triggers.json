@@ -1,0 +1,86 @@
+[
+  {
+    "name": "canonical-second-set-of-eyes",
+    "query": "get a second set of eyes on this before I ship it",
+    "should_trigger": true,
+    "why": "The phrasing the description leads with. A fresh reviewer at a checkpoint the user picked."
+  },
+  {
+    "name": "cover-me-on-this",
+    "query": "cover me on this one",
+    "should_trigger": true,
+    "why": "The phrase the skill is named for, with no review vocabulary attached."
+  },
+  {
+    "name": "sanity-check",
+    "query": "sanity-check what I just did here",
+    "should_trigger": true,
+    "why": "Listed on-demand phrasing. Advisory scrutiny of in-flight work, not a formal pass over a finished artifact."
+  },
+  {
+    "name": "before-the-irreversible-op",
+    "query": "before we run this migration, make sure I'm not screwing it up",
+    "should_trigger": true,
+    "why": "Irreversible work plus an explicit ask. The situation the skill exists for and the highest-value true case."
+  },
+  {
+    "name": "watch-my-back",
+    "query": "watch my back on this refactor",
+    "should_trigger": true,
+    "why": "Listed on-demand phrasing with no double-check or review words. Checks the trigger is not keyed on the word review."
+  },
+  {
+    "name": "pre-done-check",
+    "query": "before we call this done, have someone fresh look at what we built",
+    "should_trigger": true,
+    "why": "Review before declaring finished, and 'someone fresh' names the isolation that is the whole point of forking a context."
+  },
+  {
+    "name": "repeated-failure-frustration",
+    "query": "god dammit, that's the third time the same fix hasn't worked",
+    "should_trigger": true,
+    "why": "Frustration plus repeated failure of one fix. The skill fires to OFFER the cold pass in one line, not to spawn; a spawn without the user's yes is a violation of the skill, not a use of it. The softest true case."
+  },
+  {
+    "name": "formal-code-review",
+    "query": "do a code review on this PR",
+    "should_trigger": false,
+    "why": "agent-skills:code-review-and-quality. The formal pre-merge pass, which the skill explicitly routes away rather than claiming."
+  },
+  {
+    "name": "security-review",
+    "query": "run a security review over the auth changes",
+    "should_trigger": false,
+    "why": "my-security-review-checklist for agent tooling, or agent-skills:security-and-hardening for app security. Named as out of scope in the skill body."
+  },
+  {
+    "name": "review-this-file",
+    "query": "review this file and tell me what you think",
+    "should_trigger": false,
+    "why": "The hardest false case: it says review, but it asks the current agent to read one file inline. No checkpoint, no stated task to measure drift against, and nothing that a forked context buys. Plain inline reading, escalating to code-review-and-quality if depth is wanted."
+  },
+  {
+    "name": "pre-merge-bug-hunt",
+    "query": "check the diff for bugs before we merge it",
+    "should_trigger": false,
+    "why": "agent-skills:code-review-and-quality. A pre-merge quality pass over a diff is the formal gate, not the advisory peer."
+  },
+  {
+    "name": "unrelated-subagent",
+    "query": "spawn a subagent to research how other repos solve this",
+    "should_trigger": false,
+    "why": "deep-research. A fan-out request that happens to mention a subagent; the supervisor is one specific reviewer, not the generic worker."
+  },
+  {
+    "name": "rerun-verification",
+    "query": "run the tests again and confirm they pass",
+    "should_trigger": false,
+    "why": "Plain verification. Evidence the agent gathers itself, with no second opinion involved."
+  },
+  {
+    "name": "session-closeout",
+    "query": "wrap up the session",
+    "should_trigger": false,
+    "why": "wrap-up. Closeout is not a review checkpoint, and the supervisor is never spawned as part of it."
+  }
+]

@@ -1,0 +1,54 @@
+{
+  "skill_name": "obsidian",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a new note called 'Reading List' in my vault at ~/vault (it has a .obsidian folder). Link it to my existing 'Books' note and add a section for in-progress titles.",
+      "expected_output": "The skill triggers because the target .md lives inside an Obsidian vault. Before authoring, it runs the read-only vault probe (reads .obsidian/*.json and samples existing notes), reports the detected vault profile plus an authoring recommendation, and stops for user confirmation. Only after approval does it write the note, conforming to the confirmed profile (wikilinks, plural frontmatter keys, line-1 frontmatter, no raw HTML).",
+      "expectations": [
+        "The obsidian skill is invoked",
+        "The agent probes the vault before authoring: reads .obsidian config files and/or samples existing notes read-only",
+        "The agent presents the detected vault profile (link style, property schema, tag conventions, enabled plugins) plus its authoring recommendation, then explicitly waits for user confirmation before writing any note content",
+        "The authored note opens with valid YAML frontmatter on line 1 using plural reserved keys (tags/aliases/cssclasses, never tag/alias/cssclass)",
+        "The link to the Books note is a [[wikilink]] (assuming the vault's default useMarkdownLinks=false), not a standard markdown link",
+        "The note body contains no HTML comments or raw HTML"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "How do I make a collapsible callout in Obsidian that starts closed, and can I put a wikilink inside it?",
+      "expected_output": "The skill answers the syntax question directly: a callout is '> [!type]' and appending '-' to the type marker makes it fold closed by default ('+' folds open); callout bodies support full markdown including [[wikilinks]] and embeds. No vault probe is needed for a pure syntax question with no file being authored.",
+      "expectations": [
+        "The obsidian skill is invoked (an explicit Obsidian syntax question)",
+        "The answer shows the '> [!type]-' form for a callout collapsed by default",
+        "The answer confirms callout bodies support markdown including [[wikilinks]]",
+        "The syntax shown is Obsidian callout syntax, not GitHub alert syntax presented as the Obsidian form",
+        "No note files are created or edited for this informational question"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/obsidian index",
+      "expected_output": "The skill runs the bundled vault meta-index generator (scripts/index_vault.py), which auto-detects the vault by searching upward for .obsidian, and writes INDEX.md at the vault root: root files first, then subfolders alphabetically, with per-file header trees of [[file#Heading|Heading]] wiki-links, excluding dot folders and gitignored files.",
+      "expectations": [
+        "The obsidian skill is invoked",
+        "The agent executes the skill's bundled index generator script (index_vault.py) rather than hand-writing an index",
+        "INDEX.md is produced at the vault root",
+        "The generated index lists root files before subfolders and nests each file's section headers as [[file#Heading]] style wiki-links",
+        "Dot folders such as .obsidian and .git do not appear in the index"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Update the README.md in this API repo to document the new --dry-run flag. The repo is a normal Node project on GitHub.",
+      "expected_output": "A plain README in a code repository with no .obsidian folder and no Obsidian mention: the obsidian skill is NOT invoked. The agent edits README.md in standard GitHub-flavored markdown, using ordinary [text](url)/relative links and no Obsidian-only syntax.",
+      "expectations": [
+        "The obsidian skill is NOT invoked",
+        "No vault probe is attempted and no .obsidian directory is searched for as a prerequisite to editing",
+        "README.md is updated with documentation for the --dry-run flag in standard GitHub-flavored markdown",
+        "The edit contains no wikilinks, no ![[embeds]], no callout blocks of the '> [!type]' form, and no %% comments",
+        "No frontmatter Properties block is added to the README"
+      ]
+    }
+  ]
+}

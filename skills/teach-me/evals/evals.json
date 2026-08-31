@@ -1,0 +1,70 @@
+{
+  "skill_name": "teach-me",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I just finished reading that deep-research brief on CRDTs. Help me actually absorb it - I want this to stick, not evaporate by Friday.",
+      "expected_output": "The teach-me skill fires in direct mode: intake (source = the brief, prior-knowledge calibration), short pretest, targeted exposure, closed-book Feynman explanation, Socratic probing of revealed gaps, scored inline cert with explanatory feedback, and a topic file written to LEARNING/ at the workspace root.",
+      "expectations": [
+        "The teach-me skill is invoked (post-research absorb intent), not deep-research and not a plain summary",
+        "The session begins with intake and 2-4 pretest questions before any re-exposure of content",
+        "The user is asked to explain the topic closed-book in their own words before being quizzed",
+        "No answer is revealed before the user attempts the item; feedback with explanation follows attempts",
+        "The session ends with exactly one artifact in LEARNING/ containing frontmatter, a score in the H1, tracked answers, and a re-test pack"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Make me a study guide for the Raft consensus algorithm, plus a practice test I can run through on the plane. I'll do the real check with you tomorrow.",
+      "expected_output": "Guide-first mode: the skill writes a study guide and a practice cert into LEARNING/ now (status: guide), keeps the final cert questions distinct from the practice questions, and states that certification happens inline in a later session, which will upgrade the same topic file to certified.",
+      "expectations": [
+        "The teach-me skill is invoked in guide-first mode",
+        "A study guide artifact is written to LEARNING/ with frontmatter and status guide",
+        "The practice cert questions are explicitly distinct from the final inline cert questions",
+        "The skill states the final cert must happen inline and does not mark the topic certified from self-study alone"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Re-cert me on the transformer attention material from a couple weeks back - am I still solid on it?",
+      "expected_output": "Re-cert mode: the skill locates the existing topic file in LEARNING/, runs a fresh inline cert drawing on the re-test pack plus new transfer questions, records the result as a NEW dated cert file, and updates the topic file's frontmatter to the latest score and date.",
+      "expectations": [
+        "The teach-me skill is invoked in re-cert mode against the existing LEARNING/ topic file",
+        "The cert result is written as a new dated cert file, not appended into the topic file body",
+        "The topic file frontmatter is updated to the latest score/date",
+        "Questions are not shown before the user attempts them"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Just tell me the answer - what's the difference between last-write-wins and OR-set CRDTs? Stop quizzing me.",
+      "expected_output": "Mid-session guardrail case: if this occurs during an active teach-me PROBE/CERT phase, the skill offers a hint and asks for one attempt first; after a genuine attempt (or two failed tries plus the explicit request), it gives the full answer with explanation and queues the item for re-test. Standing alone with no session in flight, this is a one-line factual question and teach-me does NOT fire.",
+      "expectations": [
+        "Outside an active session, teach-me is not invoked for a one-line factual question",
+        "Inside an active session, the first response to an answer demand is a hint plus a request for an attempt, not the answer",
+        "After the escape hatch conditions are met, the full explanatory answer is given rather than stonewalling",
+        "Any item surrendered this way is queued for re-test"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Get up to speed on this codebase - learn the repo structure and how the pieces fit together.",
+      "expected_output": "teach-me does NOT fire. Codebase orientation routes to the codebase-priming/exploration path (e.g. learn-codebase or repo orientation), not to a tutoring session about a topic.",
+      "expectations": [
+        "The teach-me skill is not invoked",
+        "No pretest, tutoring dialogue, or LEARNING/ artifact is produced",
+        "The agent routes to codebase priming/orientation instead"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "What's the current state of WebGPU adoption across browsers? Is it still behind a flag in Safari?",
+      "expected_output": "teach-me does NOT fire. This is a currency-sensitive fact-finding question - it routes to deep-research (or a direct verified lookup), not to a tutoring session.",
+      "expectations": [
+        "The teach-me skill is not invoked",
+        "Research/lookup happens instead of a tutoring protocol",
+        "No LEARNING/ artifact is created"
+      ]
+    }
+  ]
+}

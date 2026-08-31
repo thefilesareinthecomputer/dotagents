@@ -1,0 +1,53 @@
+[
+  {"name": "log-what-broke", "should_trigger": true,
+   "query": "Note that the install for that vector DB fails on Python 3.13 - we hit it twice today.",
+   "why": "The RECORD job. First-hand experience with a catalogued tool, with the version condition that makes the note falsifiable rather than an opinion."},
+
+  {"name": "log-what-worked", "should_trigger": true,
+   "query": "The parser we picked chewed through a two hundred thousand page run without a hitch. Write that down so we don't re-litigate it next quarter.",
+   "why": "A works verdict is as much a field note as a broken one, and notes are append-only so both stay in the record."},
+
+  {"name": "discover-new-tools", "should_trigger": true,
+   "query": "Any new agent frameworks worth adding? Give the tooling catalog a refresh pass.",
+   "why": "The DISCOVER job: scan the seed sources, confirm each candidate, then dedupe-ingest through ledger.py rather than pasting links in by hand."},
+
+  {"name": "fold-in-a-pile-of-links", "should_trigger": true,
+   "query": "Here are eight repos I collected this week. Fold them into the AI tooling catalog.",
+   "why": "Ingest with the duplicate guard. Already-known URLs report unchanged, and github repos with no seed-sections entry land in triage for classification."},
+
+  {"name": "check-for-staleness", "should_trigger": true,
+   "query": "Check the AI catalog for staleness - which entries haven't been verified in the last three months?",
+   "why": "The VERIFY job on both axes: liveness probing that URLs still resolve, and the more valuable claims queue on map rows whose assertions are unverified."},
+
+  {"name": "correct-a-wrong-entry", "should_trigger": true,
+   "query": "The map still lists that RAG framework as active but I'm fairly sure it was archived. Can you check and fix the entry?",
+   "why": "Verification aimed at correcting the record, which is the discriminator against ai-engineering: the deliverable is an updated dated row, not an answer."},
+
+  {"name": "documented-flag-does-not-exist", "should_trigger": true,
+   "query": "That flag the docs told us to pass doesn't exist in the current release. Second time this week their docs have been wrong.",
+   "why": "The hardest positive: no maintenance pass was asked for and there is no explicit request at all, but a tool in the corpus was used and something was learned, which is exactly when a note gets recorded."},
+
+  {"name": "options-question", "should_trigger": false,
+   "query": "What are my options for a vector store if we're OSS-only?",
+   "why": "Belongs to ai-engineering, the read path. Nothing about the corpus is changing; the user wants an answer out of it."},
+
+  {"name": "is-it-maintained-for-a-decision", "should_trigger": false,
+   "query": "Is LangGraph still maintained? I'm deciding whether to start a new build on it.",
+   "why": "Belongs to ai-engineering. Deliberate contrast with the correct-a-wrong-entry case: the user wants the answer, not a corrected row, so this reads the corpus rather than writing it."},
+
+  {"name": "bootstrap-a-repo", "should_trigger": false,
+   "query": "Bootstrap a RAG repo over our internal docs.",
+   "why": "Belongs to ai-agent-project-scaffold. Corpus changes may come out of that run later, but the request is to stand up a project."},
+
+  {"name": "bare-research-request", "should_trigger": false,
+   "query": "Research whether the small open-weight models handle function calling well. I want sources and dates.",
+   "why": "Belongs to deep-research. This skill wraps deep-research during a maintenance pass, but a research question with no corpus intent goes straight there, and folding the result in is offered afterward."},
+
+  {"name": "update-a-project-readme", "should_trigger": false,
+   "query": "Update our README to describe the new agent module we added.",
+   "why": "Ordinary documentation work in the user's own project, which goes to agent-skills. This skill's write path only ever touches the shared tooling corpus under resources/, so guards against firing on the verb update near the word agent."},
+
+  {"name": "refresh-a-data-catalog", "should_trigger": false,
+   "query": "Our data catalog has stale table descriptions. Can we refresh them?",
+   "why": "A warehouse metadata chore that belongs to data-engineering. Shares the words catalog, stale and refresh with this skill and shares nothing else."}
+]

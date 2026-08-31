@@ -1,0 +1,11 @@
+{
+  "_note": "Structural ground truth for fixture-django is asserted directly in test_code_kg.py (TestDjangoProfile, TestDataInventoryDjango). This key holds only the canned agent-style queries wired by test_canned_queries: top3[0] must appear in the top-3 search results.",
+  "queries": [
+    {"q": "tenant middleware request", "top3": ["core/middleware.py", "config/settings.py", "core/views.py"]},
+    {"q": "custom user model org", "top3": ["core/models.py", "core/migrations/0001_initial.py", "core/admin.py"]},
+    {"q": "seed demo data command", "top3": ["core/management/commands/seed.py", "core/models.py", "manage.py"]},
+    {"q": "database engine settings", "top3": ["config/settings.py", "docker-compose.yml", "requirements.txt"]},
+    {"q": "welcome email template", "top3": ["templates/emails/welcome.html", "core/views.py", "config/urls.py"]},
+    {"q": "wsgi application entry point", "top3": ["config/wsgi.py", "config/settings.py", "config/asgi.py"]}
+  ]
+}

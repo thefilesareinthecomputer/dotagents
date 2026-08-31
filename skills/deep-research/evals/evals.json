@@ -1,0 +1,51 @@
+{
+  "skill_name": "deep-research",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "What's the current state of local LLM inference servers? Research this thoroughly - I want to know what's actually maintained and production-ready right now.",
+      "expected_output": "Full pipeline run: the agent states 2-5 distinct angles up front, spawns one researcher subagent per angle in parallel (single message, multiple Agent calls), spawns one validator subagent over the combined findings, then synthesizes a single confidence-rated brief in chat with dated, URL-cited claims and a closing line giving topic, confidence, angle count, and source count.",
+      "expectations": [
+        "The agent states the decomposed angles (2-5) before spawning any subagents",
+        "Researcher subagents are spawned in parallel in a single message, one per angle - not serially",
+        "A separate validator subagent is spawned after the researchers, receiving their combined findings, and does not add new facts",
+        "The final brief contains the template sections: Executive summary, Validated findings, Disputed / unverified, and Sources",
+        "Every validated finding carries a date and a source URL, and the brief header carries an overall confidence rating (high, medium, or flagged)",
+        "No project files are written - the brief is returned in chat only, since no --save path was given"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/deep-research is SQLite FTS5 still the recommended approach for offline full-text search in embedded apps, or has something displaced it? --save research/fts5-brief.md",
+      "expected_output": "Explicit slash invocation with --save: full PLAN → parallel researchers → validator → synthesize pipeline runs, currency-sensitive claims get the two-source minimum with at least one primary source, and the finished brief is both returned in chat and written to research/fts5-brief.md.",
+      "expectations": [
+        "The full four-phase pipeline runs (plan with stated angles, parallel researcher subagents, one validator, synthesis)",
+        "Currency-sensitive claims (current status, versions, recommendations) are backed by at least two independent sources with at least one primary/official",
+        "The brief is written to the user-supplied path research/fts5-brief.md in addition to being returned in chat",
+        "The closeout message states topic, confidence rating, angle count, source count, and the saved artifact path",
+        "Claims that could not be verified are listed as could-not-verify rather than asserted or invented"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Quick but I need it verified, not guessed: --inline what are the current LTS versions of Node.js and their end-of-life dates?",
+      "expected_output": "Inline mode: a single agent runs 3-5 focused web searches with inline validation - no researcher or validator subagents are spawned - and returns a short dated, source-cited answer.",
+      "expectations": [
+        "No subagents are spawned; the work happens in a single agent via WebSearch/WebFetch",
+        "3-5 focused searches are run rather than a single lookup, with cross-checking of the version/EOL claims",
+        "Every version and EOL date in the answer is dated and cited with a source URL, with at least one primary/official source (e.g. the project's own release schedule)",
+        "Nothing is written to disk"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "What year was the first version of Git released?",
+      "expected_output": "The deep-research skill is NOT invoked. This is a one-line stable-fact lookup, so the agent answers directly - via a single raw WebSearch if verification is needed - without decomposing angles or spawning any subagents.",
+      "expectations": [
+        "The deep-research skill is not invoked and no researcher or validator subagents are spawned",
+        "The agent answers the single fact directly, using at most one ordinary web search to confirm",
+        "No multi-angle plan, validation phase, or research brief document is produced"
+      ]
+    }
+  ]
+}

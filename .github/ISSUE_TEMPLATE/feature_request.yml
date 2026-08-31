@@ -1,0 +1,26 @@
+name: Feature request
+description: Propose a new skill, subagent, or command, or a change to one.
+labels: [enhancement]
+body:
+  - type: input
+    id: proposal
+    attributes:
+      label: What you are proposing
+      placeholder: A skill for hardening Terraform modules
+    validations:
+      required: true
+
+  - type: textarea
+    id: triggers
+    attributes:
+      label: When it should fire, and when it should not
+      description: Concrete situations rather than topics. This becomes the trigger contract in the frontmatter description, so it is the part worth getting right here.
+    validations:
+      required: true
+
+  - type: textarea
+    id: today
+    attributes:
+      label: What happens today without it
+    validations:
+      required: true

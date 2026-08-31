@@ -1,0 +1,59 @@
+# Shared signal list for no-meta-commentary.sh (pre) and
+# no-meta-commentary-check.sh (post). One ERE per line, matched case-insensitively
+# with `grep -E -i -f`. Comment lines start with # and are stripped before use.
+#
+# The list is deliberately SHORT and high-precision. It is not a definition of the
+# rule and cannot be: the rule is "chat is for chat, not files", and no pattern
+# list decides that. These are the shapes measured to be near-absent from real
+# authored files, so a hit is worth one line of the agent's attention.
+#
+# Measured before shipping against a real project-deliverables vault (0 hits)
+# and ~/.agents (11 hits, all inside quoting sites the hook path-excludes).
+# Phrases that measured noisy in real prose are deliberately absent: bare "this
+# document/section/file", bare "supersedes", and any standalone second person.
+#
+# The document-as-subject block below revisits that first exclusion. Bare "this
+# section" is noisy; "this section IS" is not, because the copula is what turns a
+# pointer into a claim about the artifact. Measured 2026-08-25 across this repo,
+# the installed skills tree and four private markdown corpora: 47 hits, every one
+# a genuine document-as-subject construction, no false positives.
+# "table" is deliberately NOT in the noun set: it measured 3 hits in Kimball
+# fact-table prose, the only noun in the set with a competing technical sense that
+# fires in practice.
+#
+# Word boundaries are load-bearing: without them "note that I" matches inside
+# "note that it is", which is ordinary prose. Verified against real files.
+#
+# First-person narration about the work
+\bI've\b
+\bI have (created|added|updated|written|removed|left|included|kept|made)\b
+\bhere's what I\b
+\bnote that I\b
+\b(now|next,?) I'll\b
+\blet's now\b
+# Addressed to the reader rather than describing the subject
+\bwould you like me to\b
+\blet me know\b
+\bfeel free to\b
+\bhope this helps\b
+\bas requested\b
+\bper your request\b
+\bas you can see\b
+# Headings that report on a session instead of naming a subject
+^#+[[:space:]]+.*(summary of changes|what i did|what i changed|changes made|why this matters)
+# Apologizing for the artifact inside the artifact, or dating it
+\bthis is a subset\b
+\bcoverage is partial\b
+\bnot yet complete\b
+\bthis replaces the earlier\b
+^supersedes:
+# The document as the subject of its own sentence. A pointer keeps a transitive verb
+# ("section 7 carries the chain"); a claim about the artifact takes a copula. The
+# sentence-start anchor is what keeps "the jobs in section 7 are..." out, where the
+# document noun sits in a prepositional phrase and something else is the subject.
+(^|[.!?][[:space:]]+|^[[:space:]]*[*_]+)this[[:space:]]+(section|subsection|document|doc|guide|runbook|register|inventory|spec|specification|readme|chapter|appendix|page|file|note|list|report|matrix)[[:space:]]+(is|are|was|were|stays|remains|becomes|exists)[[:space:]]
+(^|[.!?][[:space:]]+)(section|subsection|chapter|appendix)[[:space:]]+[0-9]+[[:space:]]+(is|are|was|were|stays|remains|becomes|exists)[[:space:]]
+the[[:space:]]+(section|subsection|document|doc|guide|runbook|register|inventory|spec|readme|chapter|appendix|page|file|note|list|report|matrix)[[:space:]]+(above|below)[[:space:]]+(is|are|was|were|stays|remains)[[:space:]]
+# How the artifact was authored, which is the same claim wearing different grammar
+(above|below)[[:space:]]+(is|are)[[:space:]]+(recorded|generated|maintained|authored|curated|written)[[:space:]]+by[[:space:]]+hand
+(stays|remains|is|are)[[:space:]]+hand-(maintained|written|authored|curated|recorded)

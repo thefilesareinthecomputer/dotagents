@@ -1,0 +1,122 @@
+{
+  "skill_name": "o-o-d-a-loop",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I've been going back and forth for two weeks on whether to take the staff engineer role at the other company or stay where I am. I keep re-reading my pros and cons list and I'm not getting anywhere. Help me reason through it.",
+      "expected_output": "The skill triggers and runs a full slow-loop session: states the four triage axes (reversibility, stakes, emotional load, time pressure), asks who or what the user is deciding against, diagnoses the stuck-in-Orient jam (two weeks of recycling considerations), interrogates the framing Socratically one or two questions at a time, and drives toward one of the three exit artifacts rather than producing a pros-and-cons summary.",
+      "expectations": [
+        "The o-o-d-a-loop skill is invoked",
+        "The four classification axes (reversibility, stakes, emotional load, time pressure) are raised before deep analysis",
+        "The stuck-in-Orient failure mode is recognized (recycling considerations, more analysis not converging) and a forced handoff is applied instead of more analysis",
+        "The value-of-information gate question is asked in some form: what finding would change your choice?",
+        "The session ends in a committed act, an installed policy, or a scheduled decision - not in 'think about it more'",
+        "Questions are asked one or two at a time, not as a form or worksheet"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "We're choosing between Postgres and DynamoDB for the new order service. Migrating off whichever we pick later would be brutal. Walk me through this decision.",
+      "expected_output": "The skill triggers and treats this as a one-way-door technical decision: flags low reversibility as the controlling axis, classifies what is actually known about the workload (risk vs uncertainty vs ignorance) before applying a criterion, frames any benchmark or prototype as purchased information priced by what it would swing, and exits with a committed act (e.g. a timeboxed spike with named grading observations and kill criteria) or a scheduled decision.",
+      "expectations": [
+        "The o-o-d-a-loop skill is invoked",
+        "The decision is classified as a one-way door / low-reversibility choice and treated with the slow explicit loop",
+        "An uncertainty classification happens before a decision criterion is applied (known odds vs unknown odds vs unenumerable states)",
+        "A spike, benchmark, or prototype is framed as purchased information priced against what it would change, not as open-ended research",
+        "The exit artifact includes a named test or observation that will grade the bet, with kill criteria or a decision date"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Tear apart my plan to rewrite our ETL pipeline in Rust this quarter. I think it's the right call but I want it stress-tested before I pitch it.",
+      "expected_output": "The skill triggers in stress-test mode and runs destruction and creation on the plan: extracts the assumptions the plan is built on, asks what evidence would falsify each, checks which parts are inherited from a context that no longer exists, probes whether this is a player problem or structure problem where organizational factors appear, and recombines the surviving parts into a sharpened or revised framing with an exit artifact.",
+      "expectations": [
+        "The o-o-d-a-loop skill is invoked",
+        "The plan's underlying assumptions are extracted and individually challenged with falsification questions",
+        "The session distinguishes what the user knows from what they infer",
+        "Organizational or structural factors are examined with the structure-vs-player question where they appear",
+        "The session ends with a concrete artifact: a revised plan, a committed probe with kill criteria, or a scheduled decision - not just a list of critiques"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "What does minimax regret mean in decision theory?",
+      "expected_output": "The skill does NOT run a decision session. This is a factual question; the agent answers it directly and concisely (a definition, possibly a short example) without triage axes, routing questions, or exit artifacts.",
+      "expectations": [
+        "No decision-architecture session is run: no triage axes, no routing questions, no exit artifact",
+        "The question is answered directly as a factual explanation"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I've already decided we're migrating to the new billing provider next month. Lay out the execution plan.",
+      "expected_output": "The skill does NOT run a decision session. The decision is made; the agent produces an execution plan (or invokes planning tooling) without re-litigating the choice.",
+      "expectations": [
+        "No decision-architecture session is run and the choice is not re-litigated",
+        "The response is an execution plan for the already-made decision"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Our team keeps shipping late. I think we just need to iterate faster - tighten the loop, more releases, more speed. Use the ooda loop on this.",
+      "expected_output": "The skill triggers and refuses the go-faster frame: it states that speed of iteration does not beat quality of iteration, that a fast loop on a bad model executes errors at speed, and that the rule is matching loop speed to the engagement. It then treats 'keeps shipping late' as a recurring state: diagnoses where the real jam is (likely an Orient-quality or structure problem), applies the systems lens (missing feedback loops, structure vs players), and exits with a policy or probe rather than a speed prescription.",
+      "expectations": [
+        "The skill does not endorse 'just iterate faster' and explicitly corrects the speed-beats-quality misreading of OODA",
+        "Loop-speed matching is stated: fast loops for prepared reversible work, slow loops for the rest",
+        "The recurring lateness is treated as a structure/policy question (missing feedback, recurring state to convert to a policy), not a willpower or velocity question",
+        "The session ends in an installed policy or committed probe"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "My 3-person bootstrapped startup has flat growth for 5 months and 11 months of runway. Every week we brainstorm another pivot idea - we're up to four candidates and keep arguing about all of them. Help.",
+      "expected_output": "The skill triggers and converges rather than adding analysis to every option: it identifies the cheap decisive finding first (e.g. is the jam retention or acquisition), ranks the pivot candidates by cost-to-test, cuts the expensive high-ignorance tail from discussion, diagnoses the recurring ideation as a structure problem, and exits with ONE committed next act plus an installed policy (new ideas get logged, not litigated, until the current test concludes). The user leaves with fewer live options than they arrived with.",
+      "expectations": [
+        "The o-o-d-a-loop skill is invoked",
+        "The session identifies the cheapest decisive information and sequences it before any pivot comparison",
+        "Options are ranked by cost-to-test and the expensive high-ignorance ones are explicitly deferred, not analyzed in parallel",
+        "The recurring weekly ideation is treated as a structure problem and a policy is installed for it",
+        "The session ends in exactly one exit artifact and does not hand the clarified option list back as the deliverable",
+        "The user ends with fewer live options than they started with"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "How do I get better at running production incidents? I always feel like I'm improvising and burning out during them.",
+      "expected_output": "The skill triggers in capability-audit mode: presents the mastery diagnostic (prep depth, automaticity, deliberation load, autonomic drag) as an ordinal heuristic, has the user rate each term for incident response, and targets the worst term with concrete moves (runbooks and drills for prep depth and automaticity, precomputed policies to cut deliberation load, on-call load for autonomic drag). Prep is optimized before execution.",
+      "expectations": [
+        "The capability-audit mode is used rather than a one-off decision session",
+        "All four terms (prep depth, automaticity, deliberation load, autonomic drag) are assessed for the incident-response domain",
+        "The ratings are treated as ordinal comparisons; no arithmetic is performed on them",
+        "The recommendation attacks the worst term first and prep is addressed before execution optimizations",
+        "No somatic or nervous-system regulation techniques are prescribed"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Headlines everywhere say the AI bubble is about to burst. 40% of my taxable portfolio is one AI chip stock up 6x; selling triggers a big capital gains bill. I slept badly twice this week and want to sell the whole position tomorrow at open before the crash. I'm 41, stable income, investing for retirement. Tell me what to do.",
+      "expected_output": "The skill triggers and reframes the problem from crash-timing (unknowable) to concentration risk exceeding the user's risk tolerance. It flags the felt deadline (tomorrow's open) as headline-driven rather than real, refuses the all-at-once panic sale, and exits with a bounded immediate action plus an installed calendar-based trimming policy with a written position ceiling and kill criteria, graded later by schedule adherence rather than by what the stock does.",
+      "expectations": [
+        "The o-o-d-a-loop skill is invoked",
+        "The felt deadline is distinguished from the real clock and the crash-timing question is named as unknowable rather than answered",
+        "The problem is reframed as concentration risk / position sizing rather than market prediction",
+        "The full same-day liquidation is not endorsed; any immediate action is bounded and paired with a calendar-based standing rule set while calm",
+        "The exit includes kill criteria and instructs grading by adherence to the process, not by the stock's subsequent move",
+        "No claim is made about whether the bubble narrative is true"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Mid-size healthcare analytics company consolidating on-prem SQL Server marts, some Synapse, a Databricks POC, and heavy Power BI into one lakehouse. Shortlist: Fabric (we're an E5 shop), Databricks (engineers prefer it, best ML story), Snowflake (analysts like it). PHI compliance matters, vendor reps are pushing hard, and each option has a sponsoring exec. Decision is due this quarter and I own it. Which platform?",
+      "expected_output": "The skill triggers, treats the choice as low-reversibility with a ruin-shaped compliance downside, floors the PHI/compliance requirement before comparing on features, reads the vendor and exec lobbying as a mechanism/structure signal rather than evidence, and exits with one committed recommendation carrying explicit kill criteria and a standing policy (written criteria before vendor demos) for future platform decisions - not a feature-matrix bake-off handed back to the user.",
+      "expectations": [
+        "The o-o-d-a-loop skill is invoked",
+        "The decision is classified as one-way / low-reversibility and the compliance downside is floored before any feature comparison",
+        "Vendor pressure and exec sponsorship are treated as incentive noise to be structured away, not as evidence for any option",
+        "The session commits to one recommendation rather than returning a weighted comparison matrix",
+        "The exit carries concrete kill criteria with named thresholds or dates",
+        "A standing policy for future vendor/platform selection is installed"
+      ]
+    }
+  ]
+}

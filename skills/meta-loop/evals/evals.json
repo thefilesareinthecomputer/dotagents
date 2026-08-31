@@ -1,0 +1,49 @@
+{
+  "skill_name": "meta-loop",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "run this as a meta loop: refactor the ingestion module, add retry logic to the three fetchers, and write tests for each - advisor on, cheap workers for the leg work",
+      "expected_output": "Skill fires. Plan drafted, advisor (fable) consulted on the decomposition BEFORE delegation, subtasks fanned out to parallel sonnet workers, results verified by the orchestrator, advisor consulted pre-synthesis, single synthesized deliverable returned.",
+      "expectations": [
+        "A written plan with discrete subtasks exists before any worker is spawned",
+        "The advisor agent is invoked with model fable to critique the plan before delegation",
+        "Workers are spawned via the Agent tool with model sonnet, in parallel where independent",
+        "The orchestrator verifies each worker result against acceptance criteria rather than pasting outputs through",
+        "The final message is one synthesized deliverable, not a concatenation of worker reports"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "worker came back claiming all tests pass but the diff it returned doesn't touch the failing test file - what now?",
+      "expected_output": "Skill's verify step handles it: result rejected, discrepancy named, subtask re-delegated with tightened acceptance criteria or escalated to the advisor; unverified claim never synthesized into the deliverable.",
+      "expectations": [
+        "The worker's claim is checked against evidence (diff, test output) and rejected",
+        "The subtask is re-delegated with more explicit acceptance criteria, or escalated",
+        "The unverified result is not incorporated into the synthesis",
+        "Escalation to the advisor is considered when the failure is ambiguous or repeated"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "fix this typo in the README",
+      "expected_output": "Skill does NOT fire. Single trivial task - no decomposition, no workers, no advisor. Correct behavior: edit the file directly.",
+      "expectations": [
+        "The meta-loop skill is not invoked",
+        "No subagents are spawned",
+        "The typo is fixed with a direct edit"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "before you fan out the subtasks, is this decomposition actually right? feels like phases 2 and 3 overlap",
+      "expected_output": "Advisor consultation fires on demand: fable advisor reviews the decomposition, flags overlap/risk/missing seams, orchestrator revises the plan before delegating.",
+      "expectations": [
+        "The advisor agent (model fable) is consulted with the current plan as input",
+        "The advisor's critique addresses decomposition seams, risk, and sequencing - not implementation detail",
+        "The plan is revised (or explicitly confirmed) before any delegation resumes",
+        "The advisor performs no edits and spawns no workers itself"
+      ]
+    }
+  ]
+}

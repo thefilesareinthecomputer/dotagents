@@ -1,0 +1,32 @@
+[
+  {
+    "name": "get-to-the-point",
+    "query": "get to the point",
+    "should_trigger": true,
+    "why": "direct verbosity complaint right after a reply"
+  },
+  {
+    "name": "could-have-been-a-sentence",
+    "query": "that whole answer could have been one sentence",
+    "should_trigger": true,
+    "why": "the canonical firing condition from the description"
+  },
+  {
+    "name": "stop-rambling",
+    "query": "stop rambling and just tell me",
+    "should_trigger": true,
+    "why": "verbosity complaint phrased as an order"
+  },
+  {
+    "name": "asks-for-depth",
+    "query": "can you explain in more detail how the sync script works",
+    "should_trigger": false,
+    "why": "explicit request for depth is the opposite condition"
+  },
+  {
+    "name": "shorten-a-file",
+    "query": "shorten this README section",
+    "should_trigger": false,
+    "why": "editing an artifact, not correcting the reply register"
+  }
+]

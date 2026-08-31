@@ -1,0 +1,53 @@
+[
+  {"name": "research-thoroughly", "should_trigger": true,
+   "query": "Research the current state of WebGPU support across the major browsers thoroughly. I need to be sure before we commit to it.",
+   "why": "The explicit multi-angle request. Decompose into angles, run researchers in parallel up to the ceiling, validate, then synthesize one dated, source-cited brief."},
+
+  {"name": "is-this-still-true", "should_trigger": true,
+   "query": "Is it still true that Cloudflare Workers cap CPU time at fifty milliseconds? I read that a while ago and it may have moved.",
+   "why": "Currency-sensitive claim with an explicit suspicion of staleness. Needs two independent sources, at least one primary, and the date attached."},
+
+  {"name": "verified-not-guessed", "should_trigger": true,
+   "query": "What does that API's mid tier actually cost right now? I want a verified number, not a guess.",
+   "why": "A single fact, but accuracy is the whole point and pricing moves. The inline mode covers quick verified lookups, so the skill still owns it; the full pipeline would be overkill."},
+
+  {"name": "multi-angle-brief", "should_trigger": true,
+   "query": "Give me a multi-angle picture of what the EU AI Act obliges a small SaaS company to do.",
+   "why": "Provider- and project-agnostic by design. A topic spanning several independent domains is exactly what angle decomposition is for, and nothing about it is AI tooling selection."},
+
+  {"name": "before-building-on-a-moving-fact", "should_trigger": true,
+   "query": "Before I write this integration, confirm which auth flows their v3 API supports and when v2 gets switched off.",
+   "why": "Building on a fast-moving fact where being wrong is expensive. A deprecation date is currency-sensitive and needs a primary source."},
+
+  {"name": "sources-contradict-each-other", "should_trigger": true,
+   "query": "Everything I read about this contradicts the last thing I read. Can you work out what's actually true?",
+   "why": "Cross-validation is the phase a single search does not have. Contradictions get flagged by the validator and the brief carries a confidence rating rather than a clean-looking answer."},
+
+  {"name": "one-line-fact", "should_trigger": false,
+   "query": "What's the default port for Postgres?",
+   "why": "A one-line lookup that raw WebSearch answers. Running the pipeline here is the skill's own first anti-pattern."},
+
+  {"name": "latest-version-lookup", "should_trigger": false,
+   "query": "What's the latest stable Node version?",
+   "why": "The hardest negative: currency-sensitive, which is this skill's trigger, but it is one fact from one authoritative source. Raw WebSearch, not four phases."},
+
+  {"name": "answer-is-in-the-repo", "should_trigger": false,
+   "query": "Where does the retry logic live in this codebase, and what's the backoff?",
+   "why": "The answer is in the workspace, so the source gets read. Web research on a repo-internal question is wasted wall clock."},
+
+  {"name": "answer-is-in-context", "should_trigger": false,
+   "query": "What did the spec we just wrote say the retry budget was?",
+   "why": "Already answered in context. The skill stops and says so rather than running the pipeline on something it can quote."},
+
+  {"name": "wants-a-recommendation", "should_trigger": false,
+   "query": "Which vector store should we use for our support bot?",
+   "why": "Belongs to ai-engineering. This skill surfaces facts and refuses opinions; picking a component out of the dated corpus is the neighbor's job."},
+
+  {"name": "build-request-with-research-in-it", "should_trigger": false,
+   "query": "Build me an agent that researches our competitors every morning and posts a digest.",
+   "why": "Belongs to ai-agent-project-scaffold. The word research names what the built system does, not what the user is asking for now."},
+
+  {"name": "refresh-the-tooling-corpus", "should_trigger": false,
+   "query": "Refresh the AI tooling catalog and fold in anything new you find.",
+   "why": "Belongs to ai-engineering-update, which owns the discovery pass and calls this skill as one of its tools. The deliverable is an updated catalog, not a brief."}
+]

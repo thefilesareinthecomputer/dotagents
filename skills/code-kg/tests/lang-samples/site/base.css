@@ -1,0 +1,7 @@
+:root {
+  --fg: #222;
+}
+
+body {
+  color: var(--fg);
+}

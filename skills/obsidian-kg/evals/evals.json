@@ -1,0 +1,81 @@
+{
+  "skill_name": "obsidian-kg",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "make my vault at ~/vault truly queryable - I want to search it and see what links where",
+      "expected_output": "Skill fires. init/ingest runs via scripts/obsidian_kg.py, then queries answer from vault-kg/vault-kg.db; no inline reimplementation of parsing.",
+      "expectations": [
+        "scripts/obsidian_kg.py is executed via Bash rather than the vault being parsed inline",
+        "Search uses the engine's search or query subcommand, not raw grep over the vault",
+        "The agent reads the underlying .md files before asserting facts from snippets",
+        "No pip install, network call, or API key is involved"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "what links to my 'Weekly Review' note? include embeds",
+      "expected_output": "Backlinks query via the engine, resolving the note by basename; results distinguish edge kind (link vs embed) and syntax (wiki vs md), and name the section each link sits in.",
+      "expectations": [
+        "The backlinks subcommand is executed with the vault path and note name",
+        "If the db is missing, ingest is run first rather than hand-parsing the vault",
+        "Results reported with edge kind so embeds are distinguishable from links",
+        "The reporting section of each inbound link is carried through"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "what were the recurring themes in my journal over the last quarter, and what changed from the quarter before?",
+      "expected_output": "Skill fires. themes over the date window plus trends between windows; the answer names over-represented terms rather than merely frequent ones and does not read the whole journal into context.",
+      "expectations": [
+        "The themes subcommand is executed with --from and --to",
+        "trends --by is used for the comparison rather than two themes runs eyeballed",
+        "The whole journal is not read into context to produce the summary",
+        "Non-authored slots are not presented as the user's own themes"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "clean up the formatting and callouts in this note in my vault",
+      "expected_output": "Skill does NOT fire. Authoring and formatting belong to the obsidian skill; obsidian-kg only indexes and queries.",
+      "expectations": [
+        "The obsidian-kg skill is not invoked",
+        "The obsidian (authoring) skill handles the request",
+        "No ingest or query subcommand is executed"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "search says my vault has ambiguous links - two notes both called 'Index'. what happened and what do I do?",
+      "expected_output": "Skill fires. stats surfaces the ambiguous-link examples; the explanation matches engine behavior (a bare [[link]] matching multiple basenames is recorded, never guessed) and the fix is a path-qualified link.",
+      "expectations": [
+        "The stats subcommand is executed and its ambiguous-link output cited",
+        "The explanation states the engine records ambiguity rather than guessing a target",
+        "The proposed fix is a path-qualified wikilink like [[folder/Index]]",
+        "No edge is fabricated for the ambiguous link"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "pull me everything the vault says about the irrigation redesign, but keep it under about 4000 tokens",
+      "expected_output": "Skill fires. search --budget returns a token-bounded pack of whole sections with citations; truncation is reported rather than silently absorbed.",
+      "expectations": [
+        "search is called with --budget rather than the agent trimming results by hand",
+        "The COMPLETE or TRUNCATED marker in the output is reported to the user",
+        "No section text is invented to fill the gap where results were cut",
+        "Citations carry a section id and a line range"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "this vault has a huge dated log file and searching it just returns the whole day every time",
+      "expected_output": "Skill fires. The fix is a log-dated profile row in vault-kg-config.md so entries chunk per day with child headings indexed beneath them; the agent edits the config file directly.",
+      "expectations": [
+        "The config file is edited directly, not through a CLI write path",
+        "A log-dated profile row is added for the file in question",
+        "profile or init is consulted to confirm the detected heading level",
+        "Recurring subheadings are labelled with slots if the file has them"
+      ]
+    }
+  ]
+}

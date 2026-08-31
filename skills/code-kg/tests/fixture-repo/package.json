@@ -1,0 +1,11 @@
+{
+  "name": "fixture",
+  "private": true,
+  "main": "web/index.ts",
+  "bin": {
+    "fixture-web": "web/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  }
+}

@@ -1,0 +1,65 @@
+[
+  {"name": "frame-a-new-problem", "should_trigger": true,
+   "query": "The support team wants to know which customers will cancel next quarter. Where do I start?",
+   "why": "Cold-start framing. Must fire before any data is pulled, because the target definition, the horizon and the baseline are what everything downstream inherits."},
+
+  {"name": "worse-in-production", "should_trigger": true,
+   "query": "My model scored 0.94 AUC in testing but it's clearly worse in production. What's going on?",
+   "why": "Seam case from the spec. This is construction, serving skew or drift - all of them this skill's - and must NOT route to the evaluation skill just because a metric is in the sentence."},
+
+  {"name": "split-with-repeated-entities", "should_trigger": true,
+   "query": "Each patient has several visits in my dataset. How should I split it for training?",
+   "why": "Group leakage stated in the user's own words without the term. A random split here inflates the score by tens of points."},
+
+  {"name": "review-training-script", "should_trigger": true,
+   "query": "Before I hand this over, is it sound? scaler = StandardScaler(); X = scaler.fit_transform(df.drop(columns=['churn'])); X_tr, X_te, y_tr, y_te = train_test_split(X, y)",
+   "why": "Review path, and where the checker earns its place - FIT_BEFORE_SPLIT and NO_RANDOM_STATE are both in those two lines. The code has to be inline, or the model asks for the file first and no skill fires."},
+
+  {"name": "target-leakage-suspicion", "should_trigger": true,
+   "query": "One feature has 80% of the importance and the model gets 0.99 AUC. Is that too good?",
+   "why": "The signature of target leakage. Implausible performance plus one dominant feature is the pattern the skill exists to name."},
+
+  {"name": "imbalanced-classes", "should_trigger": true,
+   "query": "Only 0.4% of my rows are fraud. Should I use SMOTE?",
+   "why": "Imbalance handling, including the answer that class weights and a threshold change usually come first, and that resampling must happen after the split."},
+
+  {"name": "when-to-retrain", "should_trigger": true,
+   "query": "How do I know when our churn model has gone stale and needs retraining?",
+   "why": "Operating the artifact - drift detection, delayed labels and retraining triggers. Explicitly this skill's half of the pair."},
+
+  {"name": "train-serve-skew", "should_trigger": true,
+   "query": "The features in our API don't match what the training pipeline computes. How do we stop this happening?",
+   "why": "The single-source rule for features. Skew is the most common reason a good model disappoints and it is a construction concern."},
+
+  {"name": "model-family-choice", "should_trigger": true,
+   "query": "I have 40,000 rows of mixed categorical and numeric data. Random forest or a neural net?",
+   "why": "Model family by problem shape, including what each family assumes and where it fails."},
+
+  {"name": "did-my-model-improve", "should_trigger": false,
+   "query": "My new model scores 0.812 and the old one scored 0.806. Did my model actually improve?",
+   "why": "Seam case from the spec, and the one most likely to be poached. Whether a difference in a metric is real is an inference question and belongs to the statistics skill, not to this one."},
+
+  {"name": "confidence-interval-on-a-metric", "should_trigger": false,
+   "query": "How do I put a confidence interval on my model's F1 score?",
+   "why": "An inference question about a measurement. The statistics skill owns CIs, calibration and multiplicity across tuning runs."},
+
+  {"name": "stack-selection", "should_trigger": false,
+   "query": "Should we serve this with BentoML, KServe or a plain FastAPI container?",
+   "why": "Stack and framework selection belongs to ai-engineering and its dated corpus. This skill reasons about serving shapes, not about which vendor to pick."},
+
+  {"name": "pipeline-orchestration", "should_trigger": false,
+   "query": "My Airflow DAG that loads the feature table keeps timing out on the incremental merge. How do I fix it?",
+   "why": "Pipeline and warehouse work is data-engineering's. Adjacent to feature construction but carries no modeling decision."},
+
+  {"name": "rag-design", "should_trigger": false,
+   "query": "How should I chunk documents and design retrieval for our support chatbot?",
+   "why": "RAG, prompting and agent design are ai-engineering's. Guards against firing on anything with the word model in it."},
+
+  {"name": "llm-eval-harness", "should_trigger": false,
+   "query": "Build an eval set for our GPT-based summarizer and score its outputs.",
+   "why": "LLM evaluation is ai-engineering's. This skill is supervised and unsupervised modeling on tabular, text and image data."},
+
+  {"name": "sql-aggregation-question", "should_trigger": false,
+   "query": "Write me a SQL query that gives monthly revenue per region.",
+   "why": "A reporting query with no modeling decision in it. Guards against firing on any data-shaped request."}
+]

@@ -1,0 +1,53 @@
+{
+  "skill_name": "hi",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "get up to speed on this repo before we start",
+      "expected_output": "The agent finds the workspace root via git rev-parse --show-toplevel, reads the existing living docs (README/SPEC/tasks-plan/tasks-todo plus AGENTS.md/CLAUDE.md), the workspace's MEMORY.md (unless already injected), recent claude-mem activity, the newest changelog entry, and git status/log - all read-only - then delivers a terse current-state briefing ending with a question about which thread to pull next.",
+      "expectations": [
+        "The workspace root is discovered with git rev-parse --show-toplevel (or CWD fallback), not assumed",
+        "The living docs that exist at the repo root are read; absent files are noted rather than fabricated",
+        "Git state is gathered read-only via git status and git log --oneline",
+        "The briefing covers branch/working-tree state, active initiatives with a next action each, recent activity including anything unfinished, and blocked/gated items",
+        "The briefing ends with a question asking which thread to pull next",
+        "No file is written, edited, archived, or logged during the run"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/hi",
+      "expected_output": "Explicit slash invocation: same read-only orientation ritual - root discovery, parallel batch read of living docs, memory (file-based + claude-mem), changelog, and git state - reported as a concise briefing in terse style with the single next action surfaced.",
+      "expectations": [
+        "The state-gathering reads are issued as a parallel batch using absolute paths, without cd",
+        "The memory index at ~/.claude/projects/<slug>/memory/MEMORY.md is read only if it was not already auto-injected this session",
+        "Recent claude-mem activity is consulted (injected timeline, mem-search, or the claude-mem MCP) for what the last session was doing",
+        "Work that did not finish last session is surfaced before any new work is proposed",
+        "The output is a briefing only - the transcript contains no Write/Edit tool calls"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "where are we with this project? I've been away for a week",
+      "expected_output": "Trigger phrase 'where are we' fires the skill: the agent re-orients from docs, memory, changelog, and git, and reports what changed recently, what is in flight, what is blocked, and the single next action, ending in a question.",
+      "expectations": [
+        "The hi skill is invoked on the 'where are we' phrasing",
+        "Recent activity is reconstructed from claude-mem and git log rather than guessed",
+        "Each active initiative gets one line with its phase/status and a single next action",
+        "Anything waiting on a user decision or review gate is called out in a blocked/gated section",
+        "The response is read-only and ends by asking the user which thread to pick up"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "what's the status of that test suite you kicked off a few minutes ago?",
+      "expected_output": "The hi skill is NOT invoked. This is a mid-session status check on a running command, not session-start orientation - the agent checks the background command's output (or re-runs the tests) and reports the result directly, without re-reading docs, memory, or changelog.",
+      "expectations": [
+        "The hi skill is not invoked",
+        "The agent inspects the running/background test command's output or re-checks the test run to answer",
+        "No full orientation sweep occurs - living docs, MEMORY.md, and the changelog are not re-read for this question",
+        "The answer reports the actual test-run state (running, passed, failed, with evidence from output)"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "skill_name": "ai-engineering",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "What are my options for adding RAG over our internal docs to our support tool? We're OSS-only - no vendor lock-in allowed.",
+      "expected_output": "The ai-engineering skill is invoked, the bundled agent-stack-map.md is read before answering, the retrieval/ingestion layers are surveyed with OSS framing, and the answer leads with an opinionated architecture decision plus the deciding tradeoff, flagging any license traps.",
+      "expectations": [
+        "The ai-engineering skill is invoked",
+        "resources/agent-stack-map.md (and/or resources/reference-catalog.md) is read before recommending anything",
+        "The answer surveys multiple retrieval/RAG options before recommending one, honoring the stated OSS-only / no-lock-in constraint",
+        "The answer leads with the architecture decision and its deciding tradeoff (cost, complexity, lock-in, license, or skill gap)",
+        "Any AGPL/SSPL/source-available license trap among the candidates is explicitly flagged",
+        "Point-in-time fields (stars, GA status) are dated or caveated rather than presented as live facts; a stale or uncovered tool triggers an offer of deep-research/ai-engineering-update instead of a bluffed answer"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "What's the current state of open-source memory frameworks for agents? Which one would you actually use?",
+      "expected_output": "The ai-engineering skill is invoked, the memory layer of the bundled map is consulted, and the answer gives an opinionated, tradeoff-backed shortlist with a currency caveat instead of unverified claims from training memory.",
+      "expectations": [
+        "The ai-engineering skill is invoked",
+        "resources/agent-stack-map.md is read and its memory-layer comparison informs the answer, rather than answering purely from training memory",
+        "A concrete recommendation is made, with the tradeoff that decided it stated explicitly",
+        "The point-in-time nature of the catalog is acknowledged (currency caveat with a date, or an offer to verify via ai-engineering-update/deep-research)",
+        "No fabricated version numbers, star counts, or GA statuses appear in the answer"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Can you help me add cursor-based pagination to this Express REST API endpoint?",
+      "expected_output": "The ai-engineering skill is NOT invoked; this is general web engineering with no AI component. The agent handles it as a normal engineering task (e.g., via the agent-skills discipline such as api-and-interface-design or test-driven-development) without consulting the AI tooling catalog.",
+      "expectations": [
+        "The ai-engineering skill is NOT invoked",
+        "The AI stack resources (agent-stack-map.md, reference-catalog.md, link-ledger.md) are not read for this task",
+        "The pagination question is answered directly as general engineering, using the appropriate agent-skills workflow rather than an AI stack selection"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Is Mem0 still Apache-2.0, and is it still actively maintained?",
+      "expected_output": "A question about a moving fact, answered from the bundled corpus rather than training memory. The catalog and map rows for Mem0 are read, the answer carries the date the claim was verified, and if that date is stale the answer says so and escalates to a live check via ai-engineering-update or deep-research rather than asserting a remembered license.",
+      "expectations": [
+        "The ai-engineering skill is invoked and the bundled corpus is read rather than the answer being given from training memory",
+        "The response carries the verification date attached to the claim instead of presenting a point-in-time field as current fact",
+        "If the corpus entry is stale or marked verify, the answer says so and escalates to a live check rather than filling the gap with a plausible value",
+        "No license or maintenance status is asserted without either a corpus citation or a fresh verification"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Before we commit to anything, what are the general tradeoffs between running summarization on a hosted API versus a local model? Not building yet, just weighing it up.",
+      "expected_output": "The ai-engineering skill is invoked for an options question with no build intent: the map is read, the tradeoffs between hosted and local serving are laid out from the corpus with their deciding factors, and no scaffolding or intake is started because nothing is being built yet.",
+      "expectations": [
+        "The ai-engineering skill is invoked",
+        "No project intake or scaffolding is started, since the user explicitly is not building yet",
+        "resources/agent-stack-map.md is read before comparing options",
+        "Each option carries the factor that would decide it - cost, data sensitivity, latency, operational burden - rather than a bare feature list",
+        "Any licensing or maintenance caution attached to a named component is surfaced",
+        "Point-in-time figures are presented with their date rather than as current fact"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Our nightly ETL job started failing with an out-of-memory error after we doubled the input file size. Where should I start?",
+      "expected_output": "The ai-engineering skill is NOT invoked. This is data-pipeline debugging; the 'pipeline' and data-processing framing must not pull in the AI stack catalog.",
+      "expectations": [
+        "The ai-engineering skill is NOT invoked",
+        "No AI stack component is recommended for a problem with no AI or LLM element",
+        "The answer proceeds as an ordinary memory/performance debugging investigation"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Is LangGraph still the right call for a new agent build, or has something better come out since?",
+      "expected_output": "The ai-engineering skill is invoked and the bundled map supplies the comparison, but because the question is explicitly about currency, the answer names the catalog's as-of date and verifies rather than presenting point-in-time fields as current fact.",
+      "expectations": [
+        "The ai-engineering skill is invoked",
+        "resources/agent-stack-map.md is read and its framework comparison informs the answer",
+        "The staleness of the bundled catalog is surfaced explicitly, with the as-of date named",
+        "Live verification is offered or performed (deep-research / ai-engineering-update) rather than asserting current GA status, versions, or star counts from bundled data alone",
+        "No claim about what has been released 'since' is fabricated"
+      ]
+    }
+  ]
+}

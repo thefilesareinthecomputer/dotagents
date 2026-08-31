@@ -1,0 +1,98 @@
+[
+    {
+        "name": "inherited-board-fill-in",
+        "query": "I've got a half-finished backlog someone handed me - the epics are written but every story is still the blank template. Can you fill them in?",
+        "should_trigger": true,
+        "why": "The core inherited mode: existing items, unfilled skeletons, real IDs to preserve."
+    },
+    {
+        "name": "greenfield-from-goal",
+        "query": "Our goal is to get the ingestion platform stable in production within 60 days. What should the epics, features and stories be?",
+        "should_trigger": true,
+        "why": "Greenfield mode: a stated goal and horizon with no backlog yet."
+    },
+    {
+        "name": "greenfield-from-repo",
+        "query": "Read through this repo and build me a sprint backlog for adding multi-tenant support",
+        "should_trigger": true,
+        "why": "Greenfield with a grounding source, which is the common shape - the repo defines current state."
+    },
+    {
+        "name": "split-a-story",
+        "query": "STORY-NNNN01 is way too big, it's really three separate things. Split it up.",
+        "should_trigger": true,
+        "why": "Sizing and splitting with a live board ID that must survive the split."
+    },
+    {
+        "name": "sequence-the-backlog",
+        "query": "Can you work out the right order for these features and figure out what depends on what?",
+        "should_trigger": true,
+        "why": "Sequencing and dependency recording is a named step of the procedure."
+    },
+    {
+        "name": "audit-existing-board",
+        "query": "Go through user-stories.md and tell me what's wrong with it - missing acceptance criteria, orphaned items, anything that won't survive review",
+        "should_trigger": true,
+        "why": "The audit catalogue and pre-handoff checklist are part of this skill."
+    },
+    {
+        "name": "write-acceptance-criteria",
+        "query": "These stories have no definition of done or testing approach. Write them.",
+        "should_trigger": true,
+        "why": "Acceptance criteria authoring is a first-class part of the item anatomy."
+    },
+    {
+        "name": "maintain-markdown-backlog",
+        "query": "I keep my epics and features as markdown in this vault - add a feature for the reporting work and slot it in properly",
+        "should_trigger": true,
+        "why": "Maintenance mode in a vault or repo where the files are the standing record."
+    },
+    {
+        "name": "casual-decompose-phrasing",
+        "query": "break this initiative down into workable chunks for the team",
+        "should_trigger": true,
+        "why": "Decomposition intent without any agile vocabulary; the situation is the trigger, not the words."
+    },
+    {
+        "name": "partial-board-gap-fill",
+        "query": "This board is about a third built. Fix up what's there so it makes sense, then work out what's missing and add it.",
+        "should_trigger": true,
+        "why": "Partial mode with the two-phase repair-then-extend order and NNNN placeholders for new items."
+    },
+    {
+        "name": "stories-too-big",
+        "query": "These stories are all way too big, nothing here would finish in a sprint. Cut them down.",
+        "should_trigger": true,
+        "why": "The 1-to-2-day sizing ceiling and the splitting seams are core to the skill."
+    },
+    {
+        "name": "not-session-task-tracking",
+        "query": "add a todo to check the test suite before we commit",
+        "should_trigger": false,
+        "why": "In-session task state belongs to the task tools, not to a board artifact."
+    },
+    {
+        "name": "not-a-spec",
+        "query": "Write a technical specification for the new authentication service",
+        "should_trigger": false,
+        "why": "Specification authoring is spec-driven-development; a backlog is a different artifact."
+    },
+    {
+        "name": "not-project-status",
+        "query": "How far along is the ingestion work?",
+        "should_trigger": false,
+        "why": "A status question answered from context, not a request to plan or write a backlog."
+    },
+    {
+        "name": "not-generic-agile-question",
+        "query": "What's the difference between an epic and a feature in SAFe?",
+        "should_trigger": false,
+        "why": "A definitional question with no artifact to produce."
+    },
+    {
+        "name": "not-implementation",
+        "query": "Implement the retry logic in the ingestion job",
+        "should_trigger": false,
+        "why": "Writing code, not planning work."
+    }
+]

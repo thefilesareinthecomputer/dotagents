@@ -1,0 +1,74 @@
+{
+  "skill_name": "ai-agent-project-scaffold",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Scaffold an agent project that watches a set of RSS feeds and posts a daily digest to our team chat.",
+      "expected_output": "The ai-agent-project-scaffold skill is invoked and runs the intake before proposing anything: unknown fields (surface, model strategy, footprint/lock-in, layers, scale, team language) are asked one at a time, the stack is selected from the ai-engineering map with the deciding tradeoff stated, and a runnable skeleton (repo tree, pinned deps, wiring, smoke test, README) is produced with hardening included, then implementation is handed to agent-skills.",
+      "expectations": [
+        "The ai-agent-project-scaffold skill is invoked",
+        "The intake happens before any stack proposal: unknown intake fields are asked one at a time (e.g. via AskUserQuestion) instead of being fabricated; fields inferable from context are filled without asking",
+        "~/.agents/skills/ai-engineering/resources/agent-stack-map.md is read and the stack choice leads with the decision plus its deciding tradeoff",
+        "The scaffold output includes a repo tree with module boundaries, a pinned dependency manifest (pyproject.toml or package.json), a minimal runnable wiring path with a smoke test, and a README covering the architecture decision and how to run locally",
+        "Production-hardening (observability, config/secrets via env, CI/CD skeleton or rollback path) appears in the scaffold rather than being deferred",
+        "Implementation beyond the skeleton is routed to agent-skills (/spec, /plan, /build, /test) or delegated one-shot to the ai-engineer subagent with a complete brief"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Bootstrap a RAG repo over our product manuals. Local-first models only, and the team is Python.",
+      "expected_output": "The ai-agent-project-scaffold skill is invoked; the intake credits the constraints already given (local-first, Python) and asks only the remaining unknowns, then selects retrieval/ingestion/orchestration components from the ai-engineering map and generates a Python skeleton with retrieval and ingestion modules, pinned deps, and a smoke test.",
+      "expectations": [
+        "The ai-agent-project-scaffold skill is invoked",
+        "The stated constraints (local-first model strategy, Python) are not re-asked; only genuinely unknown intake fields are asked",
+        "The stack selection is grounded in the ai-engineering agent-stack-map.md and flags any license trap among chosen components",
+        "The generated skeleton contains distinct retrieval and ingestion modules, a pyproject.toml pinned to the selected components, a local model client wiring path, and a smoke test",
+        "Uncovered or possibly-stale components are verified via deep-research/ai-engineering-update rather than asserted from memory"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Set up a new Next.js e-commerce site with Stripe checkout and a product catalog.",
+      "expected_output": "The ai-agent-project-scaffold skill is NOT invoked; this is a general web app with no AI subsystem. The agent routes the work through the general engineering workflow (agent-skills /spec onward) instead of running an AI intake or selecting an agent stack.",
+      "expectations": [
+        "The ai-agent-project-scaffold skill is NOT invoked",
+        "No AI intake questions (model strategy, RAG/memory layers) are asked and the ai-engineering stack map is not consulted",
+        "The work is routed to the general agent-skills workflow (starting with /spec or equivalent spec-driven development) as a normal web project"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Build me an agent that renames the files in my downloads folder to a consistent date-prefixed pattern.",
+      "expected_output": "The premise is challenged before any scaffolding: this is a job for a small script, not an agent stack. The agent says so first and offers the simple script solution instead of running the full intake and generating an agent repo.",
+      "expectations": [
+        "The agent challenges the premise explicitly - stating that a script suffices where an agent was requested - before proposing any agent stack",
+        "No agent-project skeleton (orchestration framework, memory/RAG layers, agent repo tree) is generated for this task",
+        "A simple script-based solution is offered or implemented instead"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "We need an internal agent that answers questions from our support runbooks. Python team, must run on our own hardware, no data leaving the building. Get me a stack.",
+      "expected_output": "The intake runs, then one complete stack is proposed in a single pass with every slot named or explicitly marked not needed - harness, framework, model provider and tier, memory, retrieval, ingestion, tools, MCP servers, eval and observability, frontend. Components come from the ai-engineering corpus, the local-only constraint drives the choices, and the committed slots are written back with ledger.py decision.",
+      "expectations": [
+        "One complete stack is proposed in a single pass rather than the slots being elicited one at a time",
+        "Every slot is either a named component or an explicit 'not needed' that traces to a stated intake answer",
+        "Component choices come from the ai-engineering corpus; anything absent from it is flagged unverified rather than filled in from training memory",
+        "The model slot commits to a provider and capability tier rather than asserting a specific model identifier from memory",
+        "The self-hosted, no-egress constraint visibly drives the choices, and any license trap in the selected components is flagged",
+        "The committed stack is recorded with ledger.py decision, using the SHAPE of the use case rather than a project name"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "I have a vague idea about using AI to help our ops team somehow. Not sure what it should do yet.",
+      "expected_output": "No stack is proposed against an unformed idea. Elicitation is delegated to interview-me (and idea-refine to stress-test the premise) until the intake fields can actually be answered, and only then does stack selection begin.",
+      "expectations": [
+        "No stack, framework, or repo skeleton is proposed while the requirement is still unformed",
+        "Elicitation is delegated to interview-me rather than reimplemented, with idea-refine available to stress-test the premise",
+        "The intake fields are what gate progress: selection begins only once outcome, surface and constraints can be answered",
+        "The possibility that no agent is warranted remains open rather than an agent build being assumed"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+[
+  {"name": "builds-a-landing-page", "should_trigger": true,
+   "query": "Build me a landing page for my open-source ledger tool.",
+   "why": "Generating a user-facing UI from scratch is the primary trigger. The skill must fire BEFORE the first line of markup, not after."},
+
+  {"name": "ui-looks-ai-generated", "should_trigger": true,
+   "query": "This dashboard I generated looks like every other AI site. Fix it.",
+   "why": "The complaint phrasing ('looks AI-generated', 'looks generic') is the diagnostic trigger."},
+
+  {"name": "redesign-request", "should_trigger": true,
+   "query": "Can you make this pricing page look less generic?",
+   "why": "Aesthetic-quality request on existing UI; should route to the audit path."},
+
+  {"name": "chart-not-page", "should_trigger": false,
+   "query": "Plot the catalog growth over the last six months as a line chart.",
+   "why": "Data visualization is a different discipline with its own rules. This skill must NOT poach chart work."},
+
+  {"name": "backend-bug", "should_trigger": false,
+   "query": "The ingest script is dropping rows when the TSV has a trailing tab.",
+   "why": "No visual surface. Guards against the skill firing on any mention of a 'frontend' repo."},
+
+  {"name": "pure-css-bug", "should_trigger": false,
+   "query": "The nav overlaps the hero on Safari but not Chrome.",
+   "why": "A layout BUG, not an aesthetic-quality question. Debugging is a different skill; this one is about taste, not correctness."}
+]

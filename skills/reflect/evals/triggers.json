@@ -1,0 +1,86 @@
+[
+  {
+    "name": "canonical-reconcile",
+    "query": "reconcile what we learned",
+    "should_trigger": true,
+    "why": "The settled boundary: wrap-up disclaims this as reflect on its own. The single case that has to pass."
+  },
+  {
+    "name": "bare-reflect",
+    "query": "let's reflect on this session",
+    "should_trigger": true,
+    "why": "The phrasing the skill is named for, with session scope but no closeout verbs attached."
+  },
+  {
+    "name": "play-it-back",
+    "query": "repeat back to me everything you think you learned today so I can confirm it",
+    "should_trigger": true,
+    "why": "Step 3's approval gate stated in the user's own words. No use of reflect or reconcile, so this checks the trigger reads the procedure rather than the label."
+  },
+  {
+    "name": "stale-claim-hunt",
+    "query": "we renamed that flag, go find everywhere the docs and comments still call it the old thing",
+    "should_trigger": true,
+    "why": "Step 2B: a session change made written statements false, across docs, comments and configs. Reconciliation intent with no reflection vocabulary at all."
+  },
+  {
+    "name": "worth-saving-to-memory",
+    "query": "is there anything from today worth saving to memory",
+    "should_trigger": true,
+    "why": "Durable-knowledge promotion, which is reflect's half of the closeout and never notes'. Includes the routing question of whether it is a memory at all."
+  },
+  {
+    "name": "correct-a-wrong-belief",
+    "query": "that assumption you've been working from is wrong, make sure nothing we've written still says it",
+    "should_trigger": true,
+    "why": "A correction that has to propagate everywhere it was recorded, including memory. The grep-every-site half of the sweep."
+  },
+  {
+    "name": "close-out-the-session",
+    "query": "close out the session",
+    "should_trigger": false,
+    "why": "wrap-up. The head-to-head case: reflect's own description still claims this phrase, and the settled boundary gives whole-session closeout to wrap-up. Firing here is the contested false positive."
+  },
+  {
+    "name": "session-closeout-chain",
+    "query": "reflect, notes, then push it all up",
+    "should_trigger": false,
+    "why": "wrap-up. The word reflect appears, but three chain verbs together is the closeout orchestrator, which runs this skill as its first gate."
+  },
+  {
+    "name": "docs-sweep",
+    "query": "update the docs with what we did",
+    "should_trigger": false,
+    "why": "notes. Session work into the living docs is the sweep reflect deliberately hands off rather than performing."
+  },
+  {
+    "name": "take-notes",
+    "query": "take notes before we stop",
+    "should_trigger": false,
+    "why": "notes. Same end-of-session timing, but the object is the repo's documentation, not memory or stale claims."
+  },
+  {
+    "name": "orientation",
+    "query": "where did we leave off",
+    "should_trigger": false,
+    "why": "hi. Session-start orientation reads state; reflect reconciles it at the end and writes."
+  },
+  {
+    "name": "memory-lookup",
+    "query": "search your memory for what we know about the embedding model",
+    "should_trigger": false,
+    "why": "mem-search. A read of existing memory, with nothing new to promote and no claim to correct."
+  },
+  {
+    "name": "generic-thinking",
+    "query": "think carefully about how to design this API before you write anything",
+    "should_trigger": false,
+    "why": "No skill. Reflection in the everyday sense, with no session to reconcile. Guards against the trigger keying on the word think or reflect."
+  },
+  {
+    "name": "commit-in-progress-work",
+    "query": "commit what we have so far so I don't lose it",
+    "should_trigger": false,
+    "why": "A plain commit. One verb, mid-session, and reflect does not commit or push."
+  }
+]

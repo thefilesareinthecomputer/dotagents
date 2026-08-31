@@ -1,0 +1,61 @@
+[
+  {"name": "run-it-as-a-loop", "should_trigger": true,
+   "query": "Run this as a loop: update the three ingestion adapters, refresh their tests, and rewrite the module README.",
+   "why": "The explicit invocation phrasing plus a real decomposition. Orchestration-shaped skills are measured to auto-fire poorly, so this is the case that must not miss."},
+
+  {"name": "fan-out-workers", "should_trigger": true,
+   "query": "Do not do this yourself, fan it out to workers.",
+   "why": "Bare fan-out intent with no task detail. The skill has to load to answer what the subtasks even are, and to pick reader versus worker."},
+
+  {"name": "orchestrate-this", "should_trigger": true,
+   "query": "Orchestrate the dependency bump across those four packages.",
+   "why": "The word orchestrate with an independent-per-package split. Tests the verb on its own, without the word loop or worker anywhere."},
+
+  {"name": "delegate-and-synthesize", "should_trigger": true,
+   "query": "Delegate the research legwork to a few agents and bring it back as one answer.",
+   "why": "Delegation plus synthesis, which is the whole shape: parallel readers gathering, the orchestrator returning one deliverable rather than a stack of reports."},
+
+  {"name": "three-independent-subtasks", "should_trigger": true,
+   "query": "I need the changelog written, the version string fixed in four files, and the API docs regenerated. None of them depend on each other.",
+   "why": "The situation clause with no orchestration vocabulary at all. Three visibly independent subtasks is the stated floor, and this is the case that proves the trigger reads the shape of the work rather than the phrasing."},
+
+  {"name": "worker-claim-vs-evidence", "should_trigger": true,
+   "query": "The worker says all the tests pass, but the diff it returned never touches the failing test file. What now?",
+   "why": "Mid-loop verification. The rule is check against evidence, reject, re-delegate once with the failure named, and never synthesize an unverified claim."},
+
+  {"name": "critique-the-split", "should_trigger": true,
+   "query": "Before I send these subtasks out, is this split right? The second and third look like they overlap.",
+   "why": "Pre-delegation decomposition critique, which is the advisor consult condition - shared seams between subtasks is exactly when the expensive tier is worth buying."},
+
+  {"name": "resume-an-in-flight-loop", "should_trigger": true,
+   "query": "Last session had a loop going across those four adapters and the notes say two subtasks were finished. Pick it back up.",
+   "why": "Cross-session resume. The rules are fetch origin before reading the state file and re-verify every ticked subtask against its recorded evidence, because a ticked box is a claim and the file is git-tracked on more than one station."},
+
+  {"name": "single-file-edit", "should_trigger": false,
+   "query": "Fix the typo in the README heading.",
+   "why": "A single-step task. No independent subtasks, so the loop is pure overhead. The skill's own when-not-to-use section rules this out."},
+
+  {"name": "long-but-single-task", "should_trigger": false,
+   "query": "Read through this 900-line module and explain what it actually does.",
+   "why": "Big but indivisible. Size is not decomposability, and splitting a single explanation across workers produces a concatenation rather than an answer."},
+
+  {"name": "two-step-chain", "should_trigger": false,
+   "query": "Add the new endpoint and then write a test for it.",
+   "why": "Two steps, and they chain rather than run in parallel. Below the roughly three independent subtasks floor, so the work is done directly."},
+
+  {"name": "mechanical-sweep", "should_trigger": false,
+   "query": "Rename this function everywhere it appears, about twenty files.",
+   "why": "Many files, one task. Fan-out needs independent subtasks, not repeated instances of the same edit, and two workers must never write the same area anyway."},
+
+  {"name": "single-delegation", "should_trigger": false,
+   "query": "Send a researcher off to find out how that library handles retries.",
+   "why": "One agent on one question is a plain Agent call, not a loop. Delegation vocabulary is present, which makes this the hardest false positive: the loop is the plan-verify-synthesize cycle around parallel work, not the act of spawning something."},
+
+  {"name": "author-a-subagent", "should_trigger": false,
+   "query": "Write me a subagent definition that reviews SQL migrations.",
+   "why": "Belongs to skill-authoring, which owns agent definitions. This skill only says to author one as the last option, per that skill's rules."},
+
+  {"name": "which-model-pin", "should_trigger": false,
+   "query": "Which model should the reader agent be pinned to in its frontmatter?",
+   "why": "Belongs to skill-authoring. A question about a definition file's fields, not about running a loop, even though this skill explains why the pin exists."}
+]

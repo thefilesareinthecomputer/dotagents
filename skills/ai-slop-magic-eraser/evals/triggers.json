@@ -1,0 +1,43 @@
+[
+  {"name": "reads-like-ai", "should_trigger": true,
+   "query": "draft-spec.md reads like ChatGPT wrote it. Fix it.",
+   "files": ["evals/files/draft-spec.md"],
+   "why": "The diagnostic complaint phrasing is the primary trigger."},
+
+  {"name": "de-slop-the-doc", "should_trigger": true,
+   "query": "De-slop draft-spec.md before I send it to the client.",
+   "files": ["evals/files/draft-spec.md"],
+   "why": "Direct request in the skill's own vocabulary, with a ship-it deadline."},
+
+  {"name": "cringe-prose", "should_trigger": true,
+   "query": "Go through draft-spec.md and take out the corny AI voice, the hedging and the em dashes. Keep what it actually says.",
+   "files": ["evals/files/draft-spec.md"],
+   "why": "Names three categories and states the preserve-meaning invariant without naming the skill."},
+
+  {"name": "review-generated-prose-for-inventions", "should_trigger": true,
+   "query": "An agent wrote draft-spec.md. Check it for anything it made up or contradicted itself on, and tidy the writing.",
+   "files": ["evals/files/draft-spec.md"],
+   "why": "Pass 2 is half the skill. Reviewing model output for hallucinations and contradictions must trigger it, not only the prose polish."},
+
+  {"name": "polish-before-shipping", "should_trigger": true,
+   "query": "I drafted draft-spec.md with an LLM. Make it sound like a person wrote it.",
+   "files": ["evals/files/draft-spec.md"],
+   "why": "Model-drafted text plus a humanise request."},
+
+  {"name": "not-a-rewrite-request", "should_trigger": false,
+   "query": "Rewrite draft-spec.md to argue for a database instead of a queue.",
+   "files": ["evals/files/draft-spec.md"],
+   "why": "Changing what a document argues is explicitly out of scope. Same file, opposite intent, so this isolates intent from file presence."},
+
+  {"name": "not-a-code-refactor", "should_trigger": false,
+   "query": "This function is ugly and hard to follow. Clean it up.",
+   "why": "Code logic is out of scope. 'Clean it up' alone must not fire this skill."},
+
+  {"name": "not-ui-slop", "should_trigger": false,
+   "query": "This landing page looks like every other AI-generated site. Make it less generic.",
+   "why": "Precision boundary against the sibling skill: frontend-aesthetics should fire instead. Visual slop is that skill, prose slop is this one, and both complaints use 'AI-generated'."},
+
+  {"name": "not-a-fresh-draft", "should_trigger": false,
+   "query": "Write me a blog post about Iceberg table formats.",
+   "why": "Authoring from scratch is not an eraser pass."}
+]

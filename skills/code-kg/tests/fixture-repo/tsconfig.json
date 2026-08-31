@@ -1,0 +1,9 @@
+{
+  // Path aliases exercise the jsonc-tolerant tsconfig reader.
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@app/*": ["web/*"]
+    }
+  }
+}

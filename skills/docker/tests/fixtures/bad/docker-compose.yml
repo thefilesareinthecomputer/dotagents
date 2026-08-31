@@ -1,0 +1,21 @@
+# Fixture: the host-escape grants. Used by tests/test_docker_check.py.
+services:
+  agent:
+    build: .
+    privileged: true
+    network_mode: host
+    environment:
+      POSTGRES_PASSWORD: hunter2
+    cap_add:
+      - SYS_ADMIN
+      - SYS_PTRACE
+      # - privileged: true   # commented - must NOT fire (inert line)
+    pid: host
+    security_opt:
+      - seccomp:unconfined
+    user: root
+    volumes:
+      - /run/docker.sock:/run/docker.sock
+      - /:/host
+      - /etc:/host-etc
+      - /dev/mem:/dev/mem

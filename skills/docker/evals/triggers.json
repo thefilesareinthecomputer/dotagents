@@ -1,0 +1,37 @@
+[
+  {"name": "containerize-an-app", "should_trigger": true,
+   "query": "Containerize this FastAPI app so I can run it locally and deploy it.",
+   "why": "Scaffolding path. Must fire BEFORE the Dockerfile is written, or the root user and cache-busting COPY are already baked in."},
+
+  {"name": "inherit-existing-setup", "should_trigger": true,
+   "query": "I cloned this repo and it has a Dockerfile and three compose files. How do I run it?",
+   "why": "Brownfield path - orientation. Most container work is on an existing setup, and the skill must serve that, not only scaffolding."},
+
+  {"name": "image-too-big", "should_trigger": true,
+   "query": "My image is 1.8GB. Why?",
+   "why": "Operating path - docker history, multi-stage, package cache. A very common ask that has a mechanical answer."},
+
+  {"name": "container-wont-start", "should_trigger": true,
+   "query": "The container keeps restarting and there's nothing in the logs.",
+   "why": "Exit-code diagnosis. 137/OOMKilled presents exactly like this and is routinely misdiagnosed as an app bug."},
+
+  {"name": "socket-mount-request", "should_trigger": true,
+   "query": "Add the docker socket to the agent container so it can manage other containers.",
+   "why": "MUST fire - this is a host-escape grant. The skill exists partly to stop this one from being done casually."},
+
+  {"name": "review-compose", "should_trigger": true,
+   "query": "Review my docker-compose before I deploy this.",
+   "why": "Review path; compose is where the privilege grants hide and hadolint does not look."},
+
+  {"name": "kubernetes-manifest", "should_trigger": false,
+   "query": "Write a Kubernetes Deployment and Service for this app.",
+   "why": "K8s is a different domain. Containers are adjacent but this skill must not poach orchestration work it has no rules for."},
+
+  {"name": "generic-python-bug", "should_trigger": false,
+   "query": "My FastAPI route returns 500 when the body is empty.",
+   "why": "An application bug that happens to live in a repo that has a Dockerfile. Guards against firing on any containerized project."},
+
+  {"name": "ci-pipeline", "should_trigger": false,
+   "query": "Set up GitHub Actions to run my tests on every PR.",
+   "why": "CI/CD is its own skill. Should only fire if the pipeline is specifically about building or pushing images."}
+]

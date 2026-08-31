@@ -1,0 +1,59 @@
+{
+  "skill_name": "repo-device-sync",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "before we start - I was working on this repo from my laptop earlier, check if there's anything to pull",
+      "expected_output": "Skill fires. Fetches origin, reports ahead/behind per tracked branch, summarizes incoming commits and diff, fast-forwards if clean, reports final state.",
+      "expectations": [
+        "git fetch origin is run before any state conclusions are drawn",
+        "Incoming commits are listed (log HEAD..origin/<branch>) and the diff is summarized before pulling",
+        "A fast-forward pull is performed only when the local branch has not diverged",
+        "The final report states the resulting local/origin state per branch"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "ok push this up - done for the night",
+      "expected_output": "Skill fires on pre-push. Re-fetches origin immediately before pushing (another device may have pushed mid-session), pushes, then verifies branch parity per the repo's convention.",
+      "expectations": [
+        "git fetch is re-run immediately before the push, not reused from an earlier fetch",
+        "If origin moved since the last fetch, the incoming changes are reconciled before pushing",
+        "After the push, local and origin are re-verified as equal",
+        "If the repo keeps main == develop, parity of both branches is checked and reported"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "sync check says we've diverged - local has 2 commits origin doesn't, origin has 3 commits local doesn't",
+      "expected_output": "Skill fires. Divergence is a stop-and-ask condition: both sides shown, merge strategy proposed, no force-push or hard reset, waits for user decision.",
+      "expectations": [
+        "Both divergent commit ranges are displayed with their diffs summarized",
+        "No force-push, rebase of shared history, or hard reset is executed",
+        "A reconciliation strategy (merge) is proposed and user approval is requested before any history-changing action",
+        "Uncommitted local changes are surfaced before any merge is attempted"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "why does git rebase -i keep failing in this terminal?",
+      "expected_output": "Skill does NOT fire. This is a git usage question, not a multi-device sync ritual. Correct behavior: answer the question directly (interactive flags are unsupported in this environment).",
+      "expectations": [
+        "The repo-device-sync skill is not invoked",
+        "No fetch/pull/push cycle is initiated",
+        "The question is answered directly as a git usage question"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "we're synced - now make sure this station still matches the spec",
+      "expected_output": "In ~/.agents (SPEC-CLAUDE-CODE.md present), the skill's drift-check phase runs: live plugins/settings/hooks/CLI deps compared against the spec, drift reported as a diff, no changes applied without approval.",
+      "expectations": [
+        "SPEC-CLAUDE-CODE.md is read and treated as the source of truth for the station",
+        "Live state (plugins, settings.json, hooks, CLI deps) is inspected and compared to the spec",
+        "Drift is reported as a per-item diff (spec expectation vs live state)",
+        "No config file is modified without explicit user approval"
+      ]
+    }
+  ]
+}

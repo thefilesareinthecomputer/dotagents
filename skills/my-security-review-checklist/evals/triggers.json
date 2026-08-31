@@ -1,0 +1,61 @@
+[
+  {"name": "hidden-instructions-in-a-skill", "should_trigger": true,
+   "query": "Someone sent me this skill. Does it have hidden instructions in it?",
+   "why": "The hidden-character scan is this skill's, and the scanner ships with it. A reviewer approves rendered text while the model reads codepoints, so tag characters and bidi overrides need the tool rather than a careful read."},
+
+  {"name": "review-a-hook-pre-commit", "should_trigger": true,
+   "query": "Review this PreToolUse hook before I commit it. It shells out to a script.",
+   "why": "Hooks run arbitrary code on real events, so section 3 applies in full: matcher scope, timeout, fail-closed, and no untrusted content interpolated into a command string."},
+
+  {"name": "about-to-commit-agent-tooling", "should_trigger": true,
+   "query": "I am about to commit these changes to my agents repo. Anything unsafe in them?",
+   "why": "The pre-merge gate the description makes mandatory for any change to the shared agent config. The review is the gate, and it runs before the commit rather than after."},
+
+  {"name": "mcp-server-trust", "should_trigger": true,
+   "query": "Should I install this MCP server? It is from a repo I have not seen before.",
+   "why": "Plugin and MCP trust. You trust everything it ships, look-alike package names are the attack, and a Connected status is not proof of access."},
+
+  {"name": "wildcard-permission", "should_trigger": true,
+   "query": "I added a broad Bash allow rule to settings so it stops prompting me. Is that fine?",
+   "why": "Permissions and settings.json. A wildcard auto-approve defeats the prompt and turns any approved command into an injection sink."},
+
+  {"name": "sync-script-change", "should_trigger": true,
+   "query": "I rewrote the sync script so it moves the old files aside first. Take a look before I run it.",
+   "why": "Shell and script safety on a script that operates on the synced source of truth: set -euo pipefail, quoted expansions, guarded destructive ops, and a dry-run path."},
+
+  {"name": "path-hygiene-sweep", "should_trigger": true,
+   "query": "Does anything in these shared skills still hardcode my home directory or my username?",
+   "why": "Portability and personal-constant hygiene. A username-bearing absolute path breaks on another device and leaks into git history, and the rule is fix rather than flag."},
+
+  {"name": "pasted-untrusted-text", "should_trigger": true,
+   "query": "I copied this text out of a GitHub issue into a rules file. Is that safe to keep?",
+   "why": "Content from outside gets scanned before it is committed or acted on. A rules file is read as instructions, so untrusted prose in it is a prompt-injection route."},
+
+  {"name": "local-service-off-loopback", "should_trigger": true,
+   "query": "I set OLLAMA_HOST to 0.0.0.0 so I can hit it from my phone. Any problem with that?",
+   "why": "Section 7a treats an unauthenticated local inference API published off loopback as Critical. The bind address is the only control, and on a shared network it is published to strangers."},
+
+  {"name": "web-app-auth-flaw", "should_trigger": false,
+   "query": "Is this Django login view vulnerable to session fixation?",
+   "why": "Application security, which belongs to agent-skills:security-and-hardening. This checklist says so in its own overview and covers agent tooling only."},
+
+  {"name": "api-injection", "should_trigger": false,
+   "query": "Check this API endpoint for SQL injection.",
+   "why": "Application security again, and the hardest false positive because untrusted input is vocabulary both skills use. The seam is what consumes the input: an agent reading it as instructions is this skill, a web request hitting a database is the other one."},
+
+  {"name": "app-dependency-trust", "should_trigger": false,
+   "query": "We want to add this Python library to the web app's requirements. Is it trustworthy?",
+   "why": "Application supply chain, owned by agent-skills:security-and-hardening. Section 5 here covers plugins and MCP servers, which execute inside the agent, not packages the product imports."},
+
+  {"name": "dependency-audit-output", "should_trigger": false,
+   "query": "npm audit is reporting three high severity advisories. What should I do about them?",
+   "why": "Advisory triage for an application's dependency tree. Belongs to application security, not to the agent-tooling gate."},
+
+  {"name": "general-code-review", "should_trigger": false,
+   "query": "Review this pull request for correctness and style before I merge it.",
+   "why": "Ordinary code review with no security question and no agent-tooling artifact named. Firing on every pre-merge request would make the gate meaningless."},
+
+  {"name": "description-rewrite", "should_trigger": false,
+   "query": "This skill's description is bloated and it still never fires. Rewrite it.",
+   "why": "Belongs to skill-authoring, which owns description discipline and triggering. Same file, different concern."}
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "name": "blast-radius",
+    "query": "Before I refactor app/services/billing.py, what imports it and what would break?",
+    "should_trigger": true,
+    "why": "Importers/blast-radius is a graph question; the skill's core verb."
+  },
+  {
+    "name": "index-repo",
+    "query": "Index this codebase so we can query the dependency graph instead of grepping around.",
+    "should_trigger": true,
+    "why": "Explicit ask to index/query a repo's dependency structure."
+  },
+  {
+    "name": "find-dead-code",
+    "query": "Find dead code in this repo - modules nothing actually uses anymore.",
+    "should_trigger": true,
+    "why": "Liveness tiers are the skill's differentiating feature."
+  },
+  {
+    "name": "what-actually-runs",
+    "query": "We have lcov output from CI. Fold it in and tell me which functions never execute.",
+    "should_trigger": true,
+    "why": "Coverage ingest joined onto the graph is a first-class command."
+  },
+  {
+    "name": "orient-unfamiliar",
+    "query": "I just inherited this 4000-file monorepo. Map its entry points and how the services connect.",
+    "should_trigger": true,
+    "why": "Orientation in a codebase too large to read; entrypoints + index."
+  },
+  {
+    "name": "vault-backlinks",
+    "query": "What links to the Zone Planning note in my Obsidian vault?",
+    "should_trigger": false,
+    "why": "Markdown vault traversal belongs to obsidian-kg."
+  },
+  {
+    "name": "docs-tree-query",
+    "query": "Make our docs folder of markdown runbooks queryable.",
+    "should_trigger": false,
+    "why": "A markdown corpus is obsidian-kg's domain even outside Obsidian."
+  },
+  {
+    "name": "code-review",
+    "query": "Review this diff for bugs before I merge it.",
+    "should_trigger": false,
+    "why": "Correctness review is not structure mapping; other skills own it."
+  },
+  {
+    "name": "runtime-debug",
+    "query": "Why does this import throw ModuleNotFoundError in production at startup?",
+    "should_trigger": false,
+    "why": "A live debugging task, not a corpus-indexing one."
+  }
+]

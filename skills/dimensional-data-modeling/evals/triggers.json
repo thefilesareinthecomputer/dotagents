@@ -1,0 +1,41 @@
+[
+  {"name": "cold-start-warehouse-model", "should_trigger": true,
+   "query": "We're building our first data warehouse for the sales side of the business. Help me design the model.",
+   "why": "Greenfield path. Must fire before any table is drawn, because the grain declaration has to come first and cannot be retrofitted."},
+
+  {"name": "grain-question", "should_trigger": true,
+   "query": "Should one row of my sales fact table be an order, an order line, or a shipment?",
+   "why": "The grain decision stated in the user's own words. The highest-value trigger in the skill."},
+
+  {"name": "scd-decision", "should_trigger": true,
+   "query": "Customers move between segments. Do I overwrite the segment or keep the old value?",
+   "why": "An SCD type 1 versus type 2 decision without using the term SCD. The routing question is 'should historical reports change too'."},
+
+  {"name": "brownfield-audit", "should_trigger": true,
+   "query": "I inherited this warehouse and the reports don't agree with each other. Is the model sound?",
+   "why": "Brownfield path. Reports disagreeing is the signature of non-conformed dimensions or metrics defined per report."},
+
+  {"name": "fact-or-dimension", "should_trigger": true,
+   "query": "Where does the product's list price belong, in the fact table or on the product record?",
+   "why": "The numeric-value-as-attribute-or-fact technique. A single technique question, which should route to the catalog rather than a workshop."},
+
+  {"name": "star-schema-ddl-review", "should_trigger": true,
+   "query": "Before I hand this to the ETL team, is it sound? CREATE TABLE fact_sales (sale_id VARCHAR(20), date_key INT, month_key INT, customer_key INT NULL, customer_name VARCHAR(100), sales_amount FLOAT);",
+   "why": "Review path, and the one where the deterministic checker earns its place. The DDL has to be inline: 'review this DDL' with nothing attached makes the model ask for the file first, so no skill can fire and the case scores a false miss."},
+
+  {"name": "workshop-facilitation", "should_trigger": true,
+   "query": "I'm running the first modeling workshop with the client's finance team tomorrow. What do I ask them?",
+   "why": "The runbook path. The Day 1 question set is the deliverable, not a schema."},
+
+  {"name": "oltp-schema-design", "should_trigger": false,
+   "query": "Design the normalized tables for our checkout service's order state machine.",
+   "why": "Transactional schema design. Dimensional modeling is for analytical data and must not poach OLTP normalization work."},
+
+  {"name": "sql-query-tuning", "should_trigger": false,
+   "query": "This SQL query is slow, can you rewrite it?",
+   "why": "Query tuning with no modeling decision in it. Guards against firing on anything SQL-shaped."},
+
+  {"name": "airflow-pipeline-plumbing", "should_trigger": false,
+   "query": "My Airflow DAG keeps failing on a task retry. How do I fix the retry config?",
+   "why": "Pipeline operations. Adjacent to the ETL subsystems reference but carries no modeling question."}
+]
