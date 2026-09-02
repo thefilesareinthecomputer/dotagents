@@ -63,7 +63,8 @@ wc -l SPEC.md README.md tasks/plan.md tasks/todo.md
 
 **The budget is a ceiling and the default posture is deletion.** These load every
 session, so a stale line is a tax paid forever. A sweep that only adds is not a
-sweep.
+sweep, and a finding fixed by appending a clause is usually fixed wrong: replace,
+merge or relocate first, and add only when nothing existing can carry the fact.
 
 **One test per item: does this change what a session does next?** If not it is not
 hot, whatever its history. Shipped work, settled decisions, closed gotchas,

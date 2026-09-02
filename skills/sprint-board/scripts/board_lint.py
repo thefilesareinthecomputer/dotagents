@@ -36,12 +36,30 @@ PARENT_RE = re.compile(r"^-\s+Parent:\s*(.*)$")
 # them creates a second copy that drifts silently.
 DEPENDS_RE = re.compile(r"^-\s+(?:Predecessor|Depends on):\s*(.*)$")
 OWNER_RE = re.compile(r"^-\s+Owner:\s*(.*)$")
+# Optional. The vocabulary is the board's own: this file never names a state value,
+# and the checks below discover the set from the board and judge only its shape.
+STATE_RE = re.compile(r"^-\s+State:\s*(.*)$")
 BLOCK_RE = re.compile(r"^\*\*([A-Z][A-Z ]+)\*\*\s*$")
 FENCE_RE = re.compile(r"^(`{3,})\s*$")
 LABEL_RE = re.compile(r"^\*\*([A-Z][A-Z /]+)\*\*:")
+# Case-insensitive twin of LABEL_RE, for the check that catches the same section
+# written twice in two spellings. Everything else keys on the canonical form.
+ANY_LABEL_RE = re.compile(r"^\*\*([A-Za-z][A-Za-z /]+)\*\*:")
+# A state written as a hedge: two values, a question mark, a bracketed doubt.
+HEDGED_STATE_RE = re.compile(r"[/?()]|\bor\b", re.I)
+# The section that records why an item closed with a required box still open.
+# The field set inside it is the team's to define; that one exists is not.
+EXCEPTION_LABEL = "EXCEPTION"
 CHECKBOX_RE = re.compile(r"^\s*-\s+\[[ xX]\]\s*(.*)$")
 BULLET_RE = re.compile(r"^\s*-\s+(?!\[[ xX]\])(.+)$")
 
+# Three ID regimes. "Real" means six digits as a tracker issues them; the linter
+# never sees a tracker and only judges shape. Every ID in this skill's own docs,
+# tests and examples is a fixture - NNNNnn, a repdigit run, a consecutive run such
+# as 123456, or a zero-padded counter - and EPIC-/FEATURE-/STORY- are universal
+# agile terms. None of it is sensitive. A scanner for leaked identifiers passes
+# those shapes silently and surfaces anything else for judgment, never a hard fail:
+# a test asserting which six-digit values are real goes stale the day it is written.
 REAL_ID_RE = re.compile(r"^\d{6}$")
 SCRATCH_ID_RE = re.compile(r"^0{2}\d{4}$")
 PLACEHOLDER_RE = re.compile(r"^NNNN\d{2}$")
@@ -180,6 +198,8 @@ class Item:
         self.depends = None
         self.depends_line = None
         self.owner = None
+        self.state = None
+        self.state_line = None
         self.done = False
         self.blocks = {}
         self.index = None
@@ -232,6 +252,12 @@ def parse(text):
             m = OWNER_RE.match(raw)
             if m and current.owner is None:
                 current.owner = m.group(1).strip()
+                i += 1
+                continue
+            m = STATE_RE.match(raw)
+            if m and current.state is None:
+                current.state = m.group(1).strip()
+                current.state_line = i + 1
                 i += 1
                 continue
             m = PARENT_RE.match(raw)
@@ -624,6 +650,103 @@ def check(items, parse_findings, glossary=None):
                         f"ownership and review are tracker fields. If a person must act, name "
                         f"the role, and prefer a check the system can answer instead.")
 
+    # Closeout shape: the checks a real closeout exposes, none of which need an
+    # opinion about what any state value means.
+    kids = children_of(items)
+    for it in items:
+        secs = sections(it)
+
+        # The same section twice, in two spellings or two forms. Traceability and
+        # status read only the checkbox list, so the other is silently ignored, and
+        # at closeout nobody knows which one closes the item.
+        by_label = {}
+        for s in secs:
+            by_label.setdefault(s["label"], []).append(s)
+        for label, group in by_label.items():
+            if len(group) < 2:
+                continue
+            first, second = group[0], group[1]
+            forms = {("boxes" if s["boxes"] else "bullets") for s in group}
+            if len(forms) == 2:
+                add("warning", second["line"], "criteria-dual-form",
+                    f"{it.ref} carries '{label}' twice (lines {first['line']} and "
+                    f"{second['line']}), once as plain bullets and once as checkboxes; "
+                    f"only the checkbox list is read. Keep one, or state which closes "
+                    f"the item.")
+            else:
+                add("warning", second["line"], "duplicate-section",
+                    f"{it.ref} carries '{label}' twice (lines {first['line']} and "
+                    f"{second['line']}); merge them.")
+
+        # A feature with a body and no criteria is not empty, and it cannot be
+        # closed against anything - which only shows when someone tries.
+        if it.kind == "feature" and "DESCRIPTION" in it.blocks:
+            body_text = any(t.strip() for _, t in it.blocks["DESCRIPTION"].get("body", []))
+            if body_text and "ACCEPTANCE CRITERIA" not in by_label:
+                add("warning", it.line, "feature-no-criteria",
+                    f"{it.ref} has a body but no ACCEPTANCE CRITERIA section; nothing "
+                    f"says when it closes.")
+
+        # Declared done against the item's own boxes, in both directions.
+        if it.title is None:
+            continue
+        checked, total = box_counts(it)
+        if it.done and total and checked < total:
+            dod_open = [ln for s in secs if s["label"] == "DEFINITION OF DONE"
+                        for ln in s["open"]]
+            other_open = total - checked - len(dod_open)
+            if dod_open and not has_exception(it):
+                add("error", it.line, "done-without-exception",
+                    f"{it.ref} is ticked done with {len(dod_open)} Definition of Done "
+                    f"box(es) still open (line {dod_open[0]}); either finish them or "
+                    f"add an **EXCEPTION** section naming what is unmet and why.")
+            if other_open:
+                add("warning", it.line, "done-with-open-boxes",
+                    f"{it.ref} is ticked done but {other_open} of its own {total} "
+                    f"box(es) remain open; the title and the body disagree.")
+        elif not it.done and total and checked == total:
+            blocking = [k for k in kids.get(it.id, []) if not k.done]
+            if not blocking:
+                add("warning", it.line, "boxes-done-title-open",
+                    f"{it.ref} has every box ticked{' and every child done' if kids.get(it.id) else ''} "
+                    f"but its title is still open; close it or say what is missing.")
+
+    # State field: vocabulary by discovery. The set of valid values is the set the
+    # board already uses, and the checks judge the shape of a value, never its meaning.
+    stated = [it for it in items if it.state]
+    if stated:
+        norm = lambda v: re.sub(r"\s+", " ", v.strip()).lower()
+        counts, spellings = {}, {}
+        for it in stated:
+            counts[norm(it.state)] = counts.get(norm(it.state), 0) + 1
+            spellings.setdefault(norm(it.state), {}).setdefault(it.state.strip(), []).append(it)
+        largest = max(counts.values())
+        for it in stated:
+            if HEDGED_STATE_RE.search(it.state):
+                add("warning", it.state_line, "state-hedged",
+                    f"{it.ref} State reads \"{it.state[:40]}\"; a hedge has been written "
+                    f"into a field that holds one value. Pick one.")
+            elif counts[norm(it.state)] == 1 and largest >= 10:
+                add("warning", it.state_line, "state-singleton",
+                    f"{it.ref} State \"{it.state}\" appears once on a board where another "
+                    f"value covers {largest} items; probably a typo.")
+        for key, forms in spellings.items():
+            if len(forms) > 1:
+                ranked = sorted(forms.items(), key=lambda kv: -len(kv[1]))
+                for spelling, users in ranked[1:]:
+                    add("warning", users[0].state_line, "state-variant",
+                        f"State \"{spelling}\" ({len(users)}) and \"{ranked[0][0]}\" "
+                        f"({len(ranked[0][1])}) differ only in case or spacing; use one.")
+        # A state carried by both ticked and unticked titles cannot mean one thing.
+        # Asked as a question, because the board's vocabulary decides which is wrong.
+        for key in counts:
+            group = [it for it in stated if norm(it.state) == key]
+            if any(it.done for it in group) and any(not it.done for it in group):
+                for it in (i for i in group if i.done):
+                    add("warning", it.state_line, "state-box-disagree",
+                        f"{it.ref} is ticked done with State \"{it.state}\", which "
+                        f"unticked items also carry; is the box or the state wrong?")
+
     # Blocks, residue and budgets.
     for it in items:
         for name in REQUIRED_BLOCKS[it.kind]:
@@ -711,6 +834,77 @@ def split_trace(text):
         return text.strip(), []
     refs = [r.strip().upper().removeprefix("STORY-") for r in m.group(1).upper().split(",")]
     return text[:m.start()].strip(), refs
+
+
+def sections(item):
+    """Every labelled section of an item, in file order, with its form.
+
+    Each entry: {"label": canonical upper-case name, "raw": the spelling as written,
+    "line", "boxes": checkbox count, "checked": ticked count, "bullets": plain-bullet
+    count, "open": [line numbers of unticked boxes]}. A block's unlabelled head, such
+    as the criteria that open a story's ACCEPTANCE CRITERIA block, is a section named
+    after the block. Labels match case-insensitively here and only here, so that
+    "Acceptance Criteria" and "ACCEPTANCE CRITERIA" land in the same bucket.
+    """
+    def entry(label, raw, line, head=False):
+        return {"label": re.sub(r"\s+", " ", label).upper(), "raw": raw, "line": line,
+                "boxes": 0, "checked": 0, "bullets": 0, "open": [], "head": head}
+
+    out = []
+    for block_name, block in item.blocks.items():
+        current = entry(block_name, block_name, block["line"], head=True)
+        out.append(current)
+        for lineno, text in block.get("body", []):
+            m = ANY_LABEL_RE.match(text)
+            if m:
+                current = entry(m.group(1), m.group(1).strip(), lineno)
+                out.append(current)
+                continue
+            if CHECKBOX_RE.match(text):
+                current["boxes"] += 1
+                if re.match(r"^\s*-\s+\[[xX]\]", text):
+                    current["checked"] += 1
+                else:
+                    current["open"].append(lineno)
+            elif BULLET_RE.match(text):
+                current["bullets"] += 1
+    # A block head with no list of its own is the block header, not a section.
+    return [s for s in out if not s["head"] or s["boxes"] or s["bullets"]]
+
+
+def box_counts(item):
+    """(checked, total) over the item's OWN checkboxes.
+
+    Children are separate items to the parser - a heading of any kind ends the
+    current item - so a parent's count never absorbs its children's boxes. The
+    title checkbox is the item's declared state and is not counted here.
+    """
+    checked = total = 0
+    for s in sections(item):
+        checked += s["checked"]
+        total += s["boxes"]
+    return checked, total
+
+
+def children_of(items):
+    """id -> direct children, by containment in document order."""
+    kids = {it.id: [] for it in items}
+    containing = {"epic": None, "feature": None}
+    for it in items:
+        if it.kind == "epic":
+            containing["epic"] = it
+            containing["feature"] = None
+        elif it.kind == "feature":
+            containing["feature"] = it
+            if containing["epic"]:
+                kids[containing["epic"].id].append(it)
+        elif it.kind == "story" and containing["feature"]:
+            kids[containing["feature"].id].append(it)
+    return kids
+
+
+def has_exception(item):
+    return any(s["label"].startswith(EXCEPTION_LABEL) for s in sections(item))
 
 
 def section_lines(item, block_name, label):

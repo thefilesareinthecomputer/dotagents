@@ -101,6 +101,24 @@ either unasked-for work or a condition nobody wrote down. Referenced stories mus
 be children of that feature. Enforced by `board_lint.py` - `criterion-untraced`
 and `criterion-misrouted` are errors, `story-uncovered` a warning.
 
+**A `- State:` line is optional, and its vocabulary is the board's.** Where a
+board mirrors a tracker whose lifecycle has two kinds of done, the title checkbox
+cannot carry it, so items may declare `- State: <value>` under the title. This
+skill never names a valid set: the linter discovers the values in use and flags
+only their shape - a hedge written into the field (`state-hedged`), two spellings
+of one value (`state-variant`), a one-off beside a value covering ten or more
+(`state-singleton`), and a state carried by both ticked and unticked titles
+(`state-box-disagree`, asked as a question). The templates do not gain the line.
+
+**An item closes against its own boxes, or records why not.** A ticked title with
+a Definition of Done box still open is `done-without-exception`, an error, unless
+the item carries an `**EXCEPTION**` section naming the unmet condition, the
+reason, the owner and the agreed disposition; the team defines the fields, this
+skill only requires that one exists. Other title-versus-body disagreements
+(`done-with-open-boxes`, `boxes-done-title-open`), a parent with a body but no
+criteria (`feature-no-criteria`), and the same criteria list written twice in two
+forms (`criteria-dual-form`) are warnings. Catalog in `references/audit.md`.
+
 **Merge placeholders, never real IDs.** Two adjacent items that overlap get
 merged, and which IDs are involved decides whether that is free. An `NNNN`
 placeholder exists only in this document, so merging it costs nothing. A real ID
@@ -184,6 +202,17 @@ Steps 3 and 5 are approval gates. Everything else runs straight through.
 Find the board file. Read it in full before writing a single character. Extract
 the existing ID set, the parent-child graph, and which items are complete, which
 are half-finished, and which are bare headings.
+
+**Query the board instead of hand-rolling a script.** `board_query.py` reuses the
+linter's parser and answers the state questions a closeout or baseline starts from:
+
+    python3 scripts/board_query.py BOARD.md --status    # own boxes, State, disagreement; per parent: closeable or what blocks it
+    python3 scripts/board_query.py BOARD.md --trace     # feature criteria <-> stories, both directions
+    python3 scripts/board_query.py BOARD.md --tree      # the hierarchy; --count totals by kind, box and State
+    python3 scripts/board_query.py BOARD.md --state Blocked --owner A --open --kind story --parent FEATURE-NNNN01
+
+Filters combine, `--json` fits any mode, and exit 1 means nothing matched. Box
+counts are an item's own, never its children's.
 
 Say what proportion of the board is actually built before planning against it.
 A board a third of the way in needs its existing items repaired and its spine
@@ -352,7 +381,8 @@ and regime, duplicate IDs, heading levels, parent and dependency resolution,
 dependency cycles, execution-order violations, missing blocks, fence widths,
 surviving template placeholders, body budgets, checkbox usage, compound titles,
 criterion-to-story traceability in both directions, empty features and epics with
-no closing condition. Fix every error and either
+no closing condition, title-versus-body and State-versus-box disagreement, and a
+done item with an unmet required condition and no exception. Fix every error and either
 fix or consciously accept each warning. Never report a board done on an unrun
 linter or a red one.
 
@@ -479,8 +509,8 @@ into the right slot, not to delete and rewrite it.
   into the wrong slot.
 - `references/decomposition.md` - epic, feature and story boundaries; sizing and
   splitting tests; vertical slicing; INVEST; sequencing heuristics.
-- `references/audit.md` - the defect catalogue for inherited boards and the
-  pre-handoff checklist.
+- `references/audit.md` - the defect catalogue for inherited boards, the closeout
+  defects `--status` surfaces, and the pre-handoff checklist.
 - `references/grounding.md` - the source kinds (repo, docs, knowledge graph, MCP
   server, live system, user), how to survey each, the four baseline questions
   they must answer, and the inventory plus glossary the survey produces.

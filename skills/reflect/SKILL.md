@@ -75,7 +75,10 @@ One grep for the old name/value finds every site. **Your scope is everything
 is handed over as a report line, never proposed as an edit: two skills correcting
 one file is how a sweep takes half an hour and lands contradictory wording.
 
-Capture `file:line`, old text, proposed new text. A plan, not edits.
+Capture `file:line`, old text, proposed new text. A plan, not edits. **The
+proposed text is shorter or equal**: a stale claim is deleted or rewritten in
+place, never annotated with an update note, and a rule the session exposed as
+missing is first sought as a sharper wording of a rule already there.
 
 ### C. Prune the index - every sweep
 

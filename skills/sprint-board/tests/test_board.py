@@ -14,15 +14,20 @@ SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import board_lint  # noqa: E402
+import board_query  # noqa: E402
 import board_scaffold  # noqa: E402
 
-# A fabricated six-digit ID, belonging to no board anywhere. The regime rules key
-# off the six-digit shape, so the tests that exercise them need one; it is joined
-# to its prefix at runtime rather than written inline, because a prefixed literal
-# is the shape a real board identifier takes.
-REAL_ID = "510001"
-# The zero-sequence form the linter rejects beside a real ID. Joined at runtime for
-# the same reason.
+# FIXTURES, NOT REAL IDS. Every identifier in this file is synthetic: NNNNnn
+# placeholders, repdigit runs, consecutive runs (123456) and zero-padded counters
+# are the house stand-ins and no tracker issues them. EPIC-, FEATURE- and STORY-
+# are universal agile terms. None of this is sensitive, and an identifier scanner
+# must pass all of it silently; only a six-digit value that is none of those
+# shapes is worth surfacing, for judgment rather than a hard fail.
+#
+# The regime rules key off the six-digit shape, so the tests that exercise them
+# need a value that reads as "real" to board_lint.REAL_ID_RE without being one.
+REALISTIC_ID = "123456"
+# The zero-sequence form the linter rejects beside a real ID.
 ZERO_ID = "000001"
 
 
@@ -131,7 +136,7 @@ As the platform team, we need an alert when a job fails repeatedly.
 
 # The same board in the real-ID regime, for the rules that only fire when a real
 # six-digit ID is present.
-REAL_ID_BOARD = CLEAN_BOARD.replace("EPIC-NNNN01", "EPIC-" + REAL_ID)
+REALISTIC_ID_BOARD = CLEAN_BOARD.replace("EPIC-NNNN01", "EPIC-" + REALISTIC_ID)
 
 
 def lint_text(text):
@@ -262,11 +267,11 @@ class TestStructuralChecks(unittest.TestCase):
 
 class TestIdRegimes(unittest.TestCase):
     def test_zero_placeholder_beside_real_id_is_an_error(self):
-        text = REAL_ID_BOARD.replace("### STORY-NNNN04", "### STORY-" + ZERO_ID)
+        text = REALISTIC_ID_BOARD.replace("### STORY-NNNN04", "### STORY-" + ZERO_ID)
         self.assertIn("wrong-placeholder-regime", lint_errors(text))
 
     def test_nnnn_placeholder_beside_real_id_is_accepted(self):
-        text = REAL_ID_BOARD.replace("### STORY-NNNN04", "### STORY-NNNN01")
+        text = REALISTIC_ID_BOARD.replace("### STORY-NNNN04", "### STORY-NNNN01")
         codes = lint_errors(text)
         self.assertNotIn("wrong-placeholder-regime", codes)
         self.assertNotIn("bad-id-form", codes)
@@ -636,6 +641,218 @@ class TestOutOfScopeGate(unittest.TestCase):
         self.assertNotIn("out-of-scope-overlap", lint_text(CLEAN_BOARD))
 
 
+def tick(text, line):
+    """Tick one '- [ ] <line>' box in a board string."""
+    return text.replace(f"- [ ] {line}", f"- [x] {line}", 1)
+
+
+def tick_all_boxes(text, start_marker, end_marker):
+    """Tick every fenced body box between two markers; title boxes stay as they are."""
+    head, rest = text.split(start_marker, 1)
+    body, tail = rest.split(end_marker, 1)
+    out, inside = [], False
+    for line in body.splitlines(keepends=True):
+        if line.startswith("````"):
+            inside = not inside
+        elif inside:
+            line = line.replace("- [ ]", "- [x]")
+        out.append(line)
+    return head + start_marker + "".join(out) + end_marker + tail
+
+
+# STORY-NNNN03 with every body box ticked and its title ticked: a cleanly closed story.
+STORY3_CLOSED = tick(tick_all_boxes(CLEAN_BOARD, "### STORY-NNNN03", "### STORY-NNNN04"),
+                     "Record scheduler job outcomes")
+
+
+class TestCloseoutShape(unittest.TestCase):
+    def test_clean_board_raises_none(self):
+        codes = lint_text(CLEAN_BOARD)
+        for code in ("criteria-dual-form", "duplicate-section", "feature-no-criteria",
+                     "done-without-exception", "done-with-open-boxes",
+                     "boxes-done-title-open"):
+            self.assertNotIn(code, codes)
+
+    def test_own_boxes_exclude_children(self):
+        # The feature has 3 activities + 4 criteria of its own; its stories add 16
+        # more that must not be counted against it.
+        items, _ = board_lint.parse(CLEAN_BOARD)
+        feature = items[1]
+        self.assertEqual(board_lint.box_counts(feature), (0, 7))
+        self.assertEqual(board_lint.box_counts(items[0]), (0, 0))
+
+    def test_closed_story_is_clean(self):
+        codes = lint_text(STORY3_CLOSED)
+        self.assertNotIn("done-without-exception", codes)
+        self.assertNotIn("done-with-open-boxes", codes)
+
+    def test_done_title_with_open_dod_is_an_error_without_an_exception(self):
+        text = tick(CLEAN_BOARD, "Record scheduler job outcomes")
+        self.assertIn("done-without-exception", lint_errors(text))
+
+    def test_exception_section_lets_a_dod_box_stay_open(self):
+        text = tick(CLEAN_BOARD, "Record scheduler job outcomes").replace(
+            "- [ ] The last outcome is queryable\n",
+            "- [ ] The last outcome is queryable\n\n**EXCEPTION**: \n"
+            "- Unmet: last outcome query; reason: API not yet exposed; "
+            "owner: Platform Engineer; disposition: follow-up story\n")
+        self.assertNotIn("done-without-exception", lint_text(text))
+
+    def test_done_title_with_open_non_dod_boxes_is_a_warning(self):
+        text = tick(CLEAN_BOARD, "Report Delivery Reliability")
+        codes = lint_text(text)
+        self.assertIn("done-with-open-boxes", codes)
+        self.assertNotIn("done-without-exception", codes)
+
+    def test_all_boxes_ticked_but_title_open_is_flagged(self):
+        text = tick_all_boxes(CLEAN_BOARD, "### STORY-NNNN03", "### STORY-NNNN04")
+        self.assertIn("boxes-done-title-open", lint_text(text))
+
+    def test_parent_with_ticked_boxes_and_open_children_is_not_flagged(self):
+        text = tick_all_boxes(CLEAN_BOARD, "## FEATURE-NNNN02", "### STORY-NNNN03")
+        self.assertNotIn("boxes-done-title-open", lint_text(text))
+
+    def test_two_criteria_lists_in_different_forms_are_flagged(self):
+        text = CLEAN_BOARD.replace(
+            "**PURPOSE**:\n",
+            "**Acceptance criteria**:\n- Reports are inventoried\n- Failures are categorised\n\n"
+            "**PURPOSE**:\n", 1)
+        self.assertIn("criteria-dual-form", lint_text(text))
+
+    def test_same_section_twice_in_one_form_is_flagged(self):
+        text = CLEAN_BOARD.replace(
+            "**PRIMARY OWNER**: Platform Engineer",
+            "**KEY ACTIVITIES**:\n- [ ] Review the runbook\n\n**PRIMARY OWNER**: Platform Engineer")
+        self.assertIn("duplicate-section", lint_text(text))
+
+    def test_feature_with_body_and_no_criteria_is_flagged(self):
+        text = CLEAN_BOARD.replace(
+            "**ACCEPTANCE CRITERIA**:\n"
+            "- [ ] Every scheduled report is inventoried (STORY-NNNN03)\n"
+            "- [ ] Delivery failures are categorised (STORY-NNNN03, STORY-NNNN04)\n"
+            "- [ ] Retry behaviour is documented (STORY-NNNN04)\n"
+            "- [ ] Owner is recorded (STORY-NNNN03)\n\n", "")
+        self.assertIn("feature-no-criteria", lint_text(text))
+
+
+def with_states(text, states):
+    """Add a '- State:' line under each ref's Parent line (epic: under the title)."""
+    for ref, value in states.items():
+        if ref.startswith("EPIC"):
+            anchor = "- [ ] Reporting Platform Stability\n"
+            text = text.replace(anchor, anchor + f"- State: {value}\n", 1)
+        else:
+            head, rest = text.split(f"{ref}\n", 1)
+            rest = rest.replace("\n", f"\n- State: {value}\n", 1)
+            text = head + f"{ref}\n" + rest
+    return text
+
+
+class TestStateField(unittest.TestCase):
+    STATE_CODES = ("state-hedged", "state-singleton", "state-variant", "state-box-disagree")
+
+    def test_state_is_parsed(self):
+        items, _ = board_lint.parse(with_states(CLEAN_BOARD, {"STORY-NNNN03": "Blocked"}))
+        self.assertEqual(items[2].state, "Blocked")
+        self.assertIsNone(items[3].state)
+
+    def test_board_without_states_raises_nothing(self):
+        for code in self.STATE_CODES:
+            self.assertNotIn(code, lint_text(CLEAN_BOARD))
+
+    def test_consistent_states_raise_nothing(self):
+        text = with_states(CLEAN_BOARD, {"FEATURE-NNNN02": "Active",
+                                         "STORY-NNNN03": "Active", "STORY-NNNN04": "New"})
+        for code in self.STATE_CODES:
+            self.assertNotIn(code, lint_text(text))
+
+    def test_hedged_state_is_flagged(self):
+        text = with_states(CLEAN_BOARD, {"STORY-NNNN03": "Active / Resolved (?)"})
+        self.assertIn("state-hedged", lint_text(text))
+
+    def test_case_variant_is_flagged(self):
+        text = with_states(CLEAN_BOARD, {"STORY-NNNN03": "Blocked", "STORY-NNNN04": "blocked"})
+        self.assertIn("state-variant", lint_text(text))
+
+    def test_singleton_needs_a_large_majority(self):
+        text = with_states(CLEAN_BOARD, {"STORY-NNNN03": "Active", "STORY-NNNN04": "Actve"})
+        self.assertNotIn("state-singleton", lint_text(text))
+        items, _ = board_lint.parse(text)
+        for it in items[:2]:
+            it.state = "Active"
+        for _ in range(9):
+            it = board_lint.Item("story", "NNNN99", 1)
+            it.title, it.state, it.state_line = "x", "Active", 1
+            items.append(it)
+        codes = [f[2] for f in board_lint.check(items, [])]
+        self.assertIn("state-singleton", codes)
+
+    def test_state_shared_by_ticked_and_unticked_titles_is_questioned(self):
+        text = with_states(STORY3_CLOSED, {"STORY-NNNN03": "Active", "STORY-NNNN04": "Active"})
+        self.assertIn("state-box-disagree", lint_text(text))
+        agreed = with_states(STORY3_CLOSED, {"STORY-NNNN03": "Closed", "STORY-NNNN04": "Active"})
+        self.assertNotIn("state-box-disagree", lint_text(agreed))
+
+
+class TestQuery(unittest.TestCase):
+    def items(self, text=CLEAN_BOARD):
+        items, _ = board_lint.parse(text)
+        return items
+
+    def test_state_filter(self):
+        items = self.items(with_states(CLEAN_BOARD, {"STORY-NNNN03": "Blocked"}))
+        self.assertEqual([i.ref for i in board_query.select(items, state="blocked")],
+                         ["STORY-NNNN03"])
+
+    def test_box_filter(self):
+        items = self.items(STORY3_CLOSED)
+        self.assertEqual([i.ref for i in board_query.select(items, done=True)], ["STORY-NNNN03"])
+
+    def test_status_reports_own_boxes_and_flags(self):
+        items = self.items(tick(CLEAN_BOARD, "Record scheduler job outcomes"))
+        by_ref = {e["ref"]: e for e in board_query.status(items, items)}
+        self.assertEqual(by_ref["FEATURE-NNNN02"]["boxes"], {"checked": 0, "total": 7})
+        self.assertEqual(by_ref["STORY-NNNN03"]["flags"], ["title-done/boxes-open"])
+        self.assertEqual(by_ref["STORY-NNNN04"]["flags"], [])
+
+    def test_status_names_the_children_blocking_a_parent(self):
+        items = self.items(STORY3_CLOSED)
+        by_ref = {e["ref"]: e for e in board_query.status(items, items)}
+        feature = by_ref["FEATURE-NNNN02"]
+        self.assertFalse(feature["closeable"])
+        self.assertEqual(feature["blocked_by"], ["STORY-NNNN04"])
+        self.assertEqual(feature["own_open"], 7)
+        self.assertEqual(feature["children"], {"done": 1, "total": 2})
+
+    def test_status_parent_becomes_closeable(self):
+        head, rest = CLEAN_BOARD.split("## FEATURE-NNNN02", 1)
+        items = self.items(head + "## FEATURE-NNNN02" + rest.replace("- [ ]", "- [x]"))
+        feature = next(e for e in board_query.status(items, items) if e["ref"] == "FEATURE-NNNN02")
+        self.assertTrue(feature["closeable"], feature)
+
+    def test_trace_exposes_the_map_both_ways(self):
+        items = self.items(CLEAN_BOARD)
+        [entry] = board_query.trace(items, items)
+        self.assertEqual(entry["ref"], "FEATURE-NNNN02")
+        self.assertEqual(len(entry["criteria"]), 4)
+        self.assertEqual(entry["criteria"][1]["stories"], ["STORY-NNNN03", "STORY-NNNN04"])
+        self.assertEqual(entry["uncovered"], [])
+
+    def test_trace_keeps_identically_worded_criteria_apart(self):
+        text = CLEAN_BOARD.replace(
+            "- [ ] Owner is recorded (STORY-NNNN03)",
+            "- [ ] Owner is recorded (STORY-NNNN03)\n- [ ] Owner is recorded (STORY-NNNN04)")
+        [entry] = board_query.trace(*([self.items(text)] * 2))
+        self.assertEqual(len(entry["criteria"]), 5)
+
+    def test_trace_names_untraced_and_uncovered(self):
+        text = CLEAN_BOARD.replace(" (STORY-NNNN04)", "").replace(", STORY-NNNN04", "")
+        items = self.items(text)
+        [entry] = board_query.trace(items, items)
+        self.assertEqual([c["stories"] for c in entry["criteria"] if not c["stories"]], [[]])
+        self.assertEqual(entry["uncovered"], ["STORY-NNNN04"])
+
+
 class TestCycles(unittest.TestCase):
     def test_dag_has_no_cycles(self):
         self.assertEqual(board_lint.find_cycles({"a": ["b"], "b": ["c"], "c": []}), [])
@@ -657,13 +874,13 @@ class TestScaffoldUnits(unittest.TestCase):
                          ["000000", "000001", "000002", "000003"])
 
     def test_gapfill_regime_uses_nnnn(self):
-        spine = {"epics": [{"id": REAL_ID, "title": "E", "features": [
+        spine = {"epics": [{"id": REALISTIC_ID, "title": "E", "features": [
             {"title": "F", "stories": [{"title": "S"}]}]}]}
         nodes = board_scaffold.walk(spine)
         gapfill = board_scaffold.assign_ids(nodes)
         self.assertTrue(gapfill)
         self.assertEqual([n["_id"] for _, n, _ in nodes],
-                         [REAL_ID, "NNNN01", "NNNN02"])
+                         [REALISTIC_ID, "NNNN01", "NNNN02"])
 
     def test_given_ids_are_preserved(self):
         spine = {"epics": [{"id": "NNNN01", "title": "E", "features": [

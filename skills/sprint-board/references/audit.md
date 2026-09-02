@@ -11,8 +11,9 @@ before reading any of this by hand:
 It covers ID form and regime, duplicate IDs, heading levels, parent and
 dependency resolution, cycles, execution-order violations, missing blocks, fence
 widths, template residue, body budgets, checkbox usage, compound titles, empty
-features and epics with no closing condition. Checks below marked **[lint]** are
-its job; the rest need judgment and are yours.
+features, epics with no closing condition, and the closeout shape - title against
+body, State against box, done over an unmet condition. Checks below marked
+**[lint]** are its job; the rest need judgment and are yours.
 
 ## Contents
 
@@ -22,6 +23,7 @@ its job; the rest need judgment and are yours.
 - [Sizing defects](#sizing-defects)
 - [Content defects](#content-defects)
 - [Grounding defects](#grounding-defects)
+- [Closeout defects](#closeout-defects)
 - [Pre-handoff checklist](#pre-handoff-checklist)
 
 ## Reporting
@@ -177,6 +179,48 @@ grounding source, and they are the ones that make a plausible board wrong.
 - **Stale baseline.** The board was written against an earlier state of the
   source. Worth checking whenever inherited items predate recent changes.
 
+## Closeout defects
+
+These surface when a board is being closed against a tracker rather than written,
+and every one of them is invisible until someone tries to close an item. Start
+from `scripts/board_query.py BOARD.md --status`, which reports each item's own
+box counts, its declared State, and for each parent whether it is closeable and
+which children block it. `--trace` prints the feature coverage map whole, both
+directions, rather than only where it is violated.
+
+- **Title and body disagree.** A title ticked done with body boxes still open,
+  or every body box ticked under a title left open. One of the two is stale.
+  **[lint]** `done-with-open-boxes`, `boxes-done-title-open`.
+- **Closed over an unmet required condition.** A title ticked done while a
+  Definition of Done box is unchecked, with nothing recording why. Silently
+  ticking the box is the failure this catches; the item either finishes the
+  condition or carries an `**EXCEPTION**` section naming what is unmet, why, who
+  owns it and the agreed disposition. The field set is the team's to define; that
+  one exists is not. **[lint]** `done-without-exception` is an error.
+- **Two criteria lists in two forms.** One list supplied by whoever owns the item
+  externally, as plain bullets, and a working list in checkbox form, under
+  headings that differ only in case. Traceability and status read only the
+  checkbox list, and at closeout nobody knows which one closes the item. Keep one,
+  or state which is the contract. **[lint]** `criteria-dual-form`,
+  `duplicate-section`.
+- **Parent with a body and no criteria.** Not empty - it has a title and prose -
+  but nothing says when it closes. Distinct from an empty feature. **[lint]**
+  `feature-no-criteria`.
+- **State written as a hedge.** A `- State:` value such as two values with a
+  slash and a question mark. A field the tooling treats as one value has had a
+  doubt written into it, and nothing else validates it. **[lint]** `state-hedged`.
+- **State vocabulary drift.** The same value in two spellings, a value used once
+  on a board where another covers ten or more, or a state carried by both ticked
+  and unticked titles. The linter never names a valid set; it discovers the set
+  the board uses and flags what falls outside its shape. **[lint]**
+  `state-variant`, `state-singleton`, `state-box-disagree`.
+
+A parent's own boxes are the ones between its heading and the next heading of
+any level. Counting to the next heading at the same or a shallower level folds
+every child in, and makes the parent look far less complete than it is. The
+parser stops at any heading, so both scripts count correctly; a hand-rolled
+count usually does not.
+
 ## Pre-handoff checklist
 
 Every line is answered before reporting the work done. State any that failed and
@@ -204,3 +248,6 @@ were left, with the reason.
     user, and everything else is labelled TBD or assumption.
 13. No item duplicates another's scope.
 14. Nothing was added that the user did not ask for and was not told about.
+15. When closing items: `board_query.py --status` shows no flagged item, every
+    parent reported closeable is the one being closed, and every item ticked done
+    with an open Definition of Done box carries an exception section. **[lint]**

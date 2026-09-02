@@ -93,7 +93,7 @@ assembly step, so:
   and Skills catalog sections - and `tasks/plan.md`).
 - Maintain [`specs/claude-code/SPEC-CLAUDE-CODE.md`](specs/claude-code/SPEC-CLAUDE-CODE.md) - the standing
   seed spec for the full Claude Code station around this repo: required plugins,
-  CLI deps, and the global `CLAUDE.md`/`RTK.md`/`settings.json`/hook templates.
+  CLI deps, and the global `CLAUDE.md` pointer, `settings.json` and hook templates.
   Keep it in sync with the live station; it contains no personal constants by
   rule (`my-security-review-checklist` §8).
 

@@ -996,7 +996,7 @@ def date_shape(text: str) -> tuple[tuple, tuple] | None:
             kinds.append("m")
             values.append(month)
         # Stop at the FIRST complete date run. Scanning the whole string lets a number
-        # after the date invalidate it: `2026-08-20-YY-WI-654321` would otherwise
+        # after the date invalidate it: `2026-08-20-YY-STORY-654321` would otherwise
         # reset on 654321 after a valid date had already been read. A log whose headings
         # carry a work-item id then silently dates every section from its note-level
         # fallback instead of its own heading.

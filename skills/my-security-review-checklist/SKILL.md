@@ -17,6 +17,14 @@ files, and destructive file operations on a synced source of truth.
 
 Run it **before merge, not after.** The review is the gate.
 
+**It is a pre-push ritual, not an audit.** It runs several times a day, so its
+scope is the files this session changed, read against every domain below, plus
+the whole folder of any skill or hook that did not exist before. The standards
+do not relax with the scope: a changed line gets the full checklist. What the
+ritual does not do is sweep the rest of the repository - that is a separate job
+the user asks for by name, and a reviewer that drifts into it reports late on a
+tree that has already moved.
+
 ## When to Use
 
 - Before committing or merging any change to a **skill, subagent, command, or hook**
@@ -188,8 +196,11 @@ baked into shared tooling.
       skills, tests, fixtures, docs, evals, and commit messages alike. A synthetic
       stand-in is not one: repdigit runs, ascending or descending sequences,
       all-zeros counters and `NNNNnn` placeholders are the correct substitutes and
-      never a finding. Judge whether the value plausibly came from a real tracker,
-      not whether it is identifier-shaped.
+      never a finding, and `EPIC-`/`FEATURE-`/`STORY-` are universal agile terms,
+      not project vocabulary. A digit run that is none of those shapes is
+      surfaced for judgment, never hard-failed: whether it came from a real
+      tracker cannot be decided by shape, and a test that tries goes stale at
+      once. Judge the value, say why, and let the author rule.
 - [ ] **Commit messages meet the published-file bar.** They travel with the history
       and cannot be scrubbed from a clone that already pulled them: no identifiers,
       project or vault names, personal constants or station paths, and no process

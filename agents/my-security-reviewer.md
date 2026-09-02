@@ -18,13 +18,21 @@ Read it once; do not restate it back.
 
 ## Bounds
 
-You run in the background while the caller keeps working. A slow review reports on
-a tree that has already moved, and the caller then cannot separate your stale
+This is a pre-push ritual that runs several times a day, not a periodic audit.
+The standards are the full checklist on every changed line; the scope is the
+changed files, and nothing else unless the diff itself gives you a reason. You run
+in the background while the caller keeps working, so a slow review reports on a
+tree that has already moved, and the caller then cannot separate your stale
 findings from your live ones. Late is a correctness problem here, not a comfort
 one.
 
-- **Stop at 25 tool calls.** A ceiling, not a target. At 25 you report what you
-  have and name what you did not reach, mid-thread if necessary.
+- **Stop at 25 tool calls, 15 on Tier B.** A ceiling, not a target. At the ceiling
+  you report what you have and name what you did not reach, mid-thread if
+  necessary.
+- **Start from what the caller wrote down.** When the prompt names a diff file, a
+  changed-file list and a sweep JSON, read those first and do not regenerate the
+  diff. One `git status --porcelain` to cross-check the supplied list is allowed
+  and worth its call: a truncated hand-off is otherwise invisible to you.
 - **Run the secrets pass and the commit-message read before the ceiling can bite.**
   Both are cheap and high-yield, and reading a new skill folder in full can
   otherwise consume the budget before either happens.

@@ -12,24 +12,29 @@
 
 </div>
 
-This repo is a portable set of agent SKILLs, written to the open
-[Agent Skills](https://agentskills.io) standard - compatible with Claude Code,
-Codex CLI, Cursor, copilot, kimi, deepagents, goose, and most other agent harnesses.
-The repo also contains subagents,
-slash commands, and specific agent framework / harness setup notes in [`specs/`](specs/).
+TL;DR: claude code skills and configs, promoted to `~/.agents`, so all agent harnesses can use them. More details below.
 
-Getting started is one clone:
+This repo contains my standard agent skills, configs, harness specs, and setup instructions. The `sync-skills.sh` script in this repo safely symlinks the agents, commands, and skills into claude code. Most agent harnesses inherit `~/.agents/` natively. 
+Compatible with Claude Code, Codex CLI, Cursor, copilot, kimi, deepagents, goose, and most other agent harnesses.
+Agent framework / harness setup notes in [`specs/`](specs/).
+See also:
+[Agent Skills](https://agentskills.io) 
+
+Get started:
 
 ```bash
-git clone <this-repo> ~/.agents
+git clone https://github.com/thefilesareinthecomputer/dotagents
 ```
 
-Most tools find the skills there automatically. The table below lists what
-each one reads and the two that need one extra step.
+Most harnesses will pick up these skills automatically. 
+For claude code, run the `sync-skills.sh` script via:
+```bash
+bash ~/.agents/sync-skills.sh
+```
 
 ## Supported agent frameworks
 
-`~/.agents/skills/` is the cross-harness convention, so **most harnesses read this
+`~/.agents/skills/` is a standard cross-harness convention, so **most harnesses read this
 repo directly, with no install step.**
 
 | Harness | Setup | Spec |
@@ -429,6 +434,13 @@ Upstream skills are **not** in this tree. They come from the installed
 `agent-skills` plugin and load from its own marketplace cache, covered under
 Ownership and isolation below.
 
+Two rules follow from the layout. Never commit secrets, machine-specific paths or
+the per-device view; the baseline exclusions are in
+[`specs/secrets-exclusions.gitignore`](specs/secrets-exclusions.gitignore). And
+never put a loose `.md` file in `agents/` or `commands/`: every file in those two
+trees registers as a subagent definition or a slash command, so folder rules live
+in each folder's `AGENTS.md` elsewhere and those two folders carry none.
+
 ### Data flow: how an entry reaches Claude Code
 
 1. An entry is authored in this repo: a skill dir `skills/<name>/SKILL.md`, a
@@ -530,10 +542,11 @@ removed, and everything is recoverable from git history.
 
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) - branch model, skill conventions,
   verification, and house style.
-- [`AGENTS.md`](AGENTS.md) - the harness-agnostic rules every agent works under,
-  and the cautions specific to this repo; read it before your first change.
-  Claude Code reads the same rules from its own global template, seeded by
-  [`specs/claude-code/CLAUDE.md.example`](specs/claude-code/CLAUDE.md.example).
+- [`AGENTS.md`](AGENTS.md) - the rules every agent works under, in every harness;
+  read it before your first change. Claude Code loads the same file through the
+  one-line global pointer seeded by
+  [`specs/claude-code/CLAUDE.md.example`](specs/claude-code/CLAUDE.md.example),
+  so there is one copy of the rules.
 - [`SECURITY.md`](SECURITY.md) - reporting a vulnerability, and what counts as one
   in a repo whose payload is instructions an agent executes.
 

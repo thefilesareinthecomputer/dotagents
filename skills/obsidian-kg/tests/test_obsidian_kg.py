@@ -204,19 +204,19 @@ class DateInferenceTests(unittest.TestCase):
     def test_date_read_past_a_leading_identifier(self):
         # A heading that opens with a work-item id still dates from its suffix.
         # `123456` is one run, not 1233 + 75, so it cannot pose as a year.
-        self.assertEqual(obsidian_kg.date_shape("WI-123456-XX-2026-08-25"),
+        self.assertEqual(obsidian_kg.date_shape("STORY-123456-XX-2026-08-25"),
                          (("y", "n", "n"), (2026, 8, 25)))
 
     def test_date_read_before_a_trailing_identifier(self):
         # The complementary shape: a valid date first, an id after it.
-        self.assertEqual(obsidian_kg.date_shape("2026-08-20-YY-WI-654321"),
+        self.assertEqual(obsidian_kg.date_shape("2026-08-20-YY-STORY-654321"),
                          (("y", "n", "n"), (2026, 8, 20)))
 
     def test_identifier_only_heading_has_no_shape(self):
-        self.assertIsNone(obsidian_kg.date_shape("WI-123456-XX"))
+        self.assertIsNone(obsidian_kg.date_shape("STORY-123456-XX"))
 
     def test_order_learned_from_identifier_bearing_headings(self):
-        order = self.order(["WI-123456-XX-2026-06-01",
+        order = self.order(["STORY-123456-XX-2026-06-01",
                             "STORY-654321-YY-2026-06-15"])
         self.assertEqual(order, ("y", "m", "d"))
 

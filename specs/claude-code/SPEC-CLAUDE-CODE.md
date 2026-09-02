@@ -21,15 +21,16 @@ Every file this spec seeds lives beside it in this folder as a real file rather 
 | File | Goes to | Section |
 |---|---|---|
 | [`CLAUDE.md.example`](CLAUDE.md.example) | `~/.claude/CLAUDE.md` | [5](#5-global-claudeclaudemd-template) |
-| [`RTK.md.example`](RTK.md.example) | `~/.claude/RTK.md` | [6](#6-global-claudertkmd-template) |
 | [`settings.json`](settings.json) | `~/.claude/settings.json` | [7](#7-global-claudesettingsjson---rules-in-principle-then-the-template) |
 | [`hooks/`](hooks) | `~/.claude/hooks/` | [8](#8-hook-scripts-claudehooks) |
 | [`statusline.sh`](statusline.sh) | `~/.claude/statusline.sh` | [9](#9-status-lines-claudestatuslinesh--subagent-statuslinesh) |
 | [`keybindings.json`](keybindings.json) | `~/.claude/keybindings.json` | [10](#10-keybindings-claudekeybindingsjson--terminal-setup) |
 
-**Most readers want [`CLAUDE.md.example`](CLAUDE.md.example)** - the
-global rules file. The sections below say what each file is for and why it is
-shaped that way; the files themselves are the thing you copy.
+**The rules live in [`../../AGENTS.md`](../../AGENTS.md)**, once, for every
+harness. [`CLAUDE.md.example`](CLAUDE.md.example) is the one-line pointer that
+makes Claude Code load them in every project. The sections below say what each
+file is for and why it is shaped that way; the files themselves are the thing you
+copy.
 For the general standard behind these placements - which mechanism carries which kind of context, and at what cost - see [`CLAUDE-CONTEXT-TOPOLOGY-ONTOLOGY-AND-TEAM-HEURISTICS.md`](CLAUDE-CONTEXT-TOPOLOGY-ONTOLOGY-AND-TEAM-HEURISTICS.md).
 
 Keep the two in parity **per the Seeding table below**, not blanket. `COPY` rows
@@ -51,12 +52,11 @@ this table uses no others.
 | Skills | `LINK` | `~/.claude/skills/` | planted by `sync-skills.sh`; this harness does not read `~/.agents/skills/` on its own |
 | Subagents | `LINK` | `~/.claude/agents/` | same script; the only harness reading this tree natively, and Cursor's compatibility path |
 | Commands | `LINK` | `~/.claude/commands/` | markdown; does not port to any other harness |
-| Rules | `COPY` | `~/.claude/CLAUDE.md` | from `CLAUDE.md.example`, byte parity |
+| Rules | `POINTER` | `~/.claude/CLAUDE.md` | from `CLAUDE.md.example`, byte parity; the single line `@~/.agents/AGENTS.md`, so the rules body is read from the repo and never copied |
 | Permissions and settings | `FRAGMENT` | `~/.claude/settings.json` | seeded keys ONLY: `permissions`, `hooks`, `env`, `statusLine`, `subagentStatusLine`, `enabledPlugins`, `extraKnownMarketplaces`, `disableRemoteControl`, `attribution`, `autoUpdatesChannel`. Station-owned and never touched: `model`, `effortLevel`, `modelSettings`, `theme`, `tui`, `disableDeepLinkRegistration` |
 | Hooks | `COPY` | `~/.claude/hooks/` | scripts referenced by `settings.json`; parity per file, excluding generated artifacts such as `__pycache__/` |
 | Status lines | `COPY` | `~/.claude/statusline.sh`, `subagent-statusline.sh` | parity |
 | Keybindings | `COPY` | `~/.claude/keybindings.json` | parity |
-| RTK reference | `COPY` | `~/.claude/RTK.md` | from `RTK.md.example`, parity |
 | MCP servers | `FRAGMENT` | `~/.claude.json` | one key: `mcpServers`, holding the pinned Playwright entry from §3.2 and nothing else. Never a `COPY` - the same file carries the OAuth account, per-project history and feature caches. Account-level connectors list in every session while being declared nowhere in this file, so the inventory is taken with `claude mcp list` rather than by reading the key. Placement rules: [`../MCP-PLACEMENT.md`](../MCP-PLACEMENT.md) |
 
 This is the only harness carrying every seed file in the repo, and the reason a
@@ -80,7 +80,7 @@ which are per-machine state rather than seeded config.
 | Claude Code CLI | `claude` on PATH | official installer |
 | This repo | `~/.agents` (git clone) | remote |
 | Skills/agents/commands symlinks | `~/.claude/skills`, `~/.claude/agents`, `~/.claude/commands` | `bash ~/.agents/sync-skills.sh` |
-| Global instructions | `~/.claude/CLAUDE.md` + `~/.claude/RTK.md` | templates in §5 and §6 |
+| Global instructions | `~/.claude/CLAUDE.md` | pointer template in §5; rules body in `~/.agents/AGENTS.md` |
 | Global settings | `~/.claude/settings.json` | template in §7 |
 | Hook scripts | `~/.claude/hooks/*.sh` | embedded in §8 |
 | Status line | `~/.claude/statusline.sh` | embedded in §9 |
@@ -99,12 +99,17 @@ which are per-machine state rather than seeded config.
 - **rtk** (Rust Token Killer) - token-optimizing CLI proxy, wired in as a
   PreToolUse hook on Bash (§7). `brew install rtk-ai/tap/rtk`
   (tap: `rtk-ai/tap`; the formula shadows `homebrew/core/rtk` - verify with
-  `rtk gain`, and see `~/.claude/RTK.md` for the name-collision warning).
-  Seed its config with `rtk config --create`, then in the generated
+  `rtk gain`). Seed its config with `rtk config --create`, then in the generated
   `config.toml` (macOS: `~/Library/Application Support/rtk/config.toml`) set
-  `[hooks] exclude_commands = ["grep"]` - rtk's grep filter can elide the
-  actual match lines ("N matches in 0 files"), so grep runs raw while every
-  other filter stays on. Escape hatch for any command: `rtk proxy <cmd>`
+  `[hooks] exclude_commands` to the commands that are read for ground truth,
+  where a filter that drops a line changes the answer rather than shortening it:
+  `grep`, `rg`, `find`, `ls`, `tree`, `wc`, `diff`, `env`, `curl`, `json`,
+  `psql`, `aws`, `gh`, `glab`, `kubectl`, `oc`, `docker`, `log`, `git`. Build,
+  test, lint and package-manager filters stay on; there pass or fail is the whole
+  answer. Confirm with `rtk rewrite '<cmd>'`, which prints nothing for an
+  excluded command. The model-facing guidance is the `rtk` bullet in
+  `~/.agents/AGENTS.md`; no separate RTK.md is seeded. Escape hatch for any
+  command: `rtk proxy <cmd>`
   (dry-run what the hook would do: `rtk hook check '<cmd>'` - note it exits
   1 when the command would NOT be rewritten, so append `|| true` when
   chaining checks with `&&`; rtk ≥0.43.0).
@@ -229,18 +234,20 @@ fast-forward `main`. Read `AGENTS.md` before changing anything in the repo.
 
 ## 5. Global `~/.claude/CLAUDE.md` template
 
-Seed verbatim (it imports RTK.md via the trailing `@RTK.md` line, so §6 must
-exist too):
+Seed it verbatim from [`CLAUDE.md.example`](CLAUDE.md.example): the single line
+`@~/.agents/AGENTS.md`. Claude Code expands `@` imports at load, so every project
+on the station reads the rules body from the repo, and there is one copy to edit.
+The `.example` suffix is load-bearing: a file named `CLAUDE.md` in a subdirectory
+is auto-loaded as instructions, and a template is not this repo's rules.
 
-Seed it verbatim from
-[`CLAUDE.md.example`](CLAUDE.md.example). The `.example`
-suffix is load-bearing: a file named `CLAUDE.md` in a subdirectory is
-auto-loaded as instructions, and a template is not this repo's rules.
+Inside `~/.agents` itself the repo's own `CLAUDE.md` is a one-line prose reminder
+pointing at `AGENTS.md`, deliberately not an `@` import, since the global pointer
+already loads the file and a second import would load it twice.
 
-## 6. Global `~/.claude/RTK.md` template
+## 6. Retired: `~/.claude/RTK.md`
 
-Seed it verbatim from
-[`RTK.md.example`](RTK.md.example).
+No longer seeded. The model-facing rtk guidance is the `rtk` bullet in
+`AGENTS.md`; the station config is in §3.
 
 ## 7. Global `~/.claude/settings.json` - rules in principle, then the template
 
@@ -790,7 +797,7 @@ key still submits, the failure is layer 2 (terminal), not layer 1.
 2. `brew install jq rtk-ai/tap/rtk` (plus git/gh/node/python3 if absent).
 3. Clone the skills repo to `~/.agents` (ask the user for the remote), then
    `bash ~/.agents/sync-skills.sh`.
-4. Seed `~/.claude/CLAUDE.md` (§5) and `~/.claude/RTK.md` (§6).
+4. Seed `~/.claude/CLAUDE.md` (§5).
 5. Create `~/.claude/hooks/` and seed all eleven hook scripts plus
    `no-meta-commentary.patterns` (§8); seed
    `~/.claude/statusline.sh` and `~/.claude/subagent-statusline.sh` (§9).

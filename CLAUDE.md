@@ -1,1 +1,1 @@
-@AGENTS.md
+This `~/.agents/` repo is the main source of truth for agent skills, configs, etc. For instructions, defer to `AGENTS.md`. 

@@ -12,8 +12,8 @@ bytes.
 Spine shape (ids optional; titles required):
 
     {"epics": [
-      {"id": "510001", "title": "Reporting Stability", "features": [
-        {"title": "Delivery Reliability", "depends": ["510010"], "stories": [
+      {"id": "123456", "title": "Reporting Stability", "features": [
+        {"title": "Delivery Reliability", "depends": ["234567"], "stories": [
           {"title": "Detect dropped jobs"}
         ]}
       ]}

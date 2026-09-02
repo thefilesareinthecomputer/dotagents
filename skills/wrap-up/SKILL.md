@@ -6,9 +6,14 @@ description: Full session closeout in one pass - security review first, then cle
 # wrap-up
 
 ```
-fetch → security review → inbox → reflect → notes → commit → reconcile → push → parity
-        (my-security-reviewer) (agent-mail) (memory) (docs)   (repo-device-sync)
+fetch → spawn security review ─────────────────┐
+        (my-security-reviewer, runs alongside) │ verdict gates the first durable write
+        inbox → ───────────────────────────────┘→ reflect → notes → commit → reconcile → push → parity
+        (agent-mail)                              (memory)   (docs)   (repo-device-sync)
 ```
+
+The reviewer is the long pole: spawn it first, do the inbox while it runs, and
+block on its verdict before reflect writes anything.
 
 Sequences existing skills. Owns the order, the handoffs and the cross-cutting
 guards; each sub-skill owns its own procedure and gates.
@@ -58,6 +63,10 @@ proposals, any sync stop-and-ask.
 
 ## Step 1 - Security review
 
+**Spawn before anything else in the chain.** Everything through step 4 runs
+against it, so a reviewer started late costs its whole runtime in wall clock, and
+a chain run sequentially completes correctly and never surfaces that it did.
+
 **Sweep before spawning.** It decides the six proofreading classes and prints the
 tier.
 
@@ -65,8 +74,15 @@ tier.
 python3 "$HOME/.agents/skills/wrap-up/scripts/closeout_lint.py"   # exit 1 on FAIL
 ```
 
-Fix findings first. `--json` is the form to hand the reviewer. Announce the tier
-and what decided it. [references/review-tiers.md](references/review-tiers.md).
+Fix findings first. Announce the tier and what decided it.
+[references/review-tiers.md](references/review-tiers.md).
+
+**Hand the reviewer materialized inputs, not a repo to explore.** Write the sweep
+(`--json`), the diff and the changed-file list to the scratchpad and pass the three
+paths, so its first call is the review rather than discovery. **Tier decides the
+model**: Tier B spawns with `model: sonnet`, Tier A stays on the definition's
+default. Say in the prompt which skills are new this session; only those get read
+as whole folders.
 
 A clean sweep is not a clean review: a linter cannot tell you a well-formed
 sentence is false.
@@ -79,7 +95,8 @@ sentence is false.
 - **Two rounds maximum.** New blocking findings in round two are a stop-and-ask,
   not a third spawn.
 - **Scope is the session's changed files**, anything untracked it produced, and
-  the whole folder of anything newly added. The reviewer may follow a question
+  the whole folder of a skill that did not exist before the session - not of a
+  skill that merely changed. The reviewer may follow a question
   further and flags what it notices incidentally; it does not audit the repo or
   re-run a scan the caller ran with controls.
 
@@ -160,6 +177,10 @@ left undone, and every gate the user was asked to approve with their decision.
 ## Boundaries
 
 **Always** - security review first, and again if the chain changes code after it.
+Fix findings by simplifying: when a sweep turns up something a skill, hook, doc
+or config must change for, the first candidate is the edit that simplifies or
+replaces text, not the clause that gets appended. A chain that adds a line per
+finding is how the chain got long; net growth is a cost the change has to pay for.
 Leave the inbox at exit 0 or name what is open. Fetch before reflecting, re-fetch
 before pushing. Preserve each sub-skill's gates. Report the final branch and a
 clean tree.

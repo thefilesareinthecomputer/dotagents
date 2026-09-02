@@ -185,6 +185,18 @@ and an existing item may be given a dependency on a new one; both are normal.
 user could mistake for a number, and list every placeholder in the handoff report
 so they know exactly what to backfill.
 
+### Fixtures are not real IDs
+
+Every identifier in this skill's templates, tests, evals and examples is a
+fixture: the `NNNNnn` form, a repdigit run such as `111111`, a consecutive run such
+as `123456`, or a zero-padded counter. No tracker issues those, and `EPIC-`,
+`FEATURE-` and `STORY-` are the universal agile terms rather than anything
+project-specific. None of it is sensitive, and a scanner for leaked work-item IDs
+passes those shapes silently. A six-digit value that is none of them gets surfaced
+for a human or agent to judge, never hard-failed - the rare legitimate
+`STORY-777777` cannot be told from a leak by shape, and a test that tries goes
+stale the day it is written.
+
 ### Splitting and merging
 
 Splitting an item that already has an ID: the original ID stays with the child

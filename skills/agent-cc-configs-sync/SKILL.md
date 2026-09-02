@@ -1,6 +1,6 @@
 ---
 name: agent-cc-configs-sync
-description: Seeds a new device or idempotently reconciles an existing one against the Claude Code station spec in specs/claude-code/ - pulls the latest ~/.agents first, vets the inbound delta and alerts on anything breaking or critical, runs sync-skills.sh, applies the global CLAUDE.md and RTK.md templates, then diffs settings, hooks, statuslines, keybindings, plugins and CLI deps item by item, asking the user which drifted items to apply. Invoked explicitly (/agent-cc-configs-sync) when setting up Claude Code on a new machine, bringing a device up to date with the specs, or checking a station for drift. External installs (brew, plugins, claude-mem) are an opt-in second step. The git commit/push ritual is repo-device-sync, not this.
+description: Seeds a new device or idempotently reconciles an existing one against the Claude Code station spec in specs/claude-code/ - pulls the latest ~/.agents first, vets the inbound delta and alerts on anything breaking or critical, runs sync-skills.sh, applies the global CLAUDE.md pointer template, then diffs settings, hooks, statuslines, keybindings, plugins and CLI deps item by item, asking the user which drifted items to apply. Invoked explicitly (/agent-cc-configs-sync) when setting up Claude Code on a new machine, bringing a device up to date with the specs, or checking a station for drift. External installs (brew, plugins, claude-mem) are an opt-in second step. The git commit/push ritual is repo-device-sync, not this.
 disable-model-invocation: true
 ---
 
@@ -53,7 +53,8 @@ If it errors on a parent-level symlink, follow the message it prints.
 
 ## Phase 2 - Seed-file parity
 
-For each row of the spec's section 0 table (CLAUDE.md.example, RTK.md.example,
+For each row of the spec's section 0 table (CLAUDE.md.example, which is the
+one-line pointer to `~/.agents/AGENTS.md`,
 `hooks/`, statusline.sh, subagent-statusline.sh, keybindings.json - everything
 except settings.json, which gets Phase 3's treatment), diff the seed against
 its station path:
