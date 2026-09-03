@@ -5,11 +5,12 @@ The **topology** is the map: the levels, the paths they occupy, what each mechan
 The **ontology** is the sorting standard: which kind of context belongs in which mechanism, and the procedure for placing a block that does not obviously sort.
 The **team heuristics** are how a group operates that structure together out of one repository, and what goes wrong when they do not.
 
-Verified against Claude Code 2.1.233 and the official documentation as of 2026-08-14.
+Verified against Claude Code 2.1.233 and the official documentation as of 2026-08-14; the headless column and section against 2.1.259 by canary probe on 2026-09-02.
 [`SPEC-CLAUDE-CODE.md`](SPEC-CLAUDE-CODE.md) is one opinionated station built on these mechanisms; this file is the general standard.
 
 [the-sorting-grid](#the-sorting-grid)
 [the-three-levels](#the-three-levels)
+[headless-mode](#headless-mode)
 [the-mechanisms](#the-mechanisms)
 [sort-a-block-of-context](#sort-a-block-of-context)
 [memory-and-retrieval](#memory-and-retrieval)
@@ -26,14 +27,16 @@ Two questions place any piece of context you want to give Claude Code. The first
 
 **When does it need to be in context?** Every session, only when certain files are open, only when a particular task runs, or never, because it is enforced rather than read, runs in its own context, or lives in another system.
 
-| When it needs to be in context | Org level | Project level | User level |
-|---|---|---|---|
-| Every session | Managed policy `CLAUDE.md`, or the `claudeMd` key in managed settings | The repository's `CLAUDE.md`, at the root or in `.claude/` | Your personal `~/.claude/CLAUDE.md` |
-| Only when certain files are open | A rules file shipped in a plugin | A path-scoped rule in `.claude/rules/`, or a `CLAUDE.md` inside that directory | A personal rule in `~/.claude/rules/` |
-| Only when a particular task runs | A plugin skill from an internal marketplace | A skill in `.claude/skills/`, committed with the code | A personal skill in `~/.claude/skills/` |
-| Never: it is enforced rather than read | Managed settings, using `permissions.deny`, `sandbox`, and `allowManagedHooksOnly` | Hooks and permission rules in `.claude/settings.json` | Hooks and permissions in `~/.claude/settings.json`, or `.claude/settings.local.json` for one repository |
-| Never: it runs in its own context | A subagent shipped in a plugin | A subagent in `.claude/agents/` | A personal subagent in `~/.claude/agents/` |
-| Never: it lives in another system | An approved server list, or a deployed `managed-mcp.json` | A server declared in the repository's `.mcp.json` | A server you add yourself, recorded in `~/.claude.json` |
+The fourth column is not a fourth level. A headless session (`claude -p`, the mode every spawned or scheduled agent runs in) loads the same three levels from the same files. The column records what changes when nobody is at the keyboard: which entries are dropped, and the extra channel the spawner has. [headless-mode](#headless-mode) has the mechanics.
+
+| When it needs to be in context | Org level | Project level | User level | Headless: what differs for a spawned session |
+|---|---|---|---|---|
+| Every session | Managed policy `CLAUDE.md`, or the `claudeMd` key in managed settings | The repository's `CLAUDE.md`, at the root or in `.claude/` | Your personal `~/.claude/CLAUDE.md` | Same files load. The spawner adds to them with `--append-system-prompt`, or replaces the default with `--system-prompt` |
+| Only when certain files are open | A rules file shipped in a plugin | A path-scoped rule in `.claude/rules/`, or a `CLAUDE.md` inside that directory | A personal rule in `~/.claude/rules/` | Same (per the docs; not probed) |
+| Only when a particular task runs | A plugin skill from an internal marketplace | A skill in `.claude/skills/`, committed with the code | A personal skill in `~/.claude/skills/` | Same; the spawner invokes one by putting `/<name>` in the prompt |
+| Never: it is enforced rather than read | Managed settings, using `permissions.deny`, `sandbox`, and `allowManagedHooksOnly` | Hooks and permission rules in `.claude/settings.json` | Hooks and permissions in `~/.claude/settings.json`, or `.claude/settings.local.json` for one repository | Nothing can be approved: a tool with no allow rule is refused, not asked about. A never-trusted cwd drops the project `settings.json` allow entries only; its deny rules and hooks, and everything in `settings.local.json`, still apply. The spawner adds rules at command-line scope with `--allowedTools`, `--disallowedTools`, and `--permission-mode` |
+| Never: it runs in its own context | A subagent shipped in a plugin | A subagent in `.claude/agents/` | A personal subagent in `~/.claude/agents/` | Same, foreground only; the turn ends when the reply ends, so background work is lost |
+| Never: it lives in another system | An approved server list, or a deployed `managed-mcp.json` | A server declared in the repository's `.mcp.json` | A server you add yourself, recorded in `~/.claude.json` | A project `.mcp.json` server that was never approved interactively cannot be approved now; the spawner passes `--mcp-config`, with `--strict-mcp-config` to use only that (per the docs; not probed) |
 
 A `CLAUDE.md` file is loaded in full into every request for the life of the session. A path-scoped rule is loaded when Claude opens a matching file. A skill contributes one line of description at startup and its full body only when it is used. The same content in each of those three places costs three different amounts, and only the first is charged on every unrelated request.
 
@@ -106,8 +109,65 @@ Not all mechanisms layer the same way. Additive means every level's content is p
 | MCP servers | Override by name: local, then project, then user. |
 | Hooks | Merge. Every registered hook fires for its matching event regardless of source. |
 | Settings | Highest scope wins, in this order: managed, command line, local, project, user. |
+| Permission rules specifically | Across every scope, a matching deny beats a matching allow, and command line means `--allowedTools` / `--disallowedTools`. A flag allow cannot override a `settings.local.json` deny; a flag deny does override a `settings.local.json` allow (probed 2.1.259). |
 
 Run `/context` to see what actually loaded in a session, and `/status` to confirm which managed settings source is active.
+
+---
+## headless-mode
+
+Headless is `claude -p "<prompt>"`, also called print mode: one turn, no terminal, output to stdout, the process exits when the reply ends. Every agent that another program starts runs this way, whether that is CI, a cron job, a subagent-spawning orchestrator, or a chat app seating an agent in its own repository. Conceptually it is a different kind of session, because there is no person to answer a prompt. Mechanically it is the same session: it starts in a cwd, discovers the same project and user files from there, and applies the same precedence. Nothing below is a new level in the grid; it is how the existing levels behave when nobody can click.
+
+### The one conceptual difference
+
+Interactive permission checks have three outcomes: allow, deny, and ask. Headless has two, because ask has nobody to ask. Every rule you already understand keeps its meaning; only the ask row changes.
+
+| Tool call | Interactive session | Headless session |
+|---|---|---|
+| Matches an allow rule, no deny | Runs | Runs |
+| Matches a deny rule, at any scope | Refused | Refused |
+| A `PreToolUse` hook exits 2 | Blocked, hook message shown | Blocked, hook message returned to the model |
+| Read-only tool (`Read`, `Glob`, `Grep`) with no rule | Runs | Runs |
+| Any other tool with no rule (`Write`, `Edit`, `Bash`, `WebFetch`) | You are asked | Refused. The model sees the refusal, the JSON result lists it under `permission_denials`, and the turn continues |
+
+So a headless session can only do what a rule already permits. This is why an agent that works fine at your keyboard can be read-only when spawned: at the keyboard you were approving each write as it came.
+
+### Where headless grants come from
+
+The same files, same precedence, with one gate. Probed on 2.1.259 in directories the install had never trusted (no entry in `~/.claude.json`), with a UUID canary and a no-rule control:
+
+| Source | Loaded headless in a never-trusted cwd? |
+|---|---|
+| `~/.claude/settings.json` (user) | Yes |
+| `.claude/settings.local.json` allow | Yes |
+| `.claude/settings.local.json` deny | Yes |
+| `.claude/settings.json` deny | Yes |
+| `.claude/settings.json` allow | **No.** Dropped with a stderr warning naming the fix: run interactively there once and accept the trust dialog, or set `hasTrustDialogAccepted` for that path in `~/.claude.json` |
+| Hooks in either project file | Yes, they fire |
+| `--allowedTools` / `--disallowedTools` | Yes, at command-line scope |
+| `--permission-mode acceptEdits` | File edits inside the cwd run with no rule at all |
+
+Once a workspace is trusted, the project `settings.json` allow entries load like everything else. The gate exists because a committed file arrives with a clone and could grant itself anything; trusting the directory once is you vouching for it.
+
+The consequence worth internalizing: an interactive "always allow" click writes a rule into that repository's `settings.local.json`, and headless reads that file. A repository's headless capability is therefore the sum of every approval its owner ever clicked there, plus whatever was written deliberately. Read the file before spawning into a repository, and expect it to hold dozens of one-off `Bash(...)` approvals and no `Edit` rule at all, which yields an agent that can run scripts but cannot save a file.
+
+### Where a grant meant for headless goes
+
+Apply the grid. A grant is enforcement, so it is the "never: enforced" row, and the column is whoever should own the decision.
+
+| Situation | Put the grant in | Why |
+|---|---|---|
+| This repository's agents should always be able to do X, for everyone who clones it | Project `.claude/settings.json`, then trust the directory once on each machine that spawns there | Committed and reviewable; the trust step is the price of a committed allow |
+| Only this machine's spawned sessions in this repository | `.claude/settings.local.json` | Honored headless with no trust step, and never committed |
+| The spawner is the authority on what its workers may do | `--allowedTools` / `--disallowedTools` from the spawner | Command-line scope, visible in the process arguments, and a flag deny beats a repository's own allow |
+| The spawned session must be able to save files in its cwd and nothing more needs deciding | `--permission-mode acceptEdits` | Grants file edits without enumerating paths; leaves shell and network to the rules |
+| Anything that must hold whatever the repository says | A deny rule or a hook at user or managed level | Deny and hooks survive the trust gate and beat every allow |
+
+Never `--permission-mode bypassPermissions` or `--dangerously-skip-permissions` for a spawned session that touches a real repository. It removes the two-outcome table entirely, and the managed setting `disableBypassPermissionsMode` exists to make that impossible fleet-wide.
+
+### Probing rather than reading
+
+A headless permission claim is a guess until a canary shows it. The method: a fresh directory per arm, a UUID that only the tool under test can put on disk or return, one arm with no rule at all as the control, and the verdict read from the file system or the `permission_denials` list, never from the model's prose, because a model refusal and a permission refusal read the same in a final sentence. Pin the CLI version to the result; the version can change between two runs on the same afternoon, and a bump means re-probe.
 
 ---
 ## the-mechanisms

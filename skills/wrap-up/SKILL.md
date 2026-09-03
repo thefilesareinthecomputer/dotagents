@@ -74,7 +74,9 @@ tier.
 python3 "$HOME/.agents/skills/wrap-up/scripts/closeout_lint.py"   # exit 1 on FAIL
 ```
 
-Fix findings first. Announce the tier and what decided it.
+Fix findings first. Announce the tier and what decided it - and if the sweep lists
+`command_files`, name them to the reviewer and add the command-execution domain for
+those files, whatever the tier says.
 [references/review-tiers.md](references/review-tiers.md).
 
 **Hand the reviewer materialized inputs, not a repo to explore.** Write the sweep

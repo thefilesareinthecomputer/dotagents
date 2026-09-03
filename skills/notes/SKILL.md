@@ -27,13 +27,14 @@ progress.**
 
 ## Step 2 - Locate and measure
 
-Six paths, at the repo root, and no others:
+Seven paths, at the repo root, and no others:
 
 | File | Role |
 |------|------|
-| `tasks/plan.md` | Active plan and backlog (hot) |
+| `tasks/plan.md` | Active workstream (hot) |
 | `tasks/todo.md` | Session handoff snapshot (hot) |
 | `tasks/SPEC-FEATURE-NAME.md` | Per-feature spec, one per in-flight feature (hot, ephemeral) |
+| `tasks/backlog/` | Parked but real - `backlog.md` plus written-but-unstarted specs; created on first need |
 | `tasks/completed/` | Cold store - dated `plan-completed-YYYY-MM-DD.md`, immutable after its day, plus retired feature specs moved in whole |
 | `README.md` | How to USE it. Roster level |
 | `SPEC.md` | What it IS - invariants, boundaries, constraining decisions |
@@ -57,8 +58,8 @@ wc -l SPEC.md README.md tasks/plan.md tasks/todo.md
 
 | File | Budget | Over |
 |------|--------|------|
-| `tasks/todo.md` | ~100 | **Rewrite from scratch.** |
-| `tasks/plan.md` | ~400 | Active work and open backlog only. |
+| `tasks/todo.md` | ~60 | **Rewrite from scratch.** |
+| `tasks/plan.md` | ~200 | Active work only; the backlog lives in `tasks/backlog/`. |
 | `SPEC.md` / `README.md` | skimmable | Rewrite stale sections; history never accumulates. |
 
 **The budget is a ceiling and the default posture is deletion.** These load every
@@ -70,6 +71,13 @@ merge or relocate first, and add only when nothing existing can carry the fact.
 hot, whatever its history. Shipped work, settled decisions, closed gotchas,
 merely-interesting background, and anything whose next action is "someone should
 decide" with nobody named all fail it.
+
+**An item that fails the test is moved, not left.** Finished, settled or superseded
+goes to `tasks/completed/`; real but unscheduled goes to `tasks/backlog/` (create it
+when the first item needs it, with `backlog.md` for the list and any written-but-
+unstarted `SPEC-*.md` beside it). Leaving a failing item in place because the file
+is under budget is how these files rot: the size gate never fires, so the item never
+leaves. **The test is the mechanism; the budget is only a backstop.**
 
 **`todo.md` is rewritten, not edited.** Build from what the next session needs
 rather than pruning what is there - editing downward preserves whatever nobody
@@ -151,7 +159,7 @@ decision it needs - the report is chat output and does not outlive the session.
 - **Non-destructive, except downward.** Read before edit; merge, never gut.
   Relocation is the only sanctioned way hot files shrink, and it is not deletion.
 - **Appending is not maintaining.** A pass that only adds is incomplete.
-- **Six paths, one pass.** Anything else belongs to another skill.
+- **Seven paths, one pass.** Anything else belongs to another skill.
 - **Don't name the user**, and **no secrets** - these files are tracked, so treat
   them as public. Record that a value exists and where it lives, never the value.
 - **Evidence over narrative.** Every claim traces to a real change.

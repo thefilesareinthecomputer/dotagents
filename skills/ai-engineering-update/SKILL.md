@@ -75,6 +75,52 @@ Big aggregators worth re-scanning each pass - high signal, low noise:
 For anything moving (versions, GA/maintenance, license), use `WebSearch` or the
 `deep-research` skill and cite the date. Never assert currency from memory.
 
+## Ground truth before prose (run this first)
+
+**Every GitHub row's metadata comes from the API, never from a search summary or a
+README.** One call settles stars, license, language, last push and archived state for
+a whole batch, costs nothing, and is not a summarization of anything:
+
+```bash
+repos=(owner/repo owner/repo2)          # names arrive from pages we do not control
+for r in "${repos[@]}"; do
+  [[ "$r" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$ ]] \
+    || { echo "skip (not owner/repo): $r" >&2; continue; }
+  printf '%-42s ' "$r"
+  gh api "repos/$r" --jq '"\(.stargazers_count)★ \(.license.spdx_id // "NO-LICENSE") \(.language) pushed:\(.pushed_at[:10]) archived:\(.archived)"' \
+    || echo "LOOKUP FAILED"
+done
+```
+
+**The guard is the load-bearing line, not decoration.** `$r` is interpolated into a
+REST path, so an unvalidated name steers the call off `repos/`: `r='../user'` makes
+`repos/../user` resolve to the authenticated-user endpoint and return the token
+owner's own account record. Names on this pass come from aggregator pages and
+READMEs - adversary-writable text - so validate every one, keep them in an array
+rather than a bare word-list, and never drop the `--jq` filter to "see the raw JSON"
+on a row that looks wrong. Re-verified by reproduction 2026-09-02.
+
+Run it **before** the research fan-out, and hand each researcher the row for its
+repos so it spends its budget on what the repo *does* rather than on re-deriving
+numbers it will get wrong. Then write the API's figures into the corpus verbatim,
+stamped `(GitHub API, checked YYYY-MM-DD)`, and let prose cover only what an API
+cannot say: the mechanism, the transferable pattern, the cautions.
+
+This step is not optional. On the 2026-09-02 pass, researchers working from search
+summaries got five of sixteen rows wrong - two star counts off by 100x and 4x, two
+dormant repos called active, one missed unlicensed repo - and reported a 14.9k-star
+repo as possibly not existing. One API call caught all five.
+
+Two rules follow:
+
+- **`NO-LICENSE` is a finding, not a blank.** An unlicensed repo is all-rights-reserved
+  however many stars it has; record it in the row's cautions and never copy its source.
+- **`pushed_at` outranks any claim of activity.** "Actively maintained" is an assertion
+  about a date, so cite the date instead.
+
+Non-GitHub sources have no equivalent shortcut, so they keep the two-independent-source
+bar - and a vendor blog restating a project's own README is one source, not two.
+
 ## Recording experience (the third job)
 
 Discovery and freshness both look outward at what other people publish. This one
@@ -113,16 +159,23 @@ written by the scaffold skill at the end of its run rather than here.
 3. **Dedupe-ingest.** Pipe findings through `ledger.py ingest`. Anything already known reports `unchanged` - that's the duplicate guard working. Genuinely new URLs are added; github/deepwiki repos with no `seed-sections` entry land in `triage`.
 4. **Research every new row - never ingest-and-stop.** A pasted link is not
    knowledge until someone has read the project, and this applies with full force
-   to the "fold in these links" scope, which otherwise skips step 2 entirely. Fan
-   out parallel `researcher` subagents (bounded batches of 3-5 repos each, model
-   pinned at spawn time), each writing dated, source-cited findings to a file the
-   orchestrator names and returning a capsule. Each agent establishes, from live
-   sources: what the repo actually does (not its marketing line), its status and
-   license, what an AI engineer can learn from it - the transferable pattern,
-   independent of adopting it - its relevance to the kinds of systems we build,
-   and proposed section tags from the existing vocabulary. These findings are
-   what drive classification and the human layer below; a row classified from
-   its URL alone is a guess.
+   to the "fold in these links" scope, which otherwise skips step 2 entirely.
+   **Run the `gh api` sweep above first**, then fan out parallel `researcher`
+   subagents (bounded batches of 3-5 repos each, model pinned at spawn time),
+   handing each the API row for its repos so it does not re-derive them. Each
+   writes dated, source-cited findings to a file the orchestrator names and
+   returns a capsule, establishing from live sources: what the repo actually does
+   (not its marketing line), what an AI engineer can learn from it - the
+   transferable pattern, independent of adopting it - its relevance to the kinds
+   of systems we build, and proposed section tags from the existing vocabulary.
+   These findings drive classification and the human layer below; a row classified
+   from its URL alone is a guess.
+   **Ceiling the whole run, not the batch:** state a total agent count before the
+   first spawn and stop at it, because "batches of 3-5" bounds nothing when the
+   number of batches is set by how many links were pasted.
+   **A researcher reporting that a repo does not exist is reporting a failed
+   search, not an absence** - the API settles it, and on this pass that exact
+   claim was made about a repo with 14.9k stars pushed the same day.
 5. **Classify triage.** For each new `triage` row, add a `owner/repo → sections` line to `seed-sections.tsv` (or a domain rule to `rules.tsv`), then `set URL --sections '...'` to curate it. Re-`ingest` alone will not clear the row: ingest **unions** tags, so `triage` survives alongside the new sections (verified 2026-07-28). Use the section vocabulary already in the catalog.
 6. **Freshness, on both axes.** `check --ttl 90 --probe --limit N` verifies that URLs still resolve; investigate any `dead` rows (renamed, moved, abandoned) and update or flag them. Then `check --claims --section <layer>` for the separate and more valuable pass: the map rows whose assertions are unverified. Take one section at a time, re-verify against a live source, correct `agent-stack-map.md` with the date, and stamp with `verified`. Do not stamp a row you did not actually check - the date is the whole value of the field.
 7. **Resolve conflicts.** Read the **`hot`** rows of `resources/_conflicts.tsv` (or run `ledger.py conflicts`). Policy: **manual rows win**; otherwise sections are **unioned**; a dead/abandoned project is flagged in the map's cautions, not deleted. Record a one-line rationale for any non-obvious call. Occasionally run `ledger.py conflicts --prune` to age out old `cold` rows (git keeps the history).

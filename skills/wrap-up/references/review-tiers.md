@@ -11,6 +11,20 @@ Pricing both the same is how a docs-only diff gets three adversarial passes whil
 | A | hooks, scripts, subagent or command definitions, harness settings, permission or trust config | every domain of the checklist, then a re-review after fixes |
 | B | prose and specs only | one pass on secrets, untrusted input, egress and factual claims; the executable domains cannot be tripped |
 
+**A runnable command block in a prose file is executable content.** A SKILL.md is a
+prose path, but a shell snippet inside one is copied and run verbatim by every future
+session that follows the skill - a wider blast radius than a script, not a narrower
+one. `closeout_lint.py` reports these as `command_files` alongside the tier, and they
+keep the command-execution domain, and that domain alone, from Tier A. The tier itself
+does not move: escalating a docs diff to a full adversarial pass over one example block
+is how a gate gets ignored.
+
+Not hypothetical. The review that added this classified a diff as Tier B, correctly on
+paths, and found a Critical in the one snippet it contained - a `gh api "repos/$r"`
+call whose unvalidated name resolved `repos/../user` to the authenticated-user
+endpoint. Tagged fences only (` ```bash `, `sh`, `zsh`, `shell`, `console`); an
+untagged block is as often output as input.
+
 ## The tier is a floor, not a ceiling
 
 The user can force Tier A.

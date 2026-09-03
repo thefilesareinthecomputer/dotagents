@@ -29,7 +29,7 @@ Sumanth077/Hands-On-AI-Engineering	learning
 Sumanth077/ai-engineering-toolkit	learning
 TableProApp/TablePro	triage
 VILA-Lab/Dive-into-Claude-Code	skills
-VectifyAI/OpenKB	rag
+VectifyAI/OpenKB	rag|ingestion|memory
 aaif-goose/goose	harnesses|map
 activeloopai/deeplake	vectordb
 addyosmani/agent-skills	skills|map
@@ -79,7 +79,7 @@ memodb-io/Acontext	memory|map
 mermaid-js/mermaid	adjacent
 microsoft/AI-Engineering-Coach	learning
 microsoft/agent-framework	frameworks|map
-microsoft/agent-governance-toolkit	learning
+microsoft/agent-governance-toolkit	security|harnesses
 microsoft/agent-lightning	tuning|map
 milla-jovovich/mempalace	memory
 milvus-io/milvus	vectordb
@@ -234,3 +234,17 @@ HKUDS/OpenSpace	skills|harnesses|eval
 Evokoa/pgGraph	vectordb|rag|adjacent
 semantica-agi/semantica	memory|rag|frameworks
 vshulcz/deja-vu	memory|harnesses|eval
+CaviraOSS/PageLM	learning|adjacent
+FlashML-org/FreeToken	serving|models
+MakazhanAlpamys/Soup	tuning|models
+Untrivial-ai/agent-orchestrator	harnesses|frameworks|adjacent
+cathrynlavery/diagram-design	skills|frontend
+google/sam	adjacent
+gridex/gridex	adjacent
+karpathy/llm-council	frameworks|adjacent
+lyogavin/airllm	serving|models
+magnitudedev/browser-agent	eval|frontend|adjacent
+magnitudedev/magnitude	serving|models
+opensandbox-group/OpenSandbox	security|harnesses|serving
+superloglabs/superlog	eval|serving|adjacent
+wlsdks/ontology-atlas	codeintel|memory

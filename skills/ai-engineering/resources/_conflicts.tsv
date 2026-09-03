@@ -1,25 +1,41 @@
 seq	date	url	kind	resolution	state
 3	2026-07-27	https://docs.cloud.google.com/spanner/docs/graph/overview	manual-override	'docs|frameworks' -> 'docs|adjacent|map'	hot
+43	2026-09-02	https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai	manual-override	'adjacent' -> 'security|docs'	hot
+37	2026-09-02	https://github.com/CaviraOSS/PageLM	manual-override	'triage' -> 'learning|adjacent'	hot
 2	2026-07-27	https://github.com/DeusData/codebase-memory-mcp	tag-union	'memory' + 'codeintel|memory' -> 'memory|codeintel'	hot
 25	2026-08-14	https://github.com/Evokoa/pgGraph	manual-override	'triage' -> 'vectordb|rag|adjacent'	hot
+35	2026-09-02	https://github.com/FlashML-org/FreeToken	manual-override	'triage' -> 'serving|models'	hot
 24	2026-08-14	https://github.com/HKUDS/OpenSpace	manual-override	'triage' -> 'skills|harnesses|eval'	hot
 15	2026-08-14	https://github.com/InsForge/InsForge	manual-override	'triage' -> 'harnesses|serving|skills'	hot
+32	2026-09-02	https://github.com/MakazhanAlpamys/Soup	manual-override	'triage' -> 'tuning|models'	hot
 10	2026-07-28	https://github.com/NVIDIA-AI-Blueprints	manual-override	'adjacent' -> 'learning|frameworks'	hot
 17	2026-08-14	https://github.com/NVIDIA/cloud-native-stack	manual-override	'triage' -> 'serving|adjacent'	hot
 16	2026-08-14	https://github.com/NanoNets/Graft	manual-override	'triage' -> 'codeintel|rag|harnesses'	hot
 18	2026-08-14	https://github.com/SonarSource/sonarqube-cli	manual-override	'triage' -> 'codeintel|security|harnesses'	hot
+36	2026-09-02	https://github.com/Untrivial-ai/agent-orchestrator	manual-override	'triage' -> 'harnesses|frameworks|adjacent'	hot
+42	2026-09-02	https://github.com/VectifyAI/OpenKB	manual-override	'rag' -> 'rag|ingestion|memory'	hot
 4	2026-07-28	https://github.com/affaan-m/ECC	tag-union	'triage' + 'skills|harnesses' -> 'triage|skills|harnesses'	cold
 6	2026-07-28	https://github.com/affaan-m/ECC	manual-override	'triage|skills|harnesses' -> 'skills|harnesses'	hot
 5	2026-07-28	https://github.com/affaan-m/agentshield	tag-union	'triage' + 'security' -> 'triage|security'	cold
 7	2026-07-28	https://github.com/affaan-m/agentshield	manual-override	'triage|security' -> 'security'	hot
+31	2026-09-02	https://github.com/cathrynlavery/diagram-design	manual-override	'triage' -> 'skills|frontend'	hot
 19	2026-08-14	https://github.com/danielmiessler/LifeOS	manual-override	'triage' -> 'harnesses|skills|memory'	hot
 20	2026-08-14	https://github.com/deepseek-ai/deepseek-harness	manual-override	'triage' -> 'harnesses|frameworks|eval'	hot
 21	2026-08-14	https://github.com/google/adk-samples	manual-override	'triage' -> 'frameworks|memory|rag'	hot
+34	2026-09-02	https://github.com/google/sam	manual-override	'triage' -> 'adjacent'	hot
+39	2026-09-02	https://github.com/gridex/gridex	manual-override	'triage' -> 'adjacent'	hot
+28	2026-09-02	https://github.com/karpathy/llm-council	manual-override	'triage' -> 'frameworks|adjacent'	hot
 1	2026-07-01	https://github.com/langchain-ai/deepagents	tag-union	'frameworks' + 'frameworks|harnesses|map' -> 'frameworks|harnesses|map'	hot
+33	2026-09-02	https://github.com/lyogavin/airllm	manual-override	'triage' -> 'serving|models'	hot
+40	2026-09-02	https://github.com/magnitudedev/magnitude	manual-override	'triage' -> 'serving|models'	hot
+41	2026-09-02	https://github.com/microsoft/agent-governance-toolkit	manual-override	'learning' -> 'security|harnesses'	hot
+29	2026-09-02	https://github.com/opensandbox-group/OpenSandbox	manual-override	'triage' -> 'security|harnesses|serving'	hot
 26	2026-08-14	https://github.com/semantica-agi/semantica	manual-override	'triage' -> 'memory|rag|frameworks'	hot
 22	2026-08-14	https://github.com/shcherbak-ai/contextgem	manual-override	'triage' -> 'ingestion|rag|frameworks'	hot
 14	2026-08-14	https://github.com/superlinked/sie	tag-union	'serving' + 'serving|map' -> 'serving|map'	hot
+30	2026-09-02	https://github.com/superloglabs/superlog	manual-override	'triage' -> 'eval|serving|adjacent'	hot
 27	2026-08-14	https://github.com/vshulcz/deja-vu	manual-override	'triage' -> 'memory|harnesses|eval'	hot
+38	2026-09-02	https://github.com/wlsdks/ontology-atlas	manual-override	'triage' -> 'codeintel|memory'	hot
 11	2026-08-09	https://github.com/yc-software/qm	manual-override	'triage' -> 'harnesses, map'	cold
 12	2026-08-09	https://github.com/yc-software/qm	manual-override	'harnesses, map' -> 'harnesses|map'	cold
 13	2026-08-14	https://github.com/yc-software/qm	kept-manual	kept 'harnesses|map', auto said 'triage'	hot

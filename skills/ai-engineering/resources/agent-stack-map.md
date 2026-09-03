@@ -129,15 +129,20 @@ Stars/status verified 2026-07-01 where dated; treat undated `verify` cells as un
 | Shepherd | MIT | Agent runtime substrate | Makes a run a reversible git-like trace: fork, replay, revert; syscall-level permissions (Seatbelt/Landlock); outputs held as reviewable proposals. ~1.6k★ (2026-07-27). | **Self-declared alpha, APIs changing.** macOS/Linux only. The fork-and-replay primitive is the transferable idea. Re-verified 2026-08-14: still early alpha; companion repo `shepherd-experiments` now carries the paper's meta-agent applications, microbenchmarks and a frozen substrate snapshot for reproducibility. | [repo](https://github.com/shepherd-agents/shepherd) |
 | Raven (EverMind) | Apache-2.0 | Self-improving harness | Harness over EverOS memory: durable user + agent memory, evolving skills, Agent Templates, scheduler, tracing. ~2.8k★ (2026-07-27). Backed by EverMind (Shanda Group). | **Pre-alpha by its own README**; not on PyPI (install is a Release wheel). Memory benchmark claims are first-party. | [repo](https://github.com/EverMind-AI/Raven) |
 | OpenWorker | MIT | Desktop task agent | Andrew Ng's desktop "AI coworker": files + 25 app integrations, decomposes a task into steps, gates consequential actions behind approval. ~7.1k★ (2026-07-27). | Open beta, 4 contributors, published 2026-07-20. Read it as a **HITL-approval reference implementation**, not a dependency. Re-verified 2026-08-14: still beta, MIT, ~14.5k★, no material change. | [repo](https://github.com/andrewyng/openworker) |
+| Agent Orchestrator | Apache-2.0 | **Meta-harness** (layer *above* harnesses) | Go daemon (`ao` CLI, SQLite, lifecycle/reaper, ~25 harness adapters) plus an Electron/React Kanban supervisor. One worker = one task = one agent process = one git worktree and branch, and the branch's owner owns its PR. Verification is CI and PR review; no LLM critic. Failure handling is declarative in `agent-orchestrator.yaml` (`event -> action`, `retries`, `escalateAfter` as count or duration). Architectural rule is **Observe -> Update -> Derive**: store observed facts, compute status at read time, never store a derived status. ~10.9k★ (checked 2026-09-02). | **No token or cost budget anywhere**, with automatic retry across premium agents. Handoff is unschema'd plain text injected into the agent's terminal. Two epoch counters mutated by different subsystems already cause session-resume bugs (#4122). Moved from `ComposioHQ`; npm `@aoagents/ao` frozen at 0.10.0 and legacy, so pre-rewrite tutorials describe a system that no longer exists. | [repo](https://github.com/Untrivial-ai/agent-orchestrator) |
 | Aiden | **AGPL-3.0** | Autonomous work engine | Drives files, terminal, browser and APIs from a prompt; 76 skills, 121 tools, 19 providers. ~0.8k★ (2026-07-27). | ⚠️ **AGPL core + paid commercial relicensing** - dual-license trap, not a permissive dependency. Solo-maintained. | [repo](https://github.com/taracodlabs/aiden) |
 
-> **Emerging tier - the meta-harness (noted 2026-07-14):** a layer *above* Section B
-> that treats individual harnesses as interchangeable execution backends and moves
-> governance (sandboxing, cost caps, tool allowlists) out of the prompt and into the
-> orchestrator. **Omnigent** is the serious general-purpose entrant; **alook** attacks
-> the same problem via org-chart/email routing; **T3MP3ST** (Section: security) is the
-> same pattern applied to offensive security. Too young to recommend as a default -
-> watch it. If it holds, "which harness?" stops being a lock-in question.
+> **Emerging tier - the meta-harness (noted 2026-07-14, re-read 2026-09-02):** a layer
+> *above* Section B that treats individual harnesses as interchangeable execution
+> backends and moves governance (sandboxing, cost caps, tool allowlists) out of the
+> prompt and into the orchestrator. **Omnigent** is the serious general-purpose
+> entrant; **Agent Orchestrator** is the largest by adoption; **alook** attacks the same
+> problem via org-chart/email routing; **T3MP3ST** (Section: security) is the same
+> pattern applied to offensive security. The tier has now converged on a shape: the
+> sub-agent is an **OS process behind a per-harness adapter**, isolated by a git
+> worktree, not an SDK call. Still too young to recommend as a default - and note that
+> the adoption leader ships **no spend ceiling at all** while auto-retrying premium
+> agents, so cost governance is the tier's open problem, not a solved one.
 
 ---
 
@@ -545,6 +550,93 @@ starting points, which is what NVIDIA intends (AI-Q composes with the RAG bluepr
 the biomedical agent is a documented fork of AI-Q). Go into NeMo Platform, NIM
 self-hosting and the Data Flywheel with the NVAIE production licence priced in from
 the start, not discovered at deployment.
+
+---
+
+## Section K - Agent governance, identity and execution control (researched 2026-09-02)
+
+The lane that answers **"what stops the agent, and who says so"** - distinct from
+Section I (which measures what an agent did) and from the prompt-level guardrails in
+`NeMo-Guardrails` (which shape what it says). Everything here constrains what an agent
+is permitted to *do*, in code, before intent reaches the wire.
+
+All star counts, licenses and push dates in this section come from the GitHub API on
+2026-09-02, not from search summaries or README claims.
+
+### K.1 - The organizing principle
+
+**Deterministic interception, not prompt restraint.** The governing check runs in
+application code between the model's decision and the tool's execution, so a denied
+action is structurally impossible rather than discouraged. Every serious entrant in
+this lane agrees on that much; they differ on **where** the interception point sits,
+and that difference is the whole design space:
+
+| Enforcement point | What it catches | What it misses |
+|---|---|---|
+| **In-process hook** (AGT, this repo's PreToolUse hooks) | any tool call routed through the hook | any code path that does not call the hook - a subprocess, a library issuing its own syscalls, a harness that forgets to wire it |
+| **Process-separated gateway** (a proxy or sidecar every call must transit) | everything on the wire, whatever the caller | anything that never goes on the wire - local file writes, local exec |
+| **OS sandbox** (Seatbelt, Landlock, gVisor, containers) | syscalls, filesystem, network, whatever the process attempts | policy that depends on *semantics* - "this specific customer's record" is not a syscall distinction |
+
+The practical reading: these compose, and any single one of them alone has a named
+hole. A hook layer is the cheapest and the leakiest; the sandbox is the only one that
+holds against code you did not route.
+
+### K.2 - The standards layer
+
+**OWASP Top 10 for Agentic Applications 2026**, published 2025-12-09 by the GenAI
+Security Project's Agentic Security Initiative
+([announcement](https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/)):
+ASI01 Agent Goal Hijack · ASI02 Tool Misuse · ASI03 Identity & Privilege Abuse ·
+ASI04 Agentic Supply Chain Vulnerabilities · ASI05 Unexpected Code Execution ·
+ASI06 Memory & Context Poisoning · ASI07 Insecure Inter-Agent Communication ·
+ASI08 Cascading Failures · ASI09 Human-Agent Trust Exploitation · ASI10 Rogue Agents.
+
+**Cite it by that name.** There is no OWASP artifact called "the OWASP Agentic Top 10";
+that is a colloquial contraction, and a tool using it in its own documentation is a
+small signal about how carefully it read the source. Three neighboring OWASP artifacts
+are separate documents and are routinely conflated with it and with each other:
+*Agentic AI Threats and Mitigations* (a taxonomy, 1.1), *Securing Agentic Applications
+Guide* (1.0), and the *OWASP Top 10 for LLM Applications 2026*.
+
+Not verified: a version number or explicit ratification label for the Top 10 - the PDF
+itself was not read, only the announcement and resource pages.
+
+**Identity** is converging on SPIFFE/SPIRE workload identity plus the IETF **WIMSE**
+work (a WIT-SVID sub-profile for agent identity), with **MCP's OAuth 2.1 + RFC 9728**
+profile carrying the delegation half - who the agent is acting *for*. Agent-specific
+SPIRE deployment is emerging, not proven in production. This rests on thinner sourcing
+than the rest of the section: treat the WIMSE detail as a lead to verify, not a fact.
+
+**Authorization** is being answered with existing policy engines rather than new ones -
+OPA/Rego and **Cedar** both appear as agent tool-call authorizers, and AWS has published
+a Cedar pattern for least-privilege in multi-agent chains. The notable point for anyone
+building here: nothing agent-native has displaced the general-purpose policy engines,
+so the reusable skill is Rego or Cedar, not a vendor's agent DSL.
+
+### K.3 - The tools
+
+| Project | License | Enforcement point | What it does | Cautions |
+|---|---|---|---|---|
+| [agent-governance-toolkit](https://github.com/microsoft/agent-governance-toolkit) | MIT | In-process interception, multi-language | Microsoft's runtime policy layer: intercepts every tool call, message send and delegation before it reaches the wire, evaluating YAML, OPA/Rego or Cedar policy. Python core plus TS/.NET/Rust/Go SDKs, AKS sidecar deployment, six architecture specs covering identity, coordination, execution control, SRE, an MCP security gateway and audit. 6,180★, pushed 2026-09-02. | **Public preview, not GA.** Conformance-test count and OWASP coverage are both self-reported, and it names the OWASP list wrongly. In-process interception governs only paths that call the hook. |
+| [OpenSandbox](https://github.com/opensandbox-group/OpenSandbox) | Apache-2.0 | OS/container isolation | Sandbox runtime for agent workloads, split into a Python/FastAPI control plane (lifecycle) and a Go `execd` daemon (command and file ops inside the sandbox), with session-ID reattachment for stateless workers. Docker local, Kubernetes distributed; `osb` CLI and MCP server; worked examples run Claude Code, Codex CLI, Gemini CLI, OpenCode and others inside it. Cosign-signed releases with provenance; PEP-style OSEP proposal process. 14,919★, Go, pushed 2026-09-02. | Organizational backing behind "opensandbox-group" not established - verify governance before a production dependency. |
+| [Shepherd](https://github.com/shepherd-agents/shepherd) | MIT | Syscall (Seatbelt/Landlock) + reversible trace | Makes a run a git-like reversible trace - fork, replay, revert - with syscall-level permissions and outputs held as reviewable proposals. See Section B. | Self-declared alpha; macOS/Linux only. |
+| [NVIDIA/OpenShell](https://github.com/NVIDIA/OpenShell) | see repo | Sandboxed shell for agents | Sandbox execution wired to Deep Agents via `langchain-nvidia-openshell`. | Not re-verified this pass. |
+| [Omnigent](https://github.com/omnigent-ai/omnigent) | Apache-2.0 | Meta-harness + OS sandbox | Adds bubblewrap/seatbelt sandboxing and stacked cost/access policies above interchangeable harnesses. See Section B. | Self-described alpha. |
+| [NeMo-Guardrails](https://github.com/NVIDIA/NeMo-Guardrails) | Apache-2.0 | Conversational I/O rails | Topic boundaries, safety checks and dialogue policy as config. Complementary to this lane, not a substitute - it governs what an agent *says*, not what it *does*. | The one NeMo piece free of NVIDIA licensing. |
+
+### K.4 - Stance
+
+**Compose the layers; do not pick one.** For a station running local coding agents, the
+practical stack is an in-process hook layer for semantic policy (the things only you can
+express, like "never write this path"), an OS sandbox underneath it for everything the
+hook cannot see, and an audit trail that survives both. The gap most setups have is the
+middle one, because the hook layer is easy and feels sufficient until something spawns a
+subprocess.
+
+**Cost governance is unsolved in this lane and belongs in it.** The meta-harness tier
+(Section B) treats governance as sandboxing plus tool allowlists and stops there; the
+adoption leader auto-retries premium agents with no spend ceiling at all. A budget
+ceiling is a governance control, not an accounting nicety, and no entrant here ships one.
 
 ---
 

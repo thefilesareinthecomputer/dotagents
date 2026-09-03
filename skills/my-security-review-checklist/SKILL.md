@@ -215,6 +215,63 @@ baked into shared tooling.
       `"$HOME/X"` (shell - `~` does not expand inside quotes); replace a hardcoded
       single-repo path with root discovery. Apply the fix, then re-run the scan to confirm zero hits.
 
+### 9. The multi-agent surface
+
+Sections 1-8 review one agent editing files. These risks only exist once work fans
+out across agents, sessions or repos, and none of them are visible in a single diff -
+each needs a question asked of the *arrangement*, not the change.
+
+- [ ] **Memory and context are a write surface.** Anything an agent reads as
+      instruction next session - `MEMORY.md` and its linked files, rules files, a
+      skill body, a session-handoff doc - is a persistence channel: a false claim
+      written once is obeyed indefinitely and is never re-derived. A memory or rules
+      edit gets the same scrutiny as a hook edit, and content that arrived from an
+      agent, the web or an inbox message never lands there unread. Summarizing it
+      first does not clear it - a laundered claim reads as the agent's own prose.
+- [ ] **Agent-to-agent channels are untrusted input, both directions.** An inbox
+      message, a subagent's returned findings, and a peer repo's shared file all
+      cross a trust boundary that looks internal and is not. A subagent's report is
+      a claim to verify against evidence, never a fact to act on - and a returned
+      finding that asks for a *write* is the case to check by hand.
+- [ ] **A machine-checkable claim from an agent gets machine-checked.** Counts,
+      versions, licenses, dates, "this is maintained", and above all **"this does
+      not exist"** are settled by the authoritative source - an API, the file
+      system, the registry - not by a second summarization pass. An agent's absence
+      finding is a failed search until a source says otherwise, and it is the claim
+      most likely to be wrong and least likely to be questioned.
+- [ ] **Fan-out amplifies whatever it was given.** One wrong instruction issued to
+      one agent is a mistake; issued to a fan-out it is the same mistake committed
+      in parallel across N seats before anyone reads the first result. Before a
+      fan-out that writes: the seams are disjoint (two writers never share a file),
+      and there is a ceiling on the **whole run**, not the batch - agent count,
+      spend, or wall clock. A ceiling bounds quantity, never correctness: N agents
+      fed one poisoned source agree with each other, so the aggregator that merges
+      them is the place a wrong answer becomes a write.
+- [ ] **An unattended agent is bounded by an allowlist, not a denylist.** A narrow
+      allowlist fails loudly; a narrow denylist fails silently. A tool allowlist
+      containing a shell bounds nothing. For anything scheduled, looping or
+      long-running, read the actual allowlist - frontmatter `tools:`, `settings.json`
+      permissions - and confirm it matches what the prose claims. A documented scope
+      is not a control; §7 already says this, and it applies hardest here.
+
+**Mapping to OWASP Top 10 for Agentic Applications 2026** (published 2025-12-09; that
+is the artifact's real name - "OWASP Agentic Top 10" is a colloquial contraction that
+matches no OWASP document). This table exists so a coverage claim stays checkable; the
+sections above stay organized by artifact, because that is how a review is actually run.
+
+| OWASP | Covered by |
+|---|---|
+| ASI01 Agent Goal Hijack | §4, §4a |
+| ASI02 Tool Misuse | §3, §7 |
+| ASI03 Identity & Privilege Abuse | §1, §7 - thin by design: a single-operator station has one principal |
+| ASI04 Agentic Supply Chain | §5 - **plugin and MCP install trust only.** Whether a catalog or corpus entry understates a license or reads as an endorsement to install is not covered by any section; that discipline is convention, not a gate |
+| ASI05 Unexpected Code Execution | §2, §3 |
+| ASI06 Memory & Context Poisoning | §9 |
+| ASI07 Insecure Inter-Agent Communication | §9 |
+| ASI08 Cascading Failures | §9 - parallel fan-out only; sequential retry storms and escalation loops are uncovered |
+| ASI09 Human-Agent Trust Exploitation | §4a |
+| ASI10 Rogue Agents | §9 |
+
 ## Red Flags
 
 - A hook or script that builds a command string from untrusted content
@@ -229,6 +286,8 @@ baked into shared tooling.
 - Wildcard permission grants in `settings.json`
 - A **username-bearing absolute path** (`/Users/<name>/...`, `/home/<name>/...`) in a shared/global skill, script, or doc - or a global tool hardcoded to one vault/device instead of discovering its context
 - Any **hardcoded personal fact** (name, email, GitHub handle/repo URL, vault/project name, hostname) in shared tooling that the agent could instead infer from session context, env vars, git config/metadata, or ask for in real time
+- A **memory, rules, or skill file edited from content an agent returned** - the persistence channel written from an untrusted one
+- A **write-capable fan-out with no ceiling** - no agent cap, no spend cap, no wall-clock cap - or one where two workers can write the same file
 
 ## Verification
 
@@ -242,4 +301,5 @@ Before you call the change safe:
 - [ ] Any new plugin/MCP source verified as official and trusted
 - [ ] Path-hygiene scan clean - no `/Users/<name>/` or `/home/<name>/` in shared files; any found were rewritten to `~/`/`$HOME` or root-discovery
 - [ ] Personal-constant scan clean - no names, emails, handles, personal repo URLs, or private vault/project names in shared tooling; all such context is derived at runtime or asked for live
+- [ ] Multi-agent surface checked where the change touches memory, rules, an agent channel, or a fan-out - and skipped, deliberately, where it does not
 - [ ] All **Critical** and **Important** findings resolved or explicitly deferred with justification

@@ -571,9 +571,26 @@ EXECUTABLE_DIRS = frozenset({
 })
 
 
-def tier_of(paths: list[Path], root: Path) -> tuple[str, list[str]]:
-    """Return ("A"|"B", the paths that decided A)."""
+# A shell block inside a SKILL.md is copied and run verbatim by every session that
+# follows the skill, so the path suffix says "prose" while the content is a command.
+# Tagged fences only - an untagged block is as often output as input.
+SHELL_FENCE_RE = re.compile(r"^\s*```+\s*(bash|sh|zsh|shell|console)\s*$",
+                            re.IGNORECASE)
+
+
+def has_command_block(path: Path) -> bool:
+    """True if a prose file carries a runnable shell block."""
+    try:
+        with path.open(encoding="utf-8") as handle:
+            return any(SHELL_FENCE_RE.match(line) for line in handle)
+    except (OSError, UnicodeDecodeError):
+        return False
+
+
+def tier_of(paths: list[Path], root: Path) -> tuple[str, list[str], list[str]]:
+    """Return ("A"|"B", the paths that decided A, prose paths holding commands)."""
     deciders: list[str] = []
+    command_files: list[str] = []
     for path in paths:
         try:
             rel = path.resolve().relative_to(root.resolve())
@@ -585,17 +602,30 @@ def tier_of(paths: list[Path], root: Path) -> tuple[str, list[str]]:
                 or (name.startswith("settings") and name.endswith(".json"))
                 or name in {".mcp.json", "cli-config.json", "permissions.json"}):
             deciders.append(str(rel))
-    return ("A" if deciders else "B"), deciders
+        elif has_command_block(path):
+            command_files.append(str(rel))
+    return ("A" if deciders else "B"), deciders, command_files
 
 
-def describe_tier(tier: str, deciders: list[str], swept: int) -> str:
+def describe_tier(tier: str, deciders: list[str], swept: int,
+                  command_files: list[str] | None = None) -> str:
+    command_files = command_files or []
+    # named rather than folded into the tier: escalating a docs diff to a full
+    # adversarial pass over one example block is how a gate gets ignored
+    extra = ""
+    if command_files:
+        listed = "\n".join(f"  {p}" for p in command_files)
+        extra = (f"\n  command blocks in prose, {len(command_files)} file(s):\n"
+                 f"{listed}\n"
+                 "  add the command-execution domain for these, and only these")
     if tier == "A":
         listed = "\n".join(f"  {p}" for p in deciders)
         return (f"tier: A - executable surface, {len(deciders)} of {swept} file(s)\n"
                 f"{listed}\n"
-                "  full adversarial review: this reaches every future session")
-    return (f"tier: B - prose and specs, {swept} file(s), none executable\n"
-            "  one focused pass: check the cheap factual claims against reality")
+                "  full adversarial review: this reaches every future session" + extra)
+    body = "prose and specs" if command_files else "prose and specs, none executable"
+    return (f"tier: B - {body}, {swept} file(s)\n"
+            "  one focused pass: check the cheap factual claims against reality" + extra)
 
 
 # --------------------------------------------------------------------------
@@ -669,15 +699,16 @@ def main(argv: list[str] | None = None) -> int:
 
     root = repo_root(Path.cwd())
     changed = expand(args.paths) if args.paths else git_changed_paths(root)
-    tier, deciders = tier_of(changed, root)
+    tier, deciders, command_files = tier_of(changed, root)
     targets = [p for p in changed if p.suffix.lower() in TEXT_SUFFIXES and p.is_file()]
 
     if args.tier:
         if args.json:
             print(json.dumps({"tier": tier, "deciders": deciders,
+                              "command_files": command_files,
                               "files": len(changed)}, indent=2))
         else:
-            print(describe_tier(tier, deciders, len(changed)))
+            print(describe_tier(tier, deciders, len(changed), command_files))
         return 0
 
     findings: list[Finding] = []
@@ -688,9 +719,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.json:
         print(json.dumps({"tier": tier, "deciders": deciders,
+                          "command_files": command_files,
                           "findings": [asdict(f) for f in findings]}, indent=2))
     else:
-        print(describe_tier(tier, deciders, len(changed)))
+        print(describe_tier(tier, deciders, len(changed), command_files))
         print()
         for f in findings:
             location = f"{f.path}:{f.line}" if f.line else f.path

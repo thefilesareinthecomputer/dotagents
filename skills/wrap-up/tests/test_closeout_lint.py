@@ -355,6 +355,23 @@ class TestTiering(LintCase):
         self.assertEqual(result["tier"], "A")
         self.assertEqual(len(result["deciders"]), 1)
 
+    def test_a_shell_block_in_prose_is_named_without_lifting_the_tier(self) -> None:
+        path = self.write("SKILL.md", "# skill\n\n```bash\ngh api repos/$r\n```\n")
+        result = self.tier(path)
+        self.assertEqual(result["tier"], "B")
+        self.assertEqual(len(result["command_files"]), 1)
+
+    def test_prose_without_a_shell_block_names_nothing(self) -> None:
+        path = self.write("SKILL.md", "# skill\n\n```json\n{\"a\": 1}\n```\n")
+        result = self.tier(path)
+        self.assertEqual(result["tier"], "B")
+        self.assertEqual(result["command_files"], [])
+
+    def test_an_executable_file_is_not_double_counted(self) -> None:
+        result = self.tier(self.write("sync.sh", "echo hi\n"))
+        self.assertEqual(result["tier"], "A")
+        self.assertEqual(result["command_files"], [])
+
     def test_the_tier_is_announced_in_the_default_output(self) -> None:
         code, out = self.lint("# clean prose\n")
         self.assertEqual(code, 0)
