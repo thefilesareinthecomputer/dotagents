@@ -94,7 +94,7 @@ class TestDdlParsing(unittest.TestCase):
         self.assertEqual(table.columns[0].line, 4)
 
     def test_identifiers_are_sanitized_before_they_reach_output(self):
-        sql = "CREATE TABLE fact_x (\x1b[31mcustomer​name VARCHAR(10));"
+        sql = "CREATE TABLE fact_x (\x1b[31mcustomer\N{ZERO WIDTH SPACE}name VARCHAR(10));"
         table = dim_check.parse_ddl(sql, Path("x.sql"))[0]
         name = table.columns[0].name
         self.assertTrue(all(c.isprintable() and c.isascii() for c in name), name)

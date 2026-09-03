@@ -178,14 +178,17 @@ REPLACE: dict[str, str] = {
 # Invisible characters. They are also the vector for instructions hidden from a
 # human reviewer, so these are reported even inside code fences.
 INVISIBLE = {
-    "​",  # zero width space
-    "‌",  # zero width non-joiner
-    "‍",  # zero width joiner
-    "⁠",  # word joiner
-    "﻿",  # byte order mark
-    "­",  # soft hyphen
-    "‪", "‫", "‬", "‭", "‮",  # bidi embedding
-    "⁦", "⁧", "⁨", "⁩",            # bidi isolates
+    "\N{ZERO WIDTH SPACE}",
+    "\N{ZERO WIDTH NON-JOINER}",
+    "\N{ZERO WIDTH JOINER}",
+    "\N{WORD JOINER}",
+    "\N{ZERO WIDTH NO-BREAK SPACE}",  # byte order mark
+    "\N{SOFT HYPHEN}",
+    "\N{LEFT-TO-RIGHT EMBEDDING}", "\N{RIGHT-TO-LEFT EMBEDDING}",
+    "\N{POP DIRECTIONAL FORMATTING}", "\N{LEFT-TO-RIGHT OVERRIDE}",
+    "\N{RIGHT-TO-LEFT OVERRIDE}",  # bidi embedding
+    "\N{LEFT-TO-RIGHT ISOLATE}", "\N{RIGHT-TO-LEFT ISOLATE}",
+    "\N{FIRST STRONG ISOLATE}", "\N{POP DIRECTIONAL ISOLATE}",
 }
 
 

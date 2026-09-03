@@ -282,8 +282,8 @@ class TestNonKeyboardCharacters(unittest.TestCase):
         self.assertEqual(self._matched("Plain ASCII prose - nothing here.\n"), set())
 
     def test_invisible_characters_are_reported_even_inside_code(self) -> None:
-        body = "```\ncode​here\n```\n"
-        self.assertIn("​", self._matched(body))
+        body = "```\ncode\N{ZERO WIDTH SPACE}here\n```\n"
+        self.assertIn("\N{ZERO WIDTH SPACE}", self._matched(body))
 
     def test_visible_characters_inside_code_are_not_reported(self) -> None:
         body = "```\ncode — here\n```\n"
@@ -311,10 +311,10 @@ class TestNonKeyboardFix(unittest.TestCase):
         self.assertEqual(got, "a... b- c-> dx e>= ffi\n")
 
     def test_deletes_invisible_characters(self) -> None:
-        self.assertEqual(self._fix("a​b­c\n"), "abc\n")
+        self.assertEqual(self._fix("a\N{ZERO WIDTH SPACE}b\N{SOFT HYPHEN}c\n"), "abc\n")
 
     def test_deletes_invisible_characters_inside_code(self) -> None:
-        self.assertEqual(self._fix("```\na​b\n```\n"), "```\nab\n```\n")
+        self.assertEqual(self._fix("```\na\N{ZERO WIDTH SPACE}b\n```\n"), "```\nab\n```\n")
 
     def test_leaves_accented_prose_alone(self) -> None:
         body = "Café, José, naïve, 40°C.\n"
