@@ -1,0 +1,50 @@
+[
+    {
+        "name": "seed-new-project",
+        "query": "I'm starting a new project under vault/PROJECTS/ - set up the standard notes folder for it",
+        "should_trigger": true,
+        "why": "A new project vault where none exists is the scaffolder's job."
+    },
+    {
+        "name": "lint-existing-vault",
+        "query": "Does PROJECTS/WIDGET still conform to the vault contract? The graph tool has started returning nothing for it.",
+        "should_trigger": true,
+        "why": "Conformance and a downstream reader misbehaving are the linter's job."
+    },
+    {
+        "name": "template-for-meetings-and-questions",
+        "query": "Give my hobby project a proper home for meeting notes, open questions and learnings, the way my other projects have",
+        "should_trigger": true,
+        "why": "The vault shape for any domain, named by its families."
+    },
+    {
+        "name": "fill-in-partial-vault",
+        "query": "This project folder has an index and a BRD but none of the notes files - add whatever is missing without touching what's there",
+        "should_trigger": true,
+        "why": "The scaffolder's never-overwrite gap fill."
+    },
+    {
+        "name": "sprint-board-not-vault",
+        "query": "What should the epics, features and stories be for the ingestion platform stabilization?",
+        "should_trigger": false,
+        "why": "Board content is sprint-board's job; the vault only hosts the file."
+    },
+    {
+        "name": "obsidian-kg-not-vault",
+        "query": "What links to notes-learnings, and how are the meeting notes connected to the BRD?",
+        "should_trigger": false,
+        "why": "Graph traversal over an existing vault is obsidian-kg's job."
+    },
+    {
+        "name": "generic-obsidian-note",
+        "query": "Write me an Obsidian note about sourdough starters with a callout and a couple of wikilinks",
+        "should_trigger": false,
+        "why": "Authoring a single note is the obsidian skill; no project vault is involved."
+    },
+    {
+        "name": "knowledge-base-merge",
+        "query": "Merge the certified research on vector databases into the knowledge base",
+        "should_trigger": false,
+        "why": "The knowledge base and certification flow are outside the vault."
+    }
+]

@@ -289,6 +289,7 @@ description is its trigger contract and its body is the workflow.
 | `o-o-d-a-loop` | Thought partner for a live decision under uncertainty |
 | `obsidian` | Obsidian markdown standard plus a per-vault authoring workflow |
 | `obsidian-kg` | Offline section-level knowledge graph over a markdown corpus |
+| `project-knowledge-vault` | Seeds and lints a flat, OKF-compatible project vault: the contract, a scaffolder, a conformance linter and obsidian-kg profile rows |
 | `reflect` | End-of-session truth reconciliation into memory |
 | `repo-device-sync` | Multi-device git sync ritual |
 | `skill-authoring` | House profile for authoring and auditing agent tooling |
