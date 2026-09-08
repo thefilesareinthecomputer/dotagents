@@ -10,6 +10,35 @@
     "pr": ""
   },
   "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(wc:*)",
+      "Bash(diff:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)",
+      "Bash(rtk --version)",
+      "Bash(rtk gain)",
+      "Bash(rtk config)",
+      "Bash(rtk smart:*)",
+      "Bash(rtk deps:*)",
+      "Bash(brain search:*)",
+      "Bash(brain config get:*)",
+      "WebSearch",
+      "Read(/plugins/**)"
+    ],
     "deny": [
       "Read(**/.env)",
       "Read(**/.env.*)",
@@ -17,6 +46,13 @@
       "Edit(**/.env.*)",
       "Grep(**/.env)",
       "Grep(**/.env.*)",
+      "Read(~/.claude/private/**)",
+      "Edit(~/.claude/private/**)",
+      "Grep(~/.claude/private/**)",
+      "Read(/private/**)",
+      "Edit(/private/**)",
+      "Edit(~/.claude/state/**)",
+      "Edit(/state/**)",
       "mcp__playwright__browser_run_code_unsafe"
     ]
   },
@@ -38,6 +74,12 @@
         "matcher": "Bash",
         "hooks": [
           { "type": "command", "command": "bash ~/.claude/hooks/guard-rm.sh", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "bash ~/.claude/hooks/guard-private.sh", "timeout": 10 }
         ]
       },
       {
@@ -75,6 +117,37 @@
         "hooks": [
           { "type": "command", "command": "python3 ~/.claude/hooks/reject_invisibles.py", "timeout": 10 }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
+        "hooks": [
+          { "type": "command", "command": "python3 ~/.claude/hooks/reject_identifiers.py", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
+        "hooks": [
+          { "type": "command", "command": "python3 ~/.claude/hooks/reject_published_copy_edits.py", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "python3 ~/.claude/hooks/reject_bad_commit_message.py", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": "Bash|Agent|Workflow|mcp__.*",
+        "hooks": [
+          { "type": "command", "command": "python3 ~/.claude/hooks/memory_pressure_gate.py", "timeout": 10 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "bash ~/.claude/hooks/scan_identifiers_on_stop.sh", "timeout": 30 }
+        ]
       }
     ],
     "PostToolUse": [
@@ -103,6 +176,21 @@
         "hooks": [
           { "type": "command", "command": "bash ~/.claude/hooks/agent-mail-check.sh", "timeout": 10 }
         ]
+      },
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          { "type": "command", "command": "python3 ~/.claude/hooks/daemon_restart_storm.py", "timeout": 10 },
+          { "type": "command", "command": "python3 ~/.claude/hooks/memory_pressure_gate.py", "timeout": 10 }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python3 ~/.claude/hooks/daemon_restart_storm.py", "timeout": 10 },
+          { "type": "command", "command": "python3 ~/.claude/hooks/memory_pressure_gate.py", "timeout": 10 }
+        ]
       }
     ]
   },
@@ -123,7 +211,10 @@
   },
   "extraKnownMarketplaces": {
     "addy-agent-skills": {
-      "source": { "source": "github", "repo": "addyosmani/agent-skills" }
+      "source": {
+        "source": "github",
+        "repo": "addyosmani/agent-skills"
+      }
     }
   },
   "autoUpdatesChannel": "latest"

@@ -1,19 +1,19 @@
 ---
 name: wrap-up
-description: Full session closeout in one pass - security review first, then clear the peer inbox, then reflect, then notes, then commit, sync and push - ending with a clean tree on whichever branch the repo's own workflow says work belongs on. MUST be used when the user closes out a SESSION, however phrased - wrap up this session, end the session, close it out, that is everything for today - and whenever they name three or more of security review, inbox, reflect, notes, commit, sync and push together in any order. Session scope is the discriminator. Wrapping up a task, a feature or a bug is not this, a mid-session save is not this, and a single verb alone belongs to its own skill. Context running high or long is a warning to finish current work, not a reason to fire. Also on /wrap-up.
+description: Full session closeout in one pass - clear the peer inbox, then reflect, then notes, then commit, then one security review over everything since the last push, then sync and push - ending with a clean tree on whichever branch the repo's own workflow says work belongs on. MUST be used when the user closes out a SESSION, however phrased - wrap up this session, end the session, close it out, that is everything for today - and whenever they name three or more of security review, inbox, reflect, notes, commit, sync and push together in any order. Session scope is the discriminator. Wrapping up a task, a feature or a bug is not this, a mid-session save is not this, and a single verb alone belongs to its own skill. Context running high or long is a warning to finish current work, not a reason to fire. Also on /wrap-up.
 ---
 
 # wrap-up
 
 ```
-fetch → spawn security review ─────────────────┐
-        (my-security-reviewer, runs alongside) │ verdict gates the first durable write
-        inbox → ───────────────────────────────┘→ reflect → notes → commit → reconcile → push → parity
-        (agent-mail)                              (memory)   (docs)   (repo-device-sync)
+fetch → inbox → reflect → notes → commit → security review → push → parity
+        (agent-mail) (memory) (docs)  (repo-device-sync)  (my-security-reviewer,
+                                                          over everything since the last push)
 ```
 
-The reviewer is the long pole: spawn it first, do the inbox while it runs, and
-block on its verdict before reflect writes anything.
+The review runs once, after the commit and before the push, over every commit
+since the last push. Nothing in the chain writes code after it, so it never
+runs twice.
 
 Sequences existing skills. Owns the order, the handoffs and the cross-cutting
 guards; each sub-skill owns its own procedure and gates.
@@ -61,17 +61,19 @@ python3 "$HOME/.agents/skills/wrap-up/scripts/closeout_state.py" record notes --
 Tell the user the chain has up to three approval gates - reflect's slate, notes'
 proposals, any sync stop-and-ask.
 
-## Step 1 - Security review
+## Step 1 - Security review (runs after step 5's commit, before the push)
 
-**Spawn before anything else in the chain.** Everything through step 4 runs
-against it, so a reviewer started late costs its whole runtime in wall clock, and
-a chain run sequentially completes correctly and never surfaces that it did.
+**One run, at the end.** It reviews the range from the last pushed ref to HEAD,
+so it sees the commit step 5 made and everything reflect and notes wrote. A
+Critical finding is fixed and amended into that commit; Important and
+Suggestion go in the report. Then push.
 
 **Sweep before spawning.** It decides the six proofreading classes and prints the
 tier.
 
 ```bash
 python3 "$HOME/.agents/skills/wrap-up/scripts/closeout_lint.py"   # exit 1 on FAIL
+python3 "$HOME/.claude/tools/settings_lint.py" "$(git rev-parse --show-toplevel)"   # permission rules: broad, inert, dead, machine-bound, duplicated
 ```
 
 Fix findings first. Announce the tier and what decided it - and if the sweep lists
@@ -155,10 +157,12 @@ not run a separate root-doc pass here.
 file still over budget afterwards is live plan and the user's call - it does not
 block the commit.
 
-## Step 5 - Commit, reconcile, push
+## Step 5 - Commit, review, reconcile, push
 
 `repo-device-sync` from Phase 2 (Phase 1 ran in step 0). Its staged-set
 verification, one-commit default and pre-push re-fetch are not restated here.
+After the commit and before the push, run step 1's review over the unpushed
+range; the push waits on its verdict.
 
 ## Step 6 - Land on the right branch
 
@@ -178,7 +182,7 @@ left undone, and every gate the user was asked to approve with their decision.
 
 ## Boundaries
 
-**Always** - security review first, and again if the chain changes code after it.
+**Always** - security review once, after the commit and before the push, over everything since the last push.
 Fix findings by simplifying: when a sweep turns up something a skill, hook, doc
 or config must change for, the first candidate is the edit that simplifies or
 replaces text, not the clause that gets appended. A chain that adds a line per

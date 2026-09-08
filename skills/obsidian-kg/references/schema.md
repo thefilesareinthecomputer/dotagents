@@ -24,9 +24,10 @@ prefer the CLI subcommands otherwise.
 
 One row per ingested markdown file (dot folders - `.obsidian`, `.git`,
 `.trash`, … - `SKIP_FOLDERS` and the engine's own `vault-kg/` are never
-ingested; in a git repo the file set has gitignore parity via `git ls-files
---cached --others --exclude-standard`). Files excluded by an ignore rule are
-not here at all; see [ignored](#ignored).
+ingested). Enumeration is a filesystem walk, so gitignored notes and notes
+inside a nested git repo are ingested like any other; exclusion belongs to
+the engine's own ignore rules. Files excluded by an ignore rule are not here
+at all; see [ignored](#ignored).
 
 | column | meaning |
 |---|---|

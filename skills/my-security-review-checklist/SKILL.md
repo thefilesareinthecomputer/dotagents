@@ -1,6 +1,6 @@
 ---
 name: my-security-review-checklist
-description: Pre-merge security gate for agent tooling - skills, subagents, slash commands, hooks, shell and sync scripts, dotfiles, settings.json, and plugin/MCP trust. Also scans shared tooling for user-specific absolute paths, device overfitting and hardcoded personal constants, and can fix them. Scans any file an agent reads as instructions for text hidden from the human reviewer (invisible Unicode, tag smuggling, zero-width characters, bidi overrides), so use it whenever asked whether a skill, prompt, rules file or pasted content has hidden instructions in it. MUST be used before committing any change to ~/.agents or ~/.claude, before keeping a new or changed hook, before trusting a plugin or MCP server, and for any automation that consumes untrusted agent/LLM/web output.
+description: Pre-merge security gate for agent tooling - skills, subagents, slash commands, hooks, shell and sync scripts, dotfiles, settings.json, and plugin/MCP trust. Also scans shared tooling for user-specific absolute paths, device overfitting and hardcoded personal constants, and can fix them. Scans any file an agent reads as instructions for text hidden from the human reviewer (invisible Unicode, tag smuggling, zero-width characters, bidi overrides), so use it whenever asked whether a skill, prompt, rules file or pasted content has hidden instructions in it. Runs at three moments only: before pushing to a remote, at the end of a session over everything committed since the last push, or on demand. It does not fire on an edit, a hook change, or a local commit. Also use it before trusting a plugin or MCP server, and for any automation that consumes untrusted agent/LLM/web output.
 ---
 
 # My Security Review Checklist
@@ -27,10 +27,11 @@ tree that has already moved.
 
 ## When to Use
 
-- Before committing or merging any change to a **skill, subagent, command, or hook**
-- Before editing **`settings.json` / `settings.local.json`** (permissions, env, hooks)
-- Before changing a **shell or sync script** (`sync-skills.sh`, anything with `mv`/`rm`/`ln`)
+- Before **pushing to a remote**, over everything committed since the last push: skills, subagents, commands, hooks, settings files, shell and sync scripts
+- At the **end of a session**, as the wrap-up gate, over the same set
+- **On demand**, when the user asks for a review of a file, a diff, or pasted content
 - Before **installing, updating, or trusting a plugin or MCP server**
+- Never on an individual edit, hook change, or local commit
 - Whenever code will **consume untrusted input** - agent inbox messages, web/MCP responses, file contents, command output
 
 ## The Checklist

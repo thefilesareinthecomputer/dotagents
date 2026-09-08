@@ -62,7 +62,6 @@ import posixpath
 import re
 import shutil
 import sqlite3
-import subprocess
 import sys
 import urllib.parse
 from datetime import date, datetime, timezone
@@ -996,7 +995,7 @@ def date_shape(text: str) -> tuple[tuple, tuple] | None:
             kinds.append("m")
             values.append(month)
         # Stop at the FIRST complete date run. Scanning the whole string lets a number
-        # after the date invalidate it: `2026-08-20-YY-STORY-654321` would otherwise
+        # after the date invalidate it: `2026-08-20-YY-ITEM-654321` would otherwise
         # reset on 654321 after a valid date had already been read. A log whose headings
         # carry a work-item id then silently dates every section from its note-level
         # fallback instead of its own heading.
@@ -1485,40 +1484,22 @@ def _add_members(sections: list[dict], text: str, row: dict) -> None:
         sec["members"] = members
 
 
-# ---------- vault walking (git parity, dot folders excluded) ----------
+# ---------- vault walking (dot folders excluded) ----------
 def scan_vault(vault: Path) -> tuple[list[Path], list[str]]:
     """All vault .md files, sorted for determinism, plus the paths that were
-    refused for pointing outside the vault. In a git repo, enumerate
-    via `git ls-files --cached --others --exclude-standard`; otherwise a
-    skip-folder os.walk. Dot folders/files, SKIP_FOLDERS and the engine's own
-    vault-kg/ folder are always excluded."""
-    files: list[Path] | None = None
-    try:
-        # `-c core.fsmonitor=` because a vault is untrusted content: a repo
-        # whose .git/config sets fsmonitor would otherwise run that command
-        # here. ls-files itself runs no hooks. No shell, fixed argv.
-        out = subprocess.run(
-            ["git", "-c", "core.fsmonitor=", "--no-optional-locks",
-             "-C", str(vault), "ls-files", "-z",
-             "--cached", "--others", "--exclude-standard"],
-            capture_output=True, text=True, timeout=30)
-        if out.returncode == 0:
-            files = [vault / ln for ln in out.stdout.split("\0")
-                     if ln.endswith(".md")]
-    except Exception:
-        files = None
-    # A vault can be deliberately gitignored, and then `git ls-files` returns
-    # nothing and the ingest reads as a clean zero-note success. Falling back to
-    # the walk whenever git yields no notes makes that impossible to mistake.
-    if not files:
-        files = None
-    if files is None:
-        files = []
-        for root, dirs, names in os.walk(vault):
-            dirs[:] = [d for d in dirs
-                       if d not in SKIP_FOLDERS and not d.startswith(".")
-                       and not (Path(root) == vault and d == KG_DIR)]
-            files.extend(Path(root) / n for n in names if n.endswith(".md"))
+    refused for pointing outside the vault. Enumeration is a filesystem walk:
+    graph membership is presence in the vault minus the engine's own ignore
+    rules (.kgignore, config, frontmatter), never git's. Git ignore rules
+    decide what ships, not what the local graph may know, and a git-based
+    enumeration silently drops gitignored notes and anything inside a nested
+    work tree. Dot folders/files, SKIP_FOLDERS and the engine's own vault-kg/
+    folder are always excluded."""
+    files: list[Path] = []
+    for root, dirs, names in os.walk(vault):
+        dirs[:] = [d for d in dirs
+                   if d not in SKIP_FOLDERS and not d.startswith(".")
+                   and not (Path(root) == vault and d == KG_DIR)]
+        files.extend(Path(root) / n for n in names if n.endswith(".md"))
     result = []
     escapes = []
     for p in files:

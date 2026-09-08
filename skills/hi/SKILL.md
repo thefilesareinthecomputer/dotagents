@@ -53,6 +53,9 @@ after them corroborates and dates; when a later source disagrees with git, git w
    - Reconcile the two against source 1: work the task files call done but git never
      committed, and work git shows landed that the task files still call open, are both
      findings - report them.
+   - `python3 ~/.claude/tools/settings_lint.py <root>` when the tool exists: a permission
+     rule that is broad, inert, dead, machine-bound or duplicated at user scope is a
+     finding for the briefing, not something to fix during orientation.
 
 3. **Living docs at the repo root** - whichever exist: `README.md`, `SPEC.md` (or legacy
    root `PLAN.md` / `HANDOFF.md`), plus `AGENTS.md` / `CLAUDE.md` for repo-specific rules.

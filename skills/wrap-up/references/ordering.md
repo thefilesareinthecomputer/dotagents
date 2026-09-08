@@ -8,10 +8,10 @@ Numbers are the step numbers used by SKILL.md's headings, so they start at zero.
    Reconciling the session against stale state produces memory entries and doc corrections that are wrong on arrival.
    This is the one place the obvious order - work first, git last - is wrong.
 
-1. **Security review before any other work.**
-   It reviews the diff, and the diff is what the rest of the chain is about to document, memorize and publish.
-   Run last, it can only object to a commit that already exists; run first, its findings are still cheap to fix, and nothing downstream describes a change that should not ship.
-   A finding here also changes what reflect and notes are writing about, which is the practical reason it cannot be an afterthought.
+1. **Security review once, after the commit and before the push.**
+   It reviews everything since the last push, so it sees the commit and what reflect and notes wrote, and it never has to run again because nothing in the chain writes after it.
+   Run early, it fires on every later edit and turns the chain into a loop; run at the gate, a Critical finding is amended into the one commit that exists and the push waits.
+   The push is the exposure boundary, so the gate sits there.
 
 2. **Inbox before reflect.**
    Unprocessed peer mail carries decisions, findings and corrections from other agents.
@@ -51,6 +51,5 @@ That is why the review is not optional when the session touched shared tooling: 
 
 ## Why the parallel split is where it is
 
-The security review is a subagent and the inbox sweep touches entirely different files, so they overlap.
-The chain blocks on the review's verdict before reflect writes anything durable, because a finding changes what gets recorded.
+The security review is a subagent spawned after the commit; the push blocks on its verdict.
 That is the only synchronization point the ordering actually requires.
