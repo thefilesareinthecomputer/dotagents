@@ -113,7 +113,7 @@ which are per-machine state rather than seeded config.
   (dry-run what the hook would do: `rtk hook check '<cmd>'` - note it exits
   1 when the command would NOT be rewritten, so append `|| true` when
   chaining checks with `&&`; rtk ≥0.43.0).
-- **node / npx** - claude-mem's daemon and `npx claude-mem` CLI.
+- **node / npx** - claude-mem's daemon.
 - **python3** - several skills in this repo bundle python scripts/tests.
 
 ## 3. Plugins & marketplaces
@@ -816,7 +816,7 @@ key still submits, the failure is layer 2 (terminal), not layer 1.
    under `~/.claude` triggers the ask prompt; a whole-file `Read` of a file over
    200KB surfaces the size-advisory nudge (and still returns the file - it does
    NOT block); `claude-mem` does not summarize-in-place a `Read` (§3.1);
-   `/mem-search test` (or `npx claude-mem search test`) answers; skills from
+   `/mem-search test` answers; skills from
    `~/.agents/skills/` appear in the available-skills list; **Shift+Enter inserts
    a newline in the prompt instead of submitting** (§10.4).
 

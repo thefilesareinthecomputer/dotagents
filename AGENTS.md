@@ -78,7 +78,7 @@
 - The `~/.agents/` repo is the shared source of truth for our main skills, commands subagents, etc. 
 - they symlink into `~/.claude/**` via a safe, non-overwrite, idempotent bash script `sync-skills.sh` and are natively available to most other agent harnesses. 
 ##### **claude-mem** 
-- Memory daemon for search + recall on `localhost:37701`. Use `/mem-search <query>` or `npx claude-mem search "<query>"`. Config: `~/.claude-mem/settings.json`. 
+- Memory daemon for search + recall on `localhost:37701`. Use `/mem-search <query>` or the claude-mem MCP search tools. Config: `~/.claude-mem/settings.json`. 
 ##### **rtk** 
 - Token-filtering proxy. On Claude Code a hook rewrites shell commands through it automatically; 
 - commands read for ground truth (`grep`, `rg`, `find`, `ls`, `git`, `diff`, `curl`, `gh`, and the rest of the station's exclusion list) are left native so a filter never drops a line that is the answer. 

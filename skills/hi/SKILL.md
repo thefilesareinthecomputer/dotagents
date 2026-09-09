@@ -68,7 +68,7 @@ after them corroborates and dates; when a later source disagrees with git, git w
    already injected (check the session context), don't re-read it.
 5. **Memory - recent activity (claude-mem).** The SessionStart hook usually injects a
    recent timeline; if it's missing or you need more depth, pull it via the `mem-search`
-   skill, `/mem-search <query>`, `npx claude-mem search "<query>"`, or the claude-mem MCP
+   skill, `/mem-search <query>`, or the claude-mem MCP
    (`timeline`, `smart_search`, `get_observations`). This answers "what was I just doing,
    what did we decide/change last session" - the part docs don't capture yet.
 6. **Changelog** - the newest entry: `ls` the `_CHANGELOG/` dir for the latest file, or
