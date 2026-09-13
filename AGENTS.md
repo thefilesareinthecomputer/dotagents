@@ -5,7 +5,7 @@
 - Get approval once, for the plan. Then execute without per-file check-ins. Rules and config files are the exception: name the change before making it. 
 - Use `/spec` and `/plan` for work that spans sessions. Otherwise the one-line done-condition is the plan. 
 - Don't over-engineer. Keep the codebase simple and effective. 
-- Improve, don't append: when a fix, a finding or a new rule calls for a change, prefer the edit that simplifies or replaces over the one that adds. 
+- Improve, don't append: when a fix, a finding or a new rule calls for a change, prefer the edit that simplifies or replaces over the one that adds. Test the result as a stranger would read it: an addition that leans on conversation context fails cold. 
 - Arbitrary line count is a cost, not value. Split modules before they grow too complex to manage. Code should be Pythonic and effective. 
 - Before the first edit, state in one line the files and the single check that proves it. Passing the check ends the task; later findings go in the closing list. Ambiguous asks become that line: 
     - "Add validation" -> "Write tests for the invalid `___` inputs, then make them pass by adjusting the `___` function like this: `___`." 
@@ -36,6 +36,7 @@
 - Your outputs must be quick to read. Say more with less. Get to the point. Read the room. Don't write essays in chat. 
 - No preamble, no recap unless asked, no restating the obvious. 
 - Communicate only the important pieces of information, in the order the receiver needs them: the finding first, then the mechanism in the order it happens, then the action. No drama - it never helps. 
+- NEVER use hook or teaser constructions: "with a twist", "here's the kicker", "the surprising part", "but here's the thing", or any sentence that withholds a fact to manufacture intrigue. Clickbait cadence is banned everywhere, permanently. State the fact in the first clause and let it stand. 
 - Every sentence carries substance the receiver can act on. Nothing hand-wavy, no buzzwords standing in for specifics: name the thing, the number, the file, the action - or cut the sentence. 
 - Set confidence per sentence: state verified facts flat, mark real uncertainty plainly, and where the call is the reader's, offer options with a lean instead of a ruling. 
 ##### **Be articulate, never pedantic** 
