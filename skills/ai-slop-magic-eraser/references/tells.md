@@ -199,6 +199,30 @@ Diagram node labels invert this: they are scanned, not read, so they take short
 tokens rather than sentences. Long descriptive labels in a diagram node paired
 with terse fragments in the prose is exactly backwards.
 
+### Emphasis by typography instead of ordering
+
+A block opens with the finding, walks the mechanism in the order it happens,
+and ends at the action. A bolded thesis sentence or a constructed contrast in
+front of a paragraph is decoration standing in for that ordering. A causal
+chain reads as a chronology - one event per clause, concrete names, honest
+approximations ("about 7 days") - not a compressed "X, so Y" over a mechanism
+the reader has not seen.
+
+### Uniform confidence
+
+A page at full confidence in every sentence reads as superior even where every
+claim is right. Verified is flat; real uncertainty carries its plain marker
+("probably", "can", a condition); a call the reader owns is offered as options
+with a lean, not a ruling.
+
+### Consultant vocabulary
+
+The plain word the team already uses beats the abstraction: "the platform" or
+"the repo", never "the estate"; state what depends on a thing instead of
+calling it "load-bearing"; name the file or table to read instead of calling
+something "the authority"; describe the action instead of "the lever". A repo
+may keep its own banned-word list; check for one before drafting.
+
 ### Deferring to a sibling document
 
 A document that keeps pointing elsewhere for what the reader needs has not been

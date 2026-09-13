@@ -136,6 +136,10 @@ argument-driven (`argument-hint`), not model-triggered.
   `timeout`.** A hang then fails in seconds and names itself, instead of
   consuming the whole tool budget and looking like a broken tool.
 
+## Editing existing skills
+
+Edits to an existing skill are additive and backwards compatible unless the user specifies otherwise. Every command, flag, output shape, file contract, and eval that worked before the edit still works after it; capability grows through new flags, new subcommands, new optional parameters, or new files - never by repurposing, renaming, or removing a surface something else may already call. Other repos, hooks, and skills invoke these tools by name and shape, so a silent break here surfaces as a mystery failure somewhere else. A breaking change happens only when explicitly requested, and the edit names its breakage where the next reader will see it. The completion gate applies to edits, not just new skills: re-run the skill's tests and evals after changing it. This clause is not a permission slip for junk drawers: when the honest fix is consolidation or removal and compatibility would mean hoarding dead surfaces or piling additions onto bad architecture, say so and ask - propose the breaking cleanup rather than blindly satisfying the rule.
+
 ## Audit checklist
 
 Run over `skills/*/SKILL.md`, `agents/*.md`, `commands/*.md`:

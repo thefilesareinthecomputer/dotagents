@@ -16,6 +16,7 @@ prefer the CLI subcommands otherwise.
 - [ignored](#ignored)
 - [annotations / annotation_candidates](#annotations--annotation_candidates)
 - [extractions / conflicts](#extractions--conflicts)
+- [session_reads](#session_reads)
 - [meta](#meta)
 - [Full-text index](#full-text-index)
 - [Conventions](#conventions)
@@ -157,7 +158,7 @@ only, never line text - it feeds the capped `stats` report.
 
 ## extractions / conflicts
 
-The judgment tables, and the only ones an ingest never wipes. `extractions`
+The judgment tables; an ingest never wipes them. `extractions`
 keys on `section_hash`, so a re-ingest keeps prior work and only re-extracts
 what changed; an extraction whose section is gone flips to `status='cold'` with
 its quote and provenance intact, and flips back to `hot` if the section
@@ -181,6 +182,14 @@ default listing, and the dup/conflict checks, with the row and its evidence
 kept per the never-delete rule. Contradiction detection over entities and
 community detection remain phase 2.
 
+## session_reads
+
+The coverage ledger, appended by `--session <id>` on `query`, `search`, `read`
+and `sections`, read by `coverage`. One row per (session, section); first touch
+wins, keeping the command that surfaced it and a UTC timestamp. Never wiped by
+ingest; rows whose section is gone count as `stale` in `coverage` output.
+`coverage --forget <id>` deletes a session.
+
 ## meta
 
 `ingested_at` (UTC ISO-8601) - the only non-deterministic content in the file -
@@ -198,7 +207,8 @@ whole-file matching is the failure this schema exists to fix, so there is no
 
 - `ingest` is an idempotent **full rebuild**: every derived table is wiped and
   re-populated in sorted file order, so the same vault bytes always produce the
-  same rows. `extractions` and `conflicts` are the exception.
+  same rows. `extractions`, `conflicts` and `session_reads` are the
+  exceptions.
 - The DB is disposable: delete it and re-run `ingest`. The config file is not -
   it is the curation, which is exactly why it lives outside the database.
 - Read commands re-ingest on their own when the vault has drifted, and exit

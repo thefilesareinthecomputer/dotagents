@@ -95,6 +95,23 @@ path and no submission protocol. Field reference: `references/config.md`.
    interpolated into a double-quoted or composed command. Instrument-per-
    question guidance: `references/query-strategy.md`.
 
+   A multi-pass retrieval loop can track its own coverage, answering "no
+   hits where I searched" vs "the vault has nothing": add `--session <id>`
+   (any string you choose) to `query`, `search`, `read` or `sections` and
+   the returned section ids land in a per-session ledger inside the db -
+   output unchanged, no tracked file touched. Then:
+
+   ```bash
+   python3 <skill-dir>/scripts/obsidian_kg.py coverage <vault> --session run-7 --scope 'plans/*'
+   ```
+
+   reports touched vs total sections, words and notes, plus the untouched
+   notes and heading subtrees ordered by word mass, biggest first - aim the
+   next probe there. A touched section counts its descendants as touched
+   (its body contains theirs); a child never counts its parent. An unknown
+   session reports zero touched with the full inventory. `--scope` is
+   optional; `coverage --forget <id>` deletes a finished session's ledger.
+
 4. **Traverse the link graph.** Notes resolve by basename or frontmatter alias,
    case-insensitive, the way Obsidian resolves `[[links]]`:
 
@@ -258,8 +275,8 @@ one up is about structure and edges instead:
 | use `ignore` aggressively on archived or duplicated trees | a stale copy indexed beside its live note returns every answer twice and sometimes outranks it |
 
 Date-free and fully available on this shape: `search`, `query`, `sections`, `read`,
-`backlinks`, `links`, `neighbors`, `path`, `stats`, `index`. Unavailable without
-dates: `themes`, `trends`, `timeline`, `during`, `trajectory`.
+`coverage`, `backlinks`, `links`, `neighbors`, `path`, `stats`, `index`. Unavailable
+without dates: `themes`, `trends`, `timeline`, `during`, `trajectory`.
 
 ## Slots keep aggregates honest (dated logs only)
 

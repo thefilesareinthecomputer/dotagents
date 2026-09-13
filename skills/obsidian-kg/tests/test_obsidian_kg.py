@@ -2777,5 +2777,218 @@ class InferredRelationTests(VaultCase):
         self.assertEqual(inferred[0]["src"], "Timer")
 
 
+# ------------------------------------------------------------ coverage ledger
+class CoverageLedgerTests(VaultCase):
+    """--session appends surfaced section ids to session_reads; `coverage`
+    reports touched vs untouched territory. No flag, no write."""
+
+    def setUp(self):
+        super().setUp()
+        obsidian_kg.ingest(self.vault)
+
+    def ledger(self, session):
+        return self.rows(
+            "SELECT section_id, note_id, cmd FROM session_reads"
+            " WHERE session_id=? ORDER BY section_id", session)
+
+    def quiet(self, argv):
+        import io
+        from contextlib import redirect_stdout
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc = obsidian_kg.main(argv)
+        return rc, buf.getvalue()
+
+    def test_sections_appends_and_dedups_first_touch_wins(self):
+        rc, _ = self.quiet(["sections", str(self.vault), "Garden Plan",
+                            "--session", "s1"])
+        self.assertEqual(rc, 0)
+        rows = self.ledger("s1")
+        self.assertGreater(len(rows), 0)
+        self.assertTrue(all(r[1] == "plans/Garden Plan" and r[2] == "sections"
+                            for r in rows))
+        # same command again: no growth
+        self.quiet(["sections", str(self.vault), "Garden Plan",
+                    "--session", "s1"])
+        self.assertEqual(self.ledger("s1"), rows)
+        # a re-read of an already-touched id keeps the first touch's cmd
+        self.quiet(["read", str(self.vault), rows[0][0], "--session", "s1"])
+        self.assertEqual(self.ledger("s1"), rows)
+
+    def test_no_session_flag_writes_nothing(self):
+        self.quiet(["sections", str(self.vault), "Garden Plan"])
+        self.quiet(["query", str(self.vault), "irrigation"])
+        self.quiet(["search", str(self.vault), "irrigation"])
+        self.assertEqual(
+            self.rows("SELECT count(*) FROM session_reads")[0][0], 0)
+
+    def test_query_search_and_read_record_their_hits(self):
+        rc, _ = self.quiet(["query", str(self.vault), "irrigation",
+                            "--session", "q"])
+        self.assertEqual(rc, 0)
+        q_rows = self.ledger("q")
+        self.assertGreater(len(q_rows), 0)
+        self.assertTrue(all(r[2] == "query" for r in q_rows))
+        self.quiet(["search", str(self.vault), "irrigation",
+                    "--session", "s"])
+        self.assertTrue(all(r[2] == "search" for r in self.ledger("s")))
+        self.assertGreater(len(self.ledger("s")), 0)
+        self.quiet(["read", str(self.vault), q_rows[0][0], "--session", "r"])
+        self.assertEqual([r[2] for r in self.ledger("r")], ["read"])
+
+    def test_unknown_or_empty_session_reports_zero_with_full_inventory(self):
+        rc, _ = self.quiet(["coverage", str(self.vault),
+                            "--session", "never-used"])
+        self.assertEqual(rc, 0)
+        cov = obsidian_kg.coverage(self.vault, "never-used")
+        self.assertEqual(cov["sections"]["touched"], 0)
+        self.assertEqual(cov["notes"]["touched"], 0)
+        self.assertEqual(cov["sections"]["percent"], 0.0)
+        self.assertGreater(cov["sections"]["total"], 0)
+        self.assertEqual(cov["status"], "COMPLETE")
+        # every note is untouched territory
+        self.assertEqual({u["kind"] for u in cov["untouched"]}, {"note"})
+        self.assertEqual(len(cov["untouched"]), cov["notes"]["total"])
+
+    def test_coverage_counts_touched_note_out_of_inventory(self):
+        self.quiet(["sections", str(self.vault), "Garden Plan",
+                    "--session", "s1"])
+        cov = obsidian_kg.coverage(self.vault, "s1")
+        self.assertEqual(cov["notes"]["touched"], 1)
+        untouched_notes = {u["note_id"] for u in cov["untouched"]}
+        self.assertNotIn("plans/Garden Plan", untouched_notes)
+        self.assertGreater(len(untouched_notes), 0)
+        # inventory leads with the biggest untouched word mass
+        words = [u["words"] for u in cov["untouched"]]
+        self.assertEqual(words, sorted(words, reverse=True))
+
+    def test_scope_glob_restricts_totals_and_inventory(self):
+        cov = obsidian_kg.coverage(self.vault, "s1", scope="plans/*")
+        self.assertEqual(cov["notes"]["total"], 2)
+        self.assertTrue(all(u["note_id"].startswith("plans/")
+                            for u in cov["untouched"]))
+
+    def test_ledger_survives_reingest_and_orphans_go_stale(self):
+        self.quiet(["sections", str(self.vault), "Garden Plan",
+                    "--session", "s1"])
+        before = self.ledger("s1")
+        (self.vault / "plans" / "Garden Plan.md").unlink()
+        # coverage re-ingests on drift; the ledger rows survive the rebuild
+        cov = obsidian_kg.coverage(self.vault, "s1")
+        self.assertEqual(self.ledger("s1"), before)
+        self.assertEqual(cov["stale"], len(before))
+        self.assertEqual(cov["sections"]["touched"], 0)
+
+    def test_forget_deletes_exactly_one_session(self):
+        self.quiet(["sections", str(self.vault), "Garden Plan",
+                    "--session", "s1"])
+        self.quiet(["sections", str(self.vault), "Watering Guide",
+                    "--session", "s2"])
+        rc, out = self.quiet(["coverage", str(self.vault), "--forget", "s1"])
+        self.assertEqual(rc, 0)
+        self.assertIn("forgot", out)
+        self.assertEqual(self.ledger("s1"), [])
+        self.assertGreater(len(self.ledger("s2")), 0)
+
+    def test_coverage_arg_validation(self):
+        with self.assertRaises(SystemExit):
+            obsidian_kg.main(["coverage", str(self.vault)])
+        with self.assertRaises(SystemExit):
+            obsidian_kg.main(["coverage", str(self.vault),
+                              "--session", "a", "--forget", "b"])
+
+    def test_coverage_json_shape(self):
+        rc, out = self.quiet(["coverage", str(self.vault),
+                              "--session", "s1", "--json"])
+        self.assertEqual(rc, 0)
+        cov = json.loads(out)
+        for key in ("session", "scope", "sections", "words", "notes",
+                    "stale", "untouched", "status"):
+            self.assertIn(key, cov)
+        for axis in ("sections", "words", "notes"):
+            for field in ("touched", "total", "percent"):
+                self.assertIn(field, cov[axis])
+
+    def test_limit_truncation_is_declared(self):
+        cov = obsidian_kg.coverage(self.vault, "none", limit=1)
+        self.assertEqual(len(cov["untouched"]), 1)
+        self.assertTrue(cov["status"].startswith("TRUNCATED 1 of "))
+
+
+class CoverageClosureTests(VaultCase):
+    """Closure rule: a touched section covers itself and its descendants; a
+    child never covers its parent; an empty heading path (top-of-note
+    preamble) covers only itself."""
+
+    def setUp(self):
+        super().setUp()
+        self.limits(floor=2)   # keep small synthetic sections as real rows
+        (self.vault / "preamble.md").write_text(
+            "intro prose before any heading\n\n"
+            "# Alpha\n\nalpha body\n\n## Alpha One\n\nalpha one body\n\n"
+            "# Beta\n\nbeta body\n",
+            encoding="utf-8")
+        obsidian_kg.ingest(self.vault)
+
+    def sid_for(self, heading_path):
+        rows = self.rows(
+            "SELECT id FROM sections WHERE note_id='preamble'"
+            " AND heading_path=?", heading_path)
+        self.assertEqual(len(rows), 1)
+        return rows[0][0]
+
+    def touched(self, session):
+        return obsidian_kg.coverage(
+            self.vault, session, scope="preamble")["sections"]["touched"]
+
+    def record(self, session, sid):
+        obsidian_kg.record_session_reads(
+            self.vault, session, [sid], "read")
+
+    def test_parent_touch_covers_descendants(self):
+        self.record("p", self.sid_for("Alpha"))
+        self.assertEqual(self.touched("p"), 2)   # Alpha + Alpha One
+        cov = obsidian_kg.coverage(self.vault, "p", scope="preamble")
+        untouched = {u.get("heading") for u in cov["untouched"]}
+        self.assertNotIn("Alpha", untouched)
+        self.assertIn("Beta", untouched)
+
+    def test_child_touch_does_not_cover_parent(self):
+        self.record("c", self.sid_for("Alpha > Alpha One"))
+        self.assertEqual(self.touched("c"), 1)
+
+    def test_preamble_covers_only_itself(self):
+        self.record("t", self.sid_for(""))
+        self.assertEqual(self.touched("t"), 1)
+
+
+class CoverageOversizeTests(VaultCase):
+    """Pin the oversize edge: `read` on an over-ceiling unit returns its body
+    whole, children included, so closure covering the descendants matches
+    what the caller was actually shown."""
+
+    fixture = ADVERSARIAL
+
+    def test_oversize_unit_closure_matches_read_output(self):
+        self.limits(ceiling=20, floor=3)
+        obsidian_kg.ingest(self.vault)
+        sid = "journal#Field Journal > 2026-06-08"
+        body, oversize = self.rows(
+            "SELECT body, oversize FROM sections WHERE id=?", sid)[0]
+        self.assertTrue(oversize)
+        kids = self.rows(
+            "SELECT id, own_body FROM sections WHERE parent_id=?"
+            " ORDER BY ord", sid)
+        self.assertGreater(len(kids), 0)
+        for _, own in kids:
+            self.assertIn(own.strip().splitlines()[0], body)
+        obsidian_kg.record_session_reads(self.vault, "o", [sid], "read")
+        cov = obsidian_kg.coverage(self.vault, "o", scope="journal")
+        descendants = self.rows(
+            "SELECT count(*) FROM sections WHERE note_id='journal'"
+            " AND heading_path LIKE 'Field Journal > 2026-06-08 > %'")[0][0]
+        self.assertEqual(cov["sections"]["touched"], 1 + descendants)
+
+
 if __name__ == "__main__":
     unittest.main()

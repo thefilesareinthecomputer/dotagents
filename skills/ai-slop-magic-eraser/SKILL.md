@@ -51,14 +51,19 @@ explaining a system.
 
 **The target is regular professional prose**, in the voice of a senior engineer
 explaining a system to a colleague who has to go and do the work. Full
-sentences. If the person whose name is on the document would have to re-word
-paragraphs rather than fact-check them, the pass failed.
+sentences. A block opens with the finding, walks the mechanism in the order it
+happens, and ends at the action; emphasis comes from that ordering, not from a
+bolded thesis sentence or a constructed contrast. Confidence is set per
+sentence: verified flat, real uncertainty marked, a call the reader owns offered
+as options with a lean. If the person whose name is on the document would have
+to re-word paragraphs rather than fact-check them, the pass failed.
 
 Terse is a setting for chat replies. It is not a prose style. Applying it to a
 shipped document is the most common route into this failure. The full catalog is
 `references/tells.md` § Over-corrected register, which covers register by
-audience, "we" over "you", headings that locate rather than argue, and keeping
-product names concrete.
+audience, "we" over "you", headings that locate rather than argue, emphasis by
+ordering rather than typography, calibrated confidence, plain vocabulary, and
+keeping product names concrete.
 
 ## Landmines
 

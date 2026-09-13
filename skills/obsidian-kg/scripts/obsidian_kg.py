@@ -337,6 +337,14 @@ CREATE TABLE IF NOT EXISTS conflicts(     -- judgment: never wiped by ingest
   resolution   TEXT NOT NULL DEFAULT '',
   state        TEXT NOT NULL DEFAULT 'hot'
 );
+CREATE TABLE IF NOT EXISTS session_reads(  -- coverage ledger: never wiped by ingest
+  session_id TEXT NOT NULL,
+  section_id TEXT NOT NULL,
+  note_id    TEXT NOT NULL,
+  cmd        TEXT NOT NULL,                -- query | search | read | sections
+  at         TEXT NOT NULL,                -- UTC; first touch wins
+  PRIMARY KEY (session_id, section_id)
+);
 CREATE TABLE IF NOT EXISTS meta(
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
@@ -2010,6 +2018,109 @@ def resolve_note_arg(con: sqlite3.Connection, name: str) -> str:
     sys.exit(f"error: unknown note {name!r} (find notes with `search`)")
 
 
+def record_session_reads(vault: Path, session: str | None,
+                         section_ids: list[str], cmd: str) -> None:
+    """Append surfaced section ids to a per-session coverage ledger. First
+    touch wins. Errors are loud: a session flag that quietly stops recording
+    corrupts the caller's coverage map."""
+    if not session or not section_ids:
+        return
+    con = connect(vault, must_exist=True)
+    at = now_utc()
+    con.executemany(
+        "INSERT OR IGNORE INTO session_reads"
+        " (session_id, section_id, note_id, cmd, at)"
+        " SELECT ?, id, note_id, ?, ? FROM sections WHERE id=?",
+        [(session, cmd, at, sid) for sid in section_ids])
+    con.commit()
+    con.close()
+
+
+def _top_segment(heading_path: str) -> str:
+    return heading_path.split(" > ", 1)[0] if heading_path else "(top)"
+
+
+def coverage(vault: Path, session: str, scope: str | None = None,
+             limit: int = 20) -> dict:
+    """Session coverage against the current graph. Touched means surfaced to
+    the caller by a read-path command carrying --session. A touched section
+    covers itself and its descendants (its body contains theirs); a child
+    never covers its parent; an empty heading path covers only itself, since
+    an empty prefix would otherwise cover the whole note."""
+    con = open_fresh(vault)
+    secs = con.execute(
+        "SELECT id, note_id, heading_path, words FROM sections").fetchall()
+    ledger = {r[0] for r in con.execute(
+        "SELECT section_id FROM session_reads WHERE session_id=?",
+        (session,))}
+    con.close()
+
+    stale = len(ledger - {r[0] for r in secs})
+    if scope:
+        secs = [r for r in secs
+                if glob_match(r[1] + ".md", scope) or glob_match(r[1], scope)]
+
+    by_note: dict[str, list[tuple]] = {}
+    for sid, nid, hpath, words in secs:
+        by_note.setdefault(nid, []).append((sid, hpath, words))
+
+    covered: set[str] = set()
+    for nid, rows in by_note.items():
+        prefixes = [hp + " > " for sid, hp, _ in rows
+                    if sid in ledger and hp]
+        for sid, hp, _ in rows:
+            if sid in ledger or any(hp.startswith(p) for p in prefixes):
+                covered.add(sid)
+
+    sec_total = len(secs)
+    sec_touched = len(covered)
+    word_total = sum(w for _, _, _, w in secs)
+    word_touched = sum(w for sid, _, _, w in secs if sid in covered)
+    note_total = len(by_note)
+    note_touched = sum(1 for rows in by_note.values()
+                       if any(sid in covered for sid, _, _ in rows))
+
+    def pct(t: int, total: int) -> float:
+        return round(100.0 * t / total, 1) if total else 0.0
+
+    untouched: list[dict] = []
+    for nid in sorted(by_note):
+        rows = by_note[nid]
+        if not any(sid in covered for sid, _, _ in rows):
+            untouched.append({"kind": "note", "note_id": nid,
+                              "sections": len(rows),
+                              "words": sum(w for _, _, w in rows)})
+            continue
+        groups: dict[str, list[tuple]] = {}
+        for sid, hp, w in rows:
+            groups.setdefault(_top_segment(hp), []).append((sid, w))
+        for seg in sorted(groups):
+            members = groups[seg]
+            if any(sid in covered for sid, _ in members):
+                continue
+            untouched.append({"kind": "subtree", "note_id": nid,
+                              "heading": seg, "sections": len(members),
+                              "words": sum(w for _, w in members)})
+    untouched.sort(key=lambda u: (-u["words"], u["note_id"],
+                                  u.get("heading", "")))
+    total_untouched = len(untouched)
+    if limit:
+        untouched = untouched[:limit]
+    return {
+        "session": session, "scope": scope,
+        "sections": {"touched": sec_touched, "total": sec_total,
+                     "percent": pct(sec_touched, sec_total)},
+        "words": {"touched": word_touched, "total": word_total,
+                  "percent": pct(word_touched, word_total)},
+        "notes": {"touched": note_touched, "total": note_total,
+                  "percent": pct(note_touched, note_total)},
+        "stale": stale,
+        "untouched": untouched,
+        "status": ("COMPLETE" if len(untouched) == total_untouched
+                   else f"TRUNCATED {len(untouched)} of {total_untouched}"),
+    }
+
+
 def emit(args: argparse.Namespace, payload, render) -> int:
     """Every command speaks json on demand and prose otherwise. The prose path
     runs behind a sanitizing stdout so no renderer - present or future - can
@@ -3025,6 +3136,8 @@ def cmd_query(args: argparse.Namespace) -> int:
     payload = [{"section_id": r[0], "note_id": r[1],
                 "heading_path": r[2] or "(top)", "lines": f"{r[3]}-{r[4]}",
                 "snippet": r[5]} for r in rows]
+    record_session_reads(vault, args.session,
+                         [h["section_id"] for h in payload], "query")
 
     def render(rows_):
         if not rows_:
@@ -3056,8 +3169,12 @@ def query(vault: Path, q: str, limit: int = 20) -> list[dict]:
 
 
 def cmd_search(args: argparse.Namespace) -> int:
-    payload = search(vault_dir(args.vault), args.question, args.limit,
+    vault = vault_dir(args.vault)
+    payload = search(vault, args.question, args.limit,
                      args.per_note, args.budget, args.slot, args.recency_k)
+    record_session_reads(vault, args.session,
+                         [h["section_id"] for h in payload["results"]],
+                         "search")
 
     def render(res):
         if not res["results"]:
@@ -3228,6 +3345,8 @@ def cmd_sections(args: argparse.Namespace) -> int:
                 "level": r[2], "lines": f"{r[3]}-{r[4]}", "words": r[5],
                 "is_unit": bool(r[6]), "oversize": bool(r[7]),
                 "doc_date": r[8], "slot": r[9]} for r in rows]
+    record_session_reads(vault, args.session,
+                         [h["section_id"] for h in payload], "sections")
 
     def render(rows_):
         if not rows_:
@@ -3264,6 +3383,7 @@ def cmd_read(args: argparse.Namespace) -> int:
                "lines": f"{row[3]}-{row[4]}", "doc_date": row[6],
                "slot": row[7], "words": row[8], "oversize": bool(row[9]),
                "text": body[offset:] if offset else body}
+    record_session_reads(vault, args.session, [payload["section_id"]], "read")
 
     def render(p):
         print(f"# {p['path']}  [{p['lines']}]  {p['heading_path']}")
@@ -3828,6 +3948,52 @@ def cmd_index(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_coverage(args: argparse.Namespace) -> int:
+    vault = vault_dir(args.vault)
+    if args.forget and args.session:
+        sys.exit("error: pass --session to report or --forget to delete, "
+                 "not both")
+    if args.forget:
+        con = connect(vault, must_exist=True)
+        n = con.execute("DELETE FROM session_reads WHERE session_id=?",
+                        (args.forget,)).rowcount
+        con.commit()
+        con.close()
+        payload = {"forgot": args.forget, "rows": n}
+
+        def render(p):
+            print(f"forgot session {_term_safe(p['forgot'])!r}: "
+                  f"{p['rows']} ledger row(s) deleted")
+            return 0
+        return emit(args, payload, render)
+    if not args.session:
+        sys.exit("error: coverage needs --session ID (or --forget ID)")
+    payload = coverage(vault, args.session, args.scope, args.limit)
+
+    def render(c):
+        line = (f"coverage: {c['sections']['touched']}/"
+                f"{c['sections']['total']} sections "
+                f"({c['sections']['percent']}%), "
+                f"{c['words']['touched']}/{c['words']['total']} words "
+                f"({c['words']['percent']}%), "
+                f"{c['notes']['touched']}/{c['notes']['total']} notes")
+        if c["scope"]:
+            line += f"  [scope {_term_safe(c['scope'])}]"
+        if c["stale"]:
+            line += f"; {c['stale']} stale ledger row(s)"
+        print(line)
+        if c["untouched"]:
+            print("untouched:")
+            for u in c["untouched"]:
+                where = (u["note_id"] if u["kind"] == "note"
+                         else f"{u['note_id']} # {u['heading']}")
+                print(f"  {u['kind']:<7} {_term_safe(where)}  "
+                      f"{u['sections']} section(s)  {u['words']}w")
+        print(c["status"])
+        return 0
+    return emit(args, payload, render)
+
+
 def cmd_stats(args: argparse.Namespace) -> int:
     vault = vault_dir(args.vault)
     con = open_fresh(vault)
@@ -3976,12 +4142,17 @@ def main(argv: list[str] | None = None) -> int:
 
     add("profile", cmd_profile, "propose config rows; writes nothing")
 
+    session_help = ("append returned section ids to this coverage session's"
+                    " ledger (report with `coverage`)")
+
     p = add("query", cmd_query, "raw FTS5 search over sections")
     p.add_argument("fts_query")
     p.add_argument("--limit", type=int, default=20)
+    p.add_argument("--session", default=None, metavar="ID", help=session_help)
 
     p = add("search", cmd_search, "natural-language section search")
     p.add_argument("question")
+    p.add_argument("--session", default=None, metavar="ID", help=session_help)
     p.add_argument("--limit", type=int, default=10)
     p.add_argument("--per-note", type=int, default=3,
                    help="diversity cap: max sections from any one note")
@@ -4036,10 +4207,12 @@ def main(argv: list[str] | None = None) -> int:
 
     p = add("sections", cmd_sections, "section outline of a note")
     p.add_argument("note", metavar="name-or-path")
+    p.add_argument("--session", default=None, metavar="ID", help=session_help)
 
     p = add("read", cmd_read, "one section, whole")
     p.add_argument("section_id")
     p.add_argument("--offset", type=int, default=0)
+    p.add_argument("--session", default=None, metavar="ID", help=session_help)
 
     inferred_help = ("also traverse hot inferred relations (recorded by"
                      " `relate`); default traversal is extracted edges only")
@@ -4124,6 +4297,19 @@ def main(argv: list[str] | None = None) -> int:
                    help="destination inside the vault (default 'Vault Index.md')")
     p.add_argument("--force", action="store_true",
                    help="replace an existing file at that path")
+
+    p = add("coverage", cmd_coverage,
+            "a session's touched vs untouched territory")
+    p.add_argument("--session", default=None, metavar="ID",
+                   help="the coverage session to report")
+    p.add_argument("--scope", default=None, metavar="GLOB",
+                   help="restrict totals and inventory to notes matching"
+                        " this glob")
+    p.add_argument("--limit", type=int, default=20,
+                   help="untouched entries listed")
+    p.add_argument("--forget", default=None, metavar="ID",
+                   help="delete one session's ledger rows instead of"
+                        " reporting")
 
     add("stats", cmd_stats, "counts, orphans, unresolved/ambiguous")
 
