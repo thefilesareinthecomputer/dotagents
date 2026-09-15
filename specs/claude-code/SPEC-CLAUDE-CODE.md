@@ -372,7 +372,7 @@ use. The canonical list and the honest per-tool header conventions live in
 
 ## 8. Hook scripts (`~/.claude/hooks/`)
 
-Twelve hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
+Nineteen hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
 `guard-rm.sh`, `block-env-files.sh`), the `~/.claude`-edit prompt
 (`ask-before-claude-folder-edits.sh`), the SessionStart inbox check
 (`agent-mail-check.sh`), the large-file read advisory
@@ -381,14 +381,25 @@ Twelve hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
 (`memory-routing.sh` advisory-routing + `memory_lint.py` post-write lint),
 the chat-register pair (`no-meta-commentary.sh` pre-write +
 `no-meta-commentary-check.sh` post-write, sharing
-`no-meta-commentary.patterns`), and the invisible-character guard
-(`reject_invisibles.py`).
-Six are advisory/non-blocking (`read-size-advisory`, `cover-me-nudge`,
-`memory-routing`, both `no-meta-commentary` sides, and `memory_lint`'s
-judgment checks); the rest can block.
+`no-meta-commentary.patterns`), the invisible-character guard
+(`reject_invisibles.py`), the two private-folder guards
+(`guard-private.sh` shell path + the settings deny on the file tools), the
+three identifier guards (`reject_identifiers.py` pre-write,
+`reject_bad_commit_message.py` pre-commit, `scan_identifiers_on_stop.sh`
+end-of-session sweep), the published-copy guard
+(`reject_published_copy_edits.py`, reading
+`published-copy-paths.example.txt`), and the two resource gates
+(`memory_pressure_gate.py`, `daemon_restart_storm.py`).
+Nine are advisory/non-blocking (`read-size-advisory`, `cover-me-nudge`,
+`memory-routing`, both `no-meta-commentary` sides, `memory_lint`'s
+judgment checks, `reject_identifiers`, and `scan_identifiers_on_stop`);
+the rest can block.
 All shell hooks require
-`jq`; the two quote-aware guards also require `perl`; `memory_lint.py` and
-`reject_invisibles.py` are stdlib python3 (all §2 deps). Seed verbatim.
+`jq`; the two quote-aware guards also require `perl`; the python hooks are
+stdlib python3 (all §2 deps). `_require.sh` is not a hook - it is the
+preamble the shell guards source to fail closed on a missing dependency, and
+it must be seeded alongside them or every guard that sources it denies
+every call it covers. Seed verbatim.
 
 ### `block-env-files.sh`
 
@@ -695,6 +706,171 @@ canary verified 2026-08-29: an in-session Write carrying planted invisibles
 was denied with all twelve codepoints reported.
 
 Script: [`claude-code/hooks/reject_invisibles.py`](hooks/reject_invisibles.py).
+
+### `_require.sh`
+
+Not a hook. The preamble every shell guard with an external dependency
+sources as its first statement. `require_deps NAME...` denies the tool call
+when any named program is missing from PATH, so a guard fails closed rather
+than silently allowing what it cannot evaluate. The JSON is built with
+`printf` because `jq` may itself be the missing program, and a name carrying
+any character outside `[A-Za-z0-9_.-]` is skipped so the payload stays well
+formed. Each guard pairs it with an inline fallback deny in case this file
+cannot be sourced at all. A machine missing a station dependency is refused
+every call the guard covers until the dependency is installed; recovery is a
+package install, not an edit through the agent.
+
+Script: [`claude-code/hooks/_require.sh`](hooks/_require.sh).
+
+### `guard-private.sh`
+
+PreToolUse guard (matcher `Bash`) - **blocking** (exit 2). Refuses any shell
+command naming `~/.claude/private`, which holds the station identifier term
+list, or `~/.claude/state`, which holds the gate ack files. The file tools are
+denied on both in settings.json; this closes the shell path (`cat`, `sed`,
+`python -c`, `cp`). It matches the literal path fragment only, so a command
+reaching the folder through a variable or a symlink is not caught - the honest-
+case guard, not a sandbox. Easing a gate by touching an ack file is the user's
+call from a real shell, never an agent's. Requires `jq` via `_require.sh`.
+
+Script: [`claude-code/hooks/guard-private.sh`](hooks/guard-private.sh).
+
+### `reject_identifiers.py`
+
+PreToolUse guard (matcher `Write|Edit|MultiEdit|NotebookEdit`) - **advisory,
+never blocks**. Surfaces project identifiers in NEW content written to files
+that travel: `**/.claude/skills/`, `**/.agents/skills/`, `**/.claude/hooks/`,
+`tools/`, `agents/`, `commands/`, `**/_RESEARCH/`, `**/LEARNING/`,
+`**/KNOWLEDGE-BASE/` and `**/specs/`, with `PROJECTS/`, `_PROJECTS/`,
+`tasks/`, `DRAFTS/` and `__archive/` exempt because identifiers belong there.
+Four detectors: a project alias from the station term list, a person's
+initials with a role code, an environment-prefixed catalog name, and a
+work-item id whose digits are not a synthetic run. Every hit returns as
+PreToolUse `additionalContext` and the write proceeds, so the model or the
+user rules on it - a gate that refuses ordinary prose because a term is also a
+dictionary word gets muted, and a muted gate is worse than none.
+
+Two properties are load-bearing. The hook guards its own path and the term
+list unconditionally, ahead of every other rule, because a term written into a
+detector's comments or its list header is the one place a scrub never looks.
+And a finding is reported as reason, line and length, never the matched value.
+The term list itself is station state at `~/.claude/private/identifier-terms.txt`
+(one term per line, `#` comments, gitignored, `IDENTIFIER_TERMS_FILE` to
+override); it never travels with this spec and is copied between machines by
+hand.
+
+Script: [`claude-code/hooks/reject_identifiers.py`](hooks/reject_identifiers.py).
+
+### `reject_bad_commit_message.py`
+
+PreToolUse guard (matcher `Bash`, narrowed to `git commit` inside the hook
+because the matcher can only key on tool name) - **blocking**. A commit
+message is permanent, searchable and never scrubbed, so removing an
+identifier from a file while the message says what was removed leaves a
+signpost worse than the original: it names the category, points at the files
+and dates the window, and no file-level scan reaches it.
+
+Two classes. DISCLOSURE catches a message describing the sensitivity rather
+than the change (scrub, sanitize, redact, leaked, "private aliases",
+"identifiers removed"). IDENTIFIER catches the thing itself, importing
+`reject_identifiers.py` at runtime so the term list, the alias case rules,
+the synthetic-id rule and the no-echo report have one implementation and both
+gates match the same way. Any internal error allows the commit and says so.
+
+Known gap, recorded rather than papered over: `git commit -F <file>` and the
+editor path are uninspectable at hook time, and a commit-time git hook
+(`core.hooksPath`) is the layer that closes it.
+
+Script: [`claude-code/hooks/reject_bad_commit_message.py`](hooks/reject_bad_commit_message.py).
+
+### `scan_identifiers_on_stop.sh`
+
+Stop hook - **advisory**, never refuses to stop. Sweeps the guarded
+directories at the end of a session for what the pre-write guard cannot see:
+content that predates the hook, arrived through a git operation, or was
+written by another tool. It needs a scanner at `.claude/tools/prepublish_scan.py`
+(`IDENTIFIER_SCANNER` overrides the path). A missing scanner is reported, not
+passed over - the hook used to exit 0 there, which made an uninstalled sweep
+indistinguishable from a clean one while settings.json still showed the guard
+as wired. The report is bounded to repos that actually hold guarded
+directories, so it names a real gap instead of nagging on every stop.
+
+Script: [`claude-code/hooks/scan_identifiers_on_stop.sh`](hooks/scan_identifiers_on_stop.sh).
+
+### `reject_published_copy_edits.py`
+
+PreToolUse guard (matcher `Write|Edit|MultiEdit|NotebookEdit|Update|Create`) -
+**blocking** (exit 2). Refuses edits to directories holding verbatim copies
+owned by another repo, where a change is erased by the next republish and
+reverts silently rather than conflicting, so the fix looks done and is not.
+The rule already exists in prose; prose sits in context and nothing consults
+it at the moment an obvious bug is sitting in an open file.
+
+Three signals decide it, none naming a station, an account or a repo: a
+publisher marker (`.sources` or `.published-copy`) on any ancestor directory;
+a whole path segment matching `<name>-mirror`, the naming convention for a
+publication target; and a station fragment list read from
+`published-copy-paths.txt` beside the hook, for a published directory whose
+publisher leaves no marker. The marked directory's own `AGENTS.md`,
+`CLAUDE.md` and `.sources` stay editable, but only at its root - the same
+names one level down are published content. The refusal steers to the real
+path: send the change to the owning agent, have it applied there, republish.
+
+The station list is local constants and does not travel;
+`published-copy-paths.example.txt` ships in its place and an absent file
+means no station entries, which is correct on a machine that publishes
+nothing. Tests: `~/.claude/tests/test_published_copy_hook.py` (13 cases over
+synthetic temp trees, so the suite does not depend on which repos a machine
+holds).
+
+Script: [`claude-code/hooks/reject_published_copy_edits.py`](hooks/reject_published_copy_edits.py),
+seed list [`claude-code/hooks/published-copy-paths.example.txt`](hooks/published-copy-paths.example.txt).
+
+### `memory_pressure_gate.py`
+
+PreToolUse, UserPromptSubmit and SessionStart - **blocking at critical**.
+Reads the kernel's own memory verdict (the level behind Activity Monitor's
+pressure graph) plus swap in use, and stops the agent adding load when the
+machine is already struggling, whatever the cause. Critical is the kernel's
+critical level; warn is the kernel's warn level or swap at or above half of
+physical memory, which can raise a question but never a lockout because swap
+is sticky on macOS and never shrinks on its own.
+
+On load-adding tools (Bash, Agent, Workflow, any MCP tool) warn asks and
+critical denies, or asks when the ack is fresh. UserPromptSubmit blocks the
+prompt at critical unless the ack is fresh; SessionStart only warns. A normal
+reading or a machine without `sysctl` exits silently. The hook takes no
+containment action and tells the model to take none: the user-facing text
+names the top processes by memory, the model-facing text carries the numbers
+and an instruction to stop and wait. A resource guard, not a security control
+- the environment overrides can switch it off and that is accepted.
+
+Overrides: `MEMGATE_PRESSURE_LEVEL`, `MEMGATE_SWAP_MB`, `MEMGATE_SWAP_ASK_MB`,
+`MEMGATE_ACK_FILE` (default `~/.claude/state/memory-gate-ack`). Touching the
+ack eases the gate for an hour and is the user's call from their own shell,
+which is why `guard-private.sh` refuses shell access to `~/.claude/state`.
+`BRAIN_SEAT`, set by a headless spawner, denies every gated call outright
+with an attributable reason prefix, because no prompt is possible headless.
+
+Script: [`claude-code/hooks/memory_pressure_gate.py`](hooks/memory_pressure_gate.py).
+
+### `daemon_restart_storm.py`
+
+SessionStart and UserPromptSubmit - **blocking during a storm**. A plugin
+running a shared daemon can enter a kill-and-respawn loop when a hook judges
+the running daemon stale on every event; each respawn costs a process tree and
+hours of it exhaust memory and swap. The hook counts daemon starts in a recent
+window of the plugin's own log and raises the alarm early. SessionStart prints
+to user and model and exits 0; UserPromptSubmit blocks the prompt until the
+storm stops or the ack file is touched. A missing or unreadable log never
+blocks anything.
+
+Overrides: `DAEMON_STORM_LOG_DIR` (default `~/.claude-mem/logs`),
+`DAEMON_STORM_THRESHOLD` (default 5 starts), `DAEMON_STORM_WINDOW_MIN`
+(default 5), `DAEMON_STORM_ACK_FILE` (default
+`~/.claude/state/daemon-storm-ack`), same ack rule as the memory gate.
+
+Script: [`claude-code/hooks/daemon_restart_storm.py`](hooks/daemon_restart_storm.py).
 
 ## 9. Status lines (`~/.claude/statusline.sh` + `subagent-statusline.sh`)
 

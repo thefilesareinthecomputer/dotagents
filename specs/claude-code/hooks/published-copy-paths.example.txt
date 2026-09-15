@@ -1,0 +1,16 @@
+# Station-specific published directories, read by reject_published_copy_edits.py.
+#
+# Copy to published-copy-paths.txt beside the hook and add this machine's own
+# entries. An absent file means no station entries, which is the correct state
+# on a machine that publishes nothing.
+#
+# One path fragment per line; a target whose path contains the fragment is
+# refused. `#` comments and blank lines are ignored. Keep fragments anchored
+# with leading and trailing slashes so a partial name cannot match.
+#
+# Only directories whose publisher leaves NO marker file belong here. A folder
+# carrying .sources or .published-copy is detected generically, and a tree named
+# <name>-mirror is detected by its name, so neither needs an entry.
+#
+# Example shape, not a real path:
+# /dev/example-repo/generated/
