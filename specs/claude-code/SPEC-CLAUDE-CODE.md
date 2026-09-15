@@ -382,15 +382,16 @@ Nineteen hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
 the chat-register pair (`no-meta-commentary.sh` pre-write +
 `no-meta-commentary-check.sh` post-write, sharing
 `no-meta-commentary.patterns`), the invisible-character guard
-(`reject_invisibles.py`), the two private-folder guards
-(`guard-private.sh` shell path + the settings deny on the file tools), the
-three identifier guards (`reject_identifiers.py` pre-write,
+(`reject_invisibles.py`), the private-folder guard
+(`guard-private.sh`, closing the shell path to `~/.claude/private` and
+`~/.claude/state`; the file tools are denied on both in settings.json
+instead), the three identifier guards (`reject_identifiers.py` pre-write,
 `reject_bad_commit_message.py` pre-commit, `scan_identifiers_on_stop.sh`
 end-of-session sweep), the published-copy guard
 (`reject_published_copy_edits.py`, reading
 `published-copy-paths.example.txt`), and the two resource gates
 (`memory_pressure_gate.py`, `daemon_restart_storm.py`).
-Nine are advisory/non-blocking (`read-size-advisory`, `cover-me-nudge`,
+Eight are advisory/non-blocking (`read-size-advisory`, `cover-me-nudge`,
 `memory-routing`, both `no-meta-commentary` sides, `memory_lint`'s
 judgment checks, `reject_identifiers`, and `scan_identifiers_on_stop`);
 the rest can block.
