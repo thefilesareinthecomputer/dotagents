@@ -45,9 +45,9 @@
 
   {"name": "build-request-with-research-in-it", "should_trigger": false,
    "query": "Build me an agent that researches our competitors every morning and posts a digest.",
-   "why": "Belongs to ai-agent-project-scaffold. The word research names what the built system does, not what the user is asking for now."},
+   "why": "Belongs to ai-engineering's build mode. The word research names what the built system does, not what the user is asking for now."},
 
   {"name": "refresh-the-tooling-corpus", "should_trigger": false,
    "query": "Refresh the AI tooling catalog and fold in anything new you find.",
-   "why": "Belongs to ai-engineering-update, which owns the discovery pass and calls this skill as one of its tools. The deliverable is an updated catalog, not a brief."}
+   "why": "Belongs to ai-engineering's write mode, which owns the discovery pass and calls this skill as one of its tools. The deliverable is an updated catalog, not a brief."}
 ]

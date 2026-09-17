@@ -11,7 +11,7 @@
         "The answer surveys multiple retrieval/RAG options before recommending one, honoring the stated OSS-only / no-lock-in constraint",
         "The answer leads with the architecture decision and its deciding tradeoff (cost, complexity, lock-in, license, or skill gap)",
         "Any AGPL/SSPL/source-available license trap among the candidates is explicitly flagged",
-        "Point-in-time fields (stars, GA status) are dated or caveated rather than presented as live facts; a stale or uncovered tool triggers an offer of deep-research/ai-engineering-update instead of a bluffed answer"
+        "Point-in-time fields (stars, GA status) are dated or caveated rather than presented as live facts; a stale or uncovered tool triggers an offer of deep-research or write mode (references/corpus-update.md) instead of a bluffed answer"
       ]
     },
     {
@@ -22,7 +22,7 @@
         "The ai-engineering skill is invoked",
         "resources/agent-stack-map.md is read and its memory-layer comparison informs the answer, rather than answering purely from training memory",
         "A concrete recommendation is made, with the tradeoff that decided it stated explicitly",
-        "The point-in-time nature of the catalog is acknowledged (currency caveat with a date, or an offer to verify via ai-engineering-update/deep-research)",
+        "The point-in-time nature of the catalog is acknowledged (currency caveat with a date, or an offer to verify via write mode or deep-research)",
         "No fabricated version numbers, star counts, or GA statuses appear in the answer"
       ]
     },
@@ -39,7 +39,7 @@
     {
       "id": 4,
       "prompt": "Is Mem0 still Apache-2.0, and is it still actively maintained?",
-      "expected_output": "A question about a moving fact, answered from the bundled corpus rather than training memory. The catalog and map rows for Mem0 are read, the answer carries the date the claim was verified, and if that date is stale the answer says so and escalates to a live check via ai-engineering-update or deep-research rather than asserting a remembered license.",
+      "expected_output": "A question about a moving fact, answered from the bundled corpus rather than training memory. The catalog and map rows for Mem0 are read, the answer carries the date the claim was verified, and if that date is stale the answer says so and escalates to a live check via write mode (references/corpus-update.md) or deep-research rather than asserting a remembered license.",
       "expectations": [
         "The ai-engineering skill is invoked and the bundled corpus is read rather than the answer being given from training memory",
         "The response carries the verification date attached to the claim instead of presenting a point-in-time field as current fact",
@@ -78,8 +78,148 @@
         "The ai-engineering skill is invoked",
         "resources/agent-stack-map.md is read and its framework comparison informs the answer",
         "The staleness of the bundled catalog is surfaced explicitly, with the as-of date named",
-        "Live verification is offered or performed (deep-research / ai-engineering-update) rather than asserting current GA status, versions, or star counts from bundled data alone",
+        "Live verification is offered or performed (deep-research or write mode) rather than asserting current GA status, versions, or star counts from bundled data alone",
         "No claim about what has been released 'since' is fabricated"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Any new agent frameworks worth knowing about? Fold anything good into the AI tooling catalog.",
+      "expected_output": "The ai-engineering skill is invoked and its write mode (references/corpus-update.md) is followed: seed sources and/or web research surface candidates, each is verified (what it is, status, license) before classification, findings are piped through ledger.py ingest (duplicates report unchanged), new triage rows are classified via seed-sections.tsv or rules.tsv, link-ledger.md is regenerated via ledger.py render, and a summary reports counts added/reclassified/unchanged.",
+      "expectations": [
+        "The ai-engineering skill is invoked and its write mode (references/corpus-update.md) is followed",
+        "Discovery uses the seed sources and/or WebSearch/deep-research, and candidate repos are verified (purpose, status, license) before being classified",
+        "New URLs are added via ledger.py ingest, with already-known links reporting unchanged rather than being re-added",
+        "Any new triage rows are classified by editing seed-sections.tsv or rules.tsv (data edits), then re-ingested - not by editing ledger.py code",
+        "link-ledger.md is regenerated with ledger.py render and is never hand-edited",
+        "The final report summarizes counts: added, unchanged/duplicates, reclassified, and any opinion changes worth noting"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Check the AI tooling catalog for staleness and dead links.",
+      "expected_output": "The ai-engineering skill is invoked and its write mode (references/corpus-update.md) runs the freshness pass: ledger.py check with a TTL and --probe flags stale/dead rows, dead rows are investigated (moved/renamed/abandoned) and flagged non-destructively, and the ledger is re-rendered with a summary of what changed.",
+      "expectations": [
+        "The ai-engineering skill is invoked and its write mode (references/corpus-update.md) is followed",
+        "ledger.py check is run with a --ttl value and --probe (optionally --limit) to flag stale rows and mark dead ones",
+        "Rows found dead are investigated and updated or flagged, not silently deleted - catalog rows for abandoned projects get a status/caution, preserving history",
+        "ledger.py render is run afterward to regenerate link-ledger.md",
+        "The report states how many rows were stale, how many dead, and what was done about each"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Add these AI links to the catalog: https://github.com/example-org/agent-kit and https://example-tool.dev/docs",
+      "expected_output": "The ai-engineering skill is invoked and its write mode (references/corpus-update.md) ingests the links through the deterministic engine: ledger.py ingest canonicalizes and dedupes them, any GitHub repo without a seed-sections entry lands in triage and gets classified via a seed-sections.tsv (or rules.tsv) row, and link-ledger.md is regenerated.",
+      "expectations": [
+        "The ai-engineering skill is invoked and its write mode (references/corpus-update.md) is followed",
+        "The URLs are added via ledger.py ingest rather than by hand-editing catalog files or link-ledger.md",
+        "Duplicate handling is honored: a link already in the catalog is reported unchanged, not re-added",
+        "A GitHub/DeepWiki repo landing in triage is classified by adding an owner/repo → sections row to seed-sections.tsv (or a domain rule to rules.tsv) using the existing section vocabulary, then re-ingested or set",
+        "ledger.py render is run and the report states which links were new versus already known"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Update our npm dependencies to their latest versions and fix anything that breaks.",
+      "expected_output": "The ai-engineering write mode is NOT engaged; this is a project dependency upgrade, not maintenance of the AI tooling catalog. The agent performs a normal dependency update workflow (package manager commands, run tests, fix breakage) without touching ledger.py or the catalog files.",
+      "expectations": [
+        "The ai-engineering skill's write mode is NOT engaged",
+        "ledger.py is not run and no catalog files (catalog.tsv, seed-sections.tsv, rules.tsv, link-ledger.md) are read or modified",
+        "The agent handles it as a standard dependency upgrade: package manager update commands, followed by running the test suite and fixing any breakage"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Heads up, LightRAG fell over on us today - it OOMed once we passed about 50k documents on a 16GB box. Worth remembering.",
+      "expected_output": "The ai-engineering skill is invoked and its write mode records the experience: the observation is written as a field note via ledger.py field-note against LightRAG's catalogued URL, with a verdict of broken or caution, the finding stated in one line, and the scope carrying the condition it held under (roughly 50k documents, 16GB). The agent does not edit field-notes.tsv or field-notes.md by hand, and does not delete or overwrite any existing note about the tool.",
+      "expectations": [
+        "The ai-engineering skill is invoked and its write mode (references/corpus-update.md) is followed, without waiting for a scheduled maintenance pass",
+        "The observation is recorded with ledger.py field-note against the tool's canonical catalogued URL, not by hand-editing field-notes.tsv or the generated field-notes.md",
+        "A verdict from the closed set (works, caution, broken, superseded) is chosen, and the scope field carries the condition the finding held under rather than being left blank",
+        "Existing notes about the tool are left intact - the store is append-only, so a new observation never overwrites an earlier one",
+        "The agent does not silently promote the observation into agent-stack-map.md as if it were researched third-party fact"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Go re-verify the harnesses section of the AI stack map - I don't trust those star counts and licenses any more.",
+      "expected_output": "The verify job runs against the claims queue rather than the liveness probe: ledger.py check --claims --section harnesses produces the work list, each row is re-verified against a live source, agent-stack-map.md is corrected with dates, and only the rows actually checked are stamped with ledger.py verified.",
+      "expectations": [
+        "The claims queue is used (ledger.py check --claims, scoped by section) rather than the liveness probe, which only establishes that a URL resolves",
+        "Rows are re-verified against a live source rather than from training memory",
+        "agent-stack-map.md is corrected with the verification date attached to each changed claim",
+        "Only rows that were actually checked get stamped with ledger.py verified - the date is the value of the field",
+        "A figure that cannot be confirmed is left as verify rather than filled with a plausible number"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Scaffold an agent project that watches a set of RSS feeds and posts a daily digest to our team chat.",
+      "expected_output": "The ai-engineering skill is invoked and its build mode (references/project-scaffold.md) runs the intake before proposing anything: unknown fields (surface, model strategy, footprint/lock-in, layers, scale, team language) are asked, the stack is selected from the bundled map with the deciding tradeoff stated, and a runnable skeleton (repo tree, pinned deps, wiring, smoke test, README) is produced with hardening included, then implementation is handed to agent-skills.",
+      "expectations": [
+        "The ai-engineering skill is invoked and its build mode (references/project-scaffold.md) is followed",
+        "The intake happens before any stack proposal: unknown intake fields are asked (e.g. via AskUserQuestion) instead of being fabricated; fields inferable from context are filled without asking",
+        "resources/agent-stack-map.md is read and the stack choice leads with the decision plus its deciding tradeoff",
+        "The scaffold output includes a repo tree with module boundaries, a pinned dependency manifest (pyproject.toml or package.json), a minimal runnable wiring path with a smoke test, and a README covering the architecture decision and how to run locally",
+        "Production-hardening (observability, config/secrets via env, CI/CD skeleton or rollback path) appears in the scaffold rather than being deferred",
+        "Implementation beyond the skeleton is routed to agent-skills (/spec, /plan, /build, /test) or delegated one-shot to the ai-engineer subagent with a complete brief"
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "Bootstrap a RAG repo over our product manuals. Local-first models only, and the team is Python.",
+      "expected_output": "The ai-engineering skill is invoked and its build mode is followed; the intake credits the constraints already given (local-first, Python) and asks only the remaining unknowns, then selects retrieval/ingestion/orchestration components from the bundled map and generates a Python skeleton with retrieval and ingestion modules, pinned deps, and a smoke test.",
+      "expectations": [
+        "The ai-engineering skill is invoked and its build mode (references/project-scaffold.md) is followed",
+        "The stated constraints (local-first model strategy, Python) are not re-asked; only genuinely unknown intake fields are asked",
+        "The stack selection is grounded in resources/agent-stack-map.md and flags any license trap among chosen components",
+        "The generated skeleton contains distinct retrieval and ingestion modules, a pyproject.toml pinned to the selected components, a local model client wiring path, and a smoke test",
+        "Uncovered or possibly-stale components are verified via deep-research or write mode rather than asserted from memory"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "Set up a new Next.js e-commerce site with Stripe checkout and a product catalog.",
+      "expected_output": "The ai-engineering build mode is NOT engaged; this is a general web app with no AI subsystem. The agent routes the work through the general engineering workflow (agent-skills /spec onward) instead of running an AI intake or selecting an agent stack.",
+      "expectations": [
+        "The ai-engineering skill's build mode is NOT engaged",
+        "No AI intake questions (model strategy, RAG/memory layers) are asked and the AI stack map is not consulted",
+        "The work is routed to the general agent-skills workflow (starting with /spec or equivalent spec-driven development) as a normal web project"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "Build me an agent that renames the files in my downloads folder to a consistent date-prefixed pattern.",
+      "expected_output": "The premise is challenged before any scaffolding: this is a job for a small script, not an agent stack. The agent says so first and offers the simple script solution instead of running the full intake and generating an agent repo.",
+      "expectations": [
+        "The agent challenges the premise explicitly - stating that a script suffices where an agent was requested - before proposing any agent stack",
+        "No agent-project skeleton (orchestration framework, memory/RAG layers, agent repo tree) is generated for this task",
+        "A simple script-based solution is offered or implemented instead"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "We need an internal agent that answers questions from our support runbooks. Python team, must run on our own hardware, no data leaving the building. Get me a stack.",
+      "expected_output": "The intake runs, then one complete stack is proposed in a single pass with every slot named or explicitly marked not needed - harness, framework, model provider and tier, memory, retrieval, ingestion, tools, MCP servers, eval and observability, frontend. Components come from the bundled corpus, the local-only constraint drives the choices, and the committed slots are written back with ledger.py decision.",
+      "expectations": [
+        "One complete stack is proposed in a single pass rather than the slots being elicited one at a time",
+        "Every slot is either a named component or an explicit 'not needed' that traces to a stated intake answer",
+        "Component choices come from the bundled corpus; anything absent from it is flagged unverified rather than filled in from training memory",
+        "The model slot commits to a provider and capability tier rather than asserting a specific model identifier from memory",
+        "The self-hosted, no-egress constraint visibly drives the choices, and any license trap in the selected components is flagged",
+        "The committed stack is recorded with ledger.py decision, using the SHAPE of the use case rather than a project name"
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "I have a vague idea about using AI to help our ops team somehow. Not sure what it should do yet.",
+      "expected_output": "No stack is proposed against an unformed idea. Elicitation is delegated to interview-me (and idea-refine to stress-test the premise) until the intake fields can actually be answered, and only then does stack selection begin.",
+      "expectations": [
+        "No stack, framework, or repo skeleton is proposed while the requirement is still unformed",
+        "Elicitation is delegated to interview-me rather than reimplemented, with idea-refine available to stress-test the premise",
+        "The intake fields are what gate progress: selection begins only once outcome, surface and constraints can be answered",
+        "The possibility that no agent is warranted remains open rather than an agent build being assumed"
       ]
     }
   ]

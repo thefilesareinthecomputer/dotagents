@@ -223,6 +223,49 @@ calling it "load-bearing"; name the file or table to read instead of calling
 something "the authority"; describe the action instead of "the lever". A repo
 may keep its own banned-word list; check for one before drafting.
 
+### Coined phrasing where a standing term exists
+
+The inverse of consultant vocabulary: instead of inflating, the pass invents.
+A tightened sentence built around a novel phrase reads as craft and costs the
+reader a translation, because the industry, the vendor, or the team already has
+a word for the thing. A coined phrase is a defect even when it is shorter.
+
+| Coined | Standing term |
+|---|---|
+| "the docs corpus" | the docs folder |
+| "one front door" | one interface |
+| "the asking user", "the asker" | the active user |
+| "the heads of the people who built it" | tribal knowledge |
+| "Decisive nowhere:" | "Unclear:" |
+
+**Test:** would a teammate say this phrase in a standup? If it would need
+explaining, use the word they would have used.
+
+### Performative precision
+
+A measured-sounding figure that informs no decision, standing in as evidence of
+rigor. "Roughly 53,000 words of markdown" reads as diligence; nothing the
+reader does changes with the number. Replace with the plain description
+("the markdown docs"). Numbers the reader acts on - a row count to validate
+against, a limit, a date - stay, next to the thing they count.
+
+### What over-cutting deletes
+
+A tightening pass measures success by what comes out, so it cuts three kinds of
+sentence that are content:
+
+- **The reader's takeaway.** After the facts, the practical implication is a
+  sentence the reader needs, not padding: "most users won't interact with the
+  subagents directly", "likely negligible unless rolled out at high scale".
+  Raw facts left to imply their conclusion are not more rigorous, just less
+  finished.
+- **Attribution.** "{name}'s {component}" says whose work it is and where
+  questions go; "the {component}" does not. Stripping ownership is a deletion
+  of information.
+- **Orientation.** A forward-looking sentence that places the decision in its
+  trajectory (what is on the radar, what is expected to mature) helps the
+  reader; cut it only when it drifts into roadmap promises.
+
 ### Deferring to a sibling document
 
 A document that keeps pointing elsewhere for what the reader needs has not been
@@ -436,6 +479,7 @@ review the config" → say what to look for.
 | A summary restating rather than concluding | Adds length, not information |
 | A table whose last column is "Why" and repeats column two | Padding a table to look analytical |
 | Parallel structure held past usefulness | Forces content into a shape it does not have |
+| An enumeration packed into one sentence | Three or more parallel items read faster as a short list |
 | Bold on every other phrase | Emphasis that emphasizes nothing |
 | A horizontal rule between every section | Headings already separate |
 | "Key Takeaways" / "TL;DR" bolted on | If needed, the document is too long |
@@ -552,6 +596,22 @@ request.
 
 An opening paragraph paraphrasing the question and presenting it as
 understanding. Cut it and start with the answer.
+
+### Premature settledness
+
+Writing the intended design as the current state. The draft says "handled by an
+automated step" when the step is done by hand today and the automation is an
+aspiration; it picks one of two candidate designs and presents it as decided.
+The document now asserts a state nobody built and forecloses a decision nobody
+made.
+
+The fix is to write what runs today and mark what is open, inline: "currently
+done manually; the automated step is planned", "option A OR option B - TBD",
+with the author's lean stated as a lean ("I think it should do both"). In a
+draft decision document this is the correct register, not a weakness: open
+decisions written as open, the author's position visible. This is the
+short-status-clause pattern from the landmines section, not a landmine - it
+annotates a specific design point rather than demoting the document.
 
 ### Undated claims about moving targets
 

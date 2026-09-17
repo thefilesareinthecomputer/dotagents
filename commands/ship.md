@@ -1,5 +1,6 @@
 ---
 description: Run the pre-launch checklist, then synthesize a go/no-go decision. Defers to agent-skills shipping-and-launch when that plugin is installed.
+disable-model-invocation: true
 ---
 
 Run the pre-launch pass over what is about to ship, then return one decision.

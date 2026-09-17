@@ -1,5 +1,6 @@
 ---
 description: Run the TDD workflow - write failing tests, implement, verify; for bugs use the Prove-It pattern. Defers to agent-skills test-driven-development when that plugin is installed.
+disable-model-invocation: true
 ---
 
 Write the failing test first, implement to green, then verify. For a bug, write

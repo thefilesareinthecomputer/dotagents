@@ -143,13 +143,6 @@
         ]
       }
     ],
-    "Stop": [
-      {
-        "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/scan_identifiers_on_stop.sh", "timeout": 30 }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
@@ -161,12 +154,6 @@
         "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
         "hooks": [
           { "type": "command", "command": "bash ~/.claude/hooks/no-meta-commentary-check.sh", "timeout": 5 }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/cover-me-nudge.sh", "timeout": 5 }
         ]
       }
     ],

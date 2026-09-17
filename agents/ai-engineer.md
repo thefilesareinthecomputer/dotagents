@@ -39,7 +39,7 @@ present a star count, GA status, or license as current without checking. No bluf
 - General engineering discipline (spec, plan, incremental build, tests, review, ship) → the `agent-skills` skills. Use them; don't reinvent them.
 - Building an MCP server → the `build-mcp-server` / `build-mcp-app` skills. Don't hand-roll one.
 - Deep multi-angle tool research → the `deep-research` skill.
-- Refreshing the tooling catalog / triaging new finds → the `ai-engineering-update` skill (it owns `ledger.py`).
+- Refreshing the tooling catalog / triaging new finds → the `ai-engineering` skill's write mode (`references/corpus-update.md`, which owns `ledger.py`).
 
 ## Stance
 

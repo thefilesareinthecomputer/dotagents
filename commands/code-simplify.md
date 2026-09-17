@@ -1,5 +1,6 @@
 ---
 description: Simplify code for clarity and maintainability - reduce complexity without changing behavior. Defers to agent-skills code-simplification when that plugin is installed.
+disable-model-invocation: true
 ---
 
 Reduce complexity without changing behavior. Get the tests green first, so that

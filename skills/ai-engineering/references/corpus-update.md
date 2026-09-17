@@ -1,15 +1,14 @@
----
-name: ai-engineering-update
-description: The write path for the ai-engineering tooling corpus - keeps it current, deduplicated, and honest about what we have actually seen. Three jobs. DISCOVER new AI tools and fold them in ("refresh the AI tooling", "any new agent frameworks", "add these AI links"). VERIFY what changed ("check the catalog for staleness", "is X still current", "did that project get archived"). RECORD first-hand experience with a tool, good or bad ("note that X broke for us", "log that Y worked", "that framework's docs were wrong") - use it whenever a tool in the corpus is actually used and something is learned, not only during a maintenance pass. Wraps scripts/ledger.py and the deep-research skill.
----
+# Write mode - corpus update
 
-# AI Tooling Refresh
-
-The currency engine behind `ai-engineering`. It discovers new AI tooling, verifies
+The currency engine behind the read path. It discovers new AI tooling, verifies
 what changed, and folds findings into the catalog **deterministically and without
 duplicates**. The hard parts - dedupe, classification, conflict resolution,
-freshness - are handled by `scripts/ledger.py` in the `ai-engineering` skill; this
-skill is the research-and-curate workflow around it.
+freshness - are handled by `scripts/ledger.py`; this file is the
+research-and-curate workflow around it.
+
+Contents: [Why this exists](#why-this-exists) · [The engine](#the-engine-read-before-using) ·
+[Seed sources](#seed-sources-where-to-look-first) · [Ground truth before prose](#ground-truth-before-prose-run-this-first) ·
+[Recording experience](#recording-experience-the-third-job) · [Workflow](#workflow) · [Guardrails](#guardrails)
 
 ## Why this exists
 
@@ -23,16 +22,14 @@ record. Before any link is added, it is checked against the catalog. New knowled
 accretes in **data** (`catalog.tsv`, `seed-sections.tsv`, `rules.tsv`), never by
 editing code, so it scales without limit.
 
-**Read `resources/data-contract.md` in the `ai-engineering` skill before adding a
-file, a column or a store.** It states the canonical-URL join, which files are
-generated, the tag vocabulary and its legacy spelling, and the conventions a new
-store has to honor. Writing a store that does not join to the catalog produces an
-island nothing else can see.
+**Read `resources/data-contract.md` before adding a file, a column or a store.**
+It states the canonical-URL join, which files are generated, the tag vocabulary
+and its legacy spelling, and the conventions a new store has to honor. Writing a
+store that does not join to the catalog produces an island nothing else can see.
 
 ## The engine (read before using)
 
-The `ai-engineering` skill's `scripts/ledger.py` (next to its SKILL.md; glob
-`**/skills/ai-engineering/SKILL.md` if needed) - stdlib, deterministic:
+`scripts/ledger.py` (next to SKILL.md) - stdlib, deterministic:
 
 | Command | Use |
 |---|---|
@@ -150,7 +147,8 @@ a tool that failed at one version and is sound at the next is real history, and 
 dates carry it. Run `ledger.py render-notes` to regenerate the readable view.
 
 Stack decisions work the same way (`ledger.py decision` / `outcome`), and are
-written by the scaffold skill at the end of its run rather than here.
+written by build mode (`references/project-scaffold.md`) at the end of its run
+rather than here.
 
 ## Workflow
 

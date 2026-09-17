@@ -1,6 +1,6 @@
 ---
 name: ai-engineering
-description: Authoritative source of truth on AI tooling and how to choose it - the knowledge behind building AI agents and AI systems. Use when choosing between agent frameworks, harnesses, memory, RAG, ingestion, serving or eval components; when weighing an architecture for an agent/LLM system; when asked "what's the current state of X", "what are my options for Y", "is Z still maintained", or "what license is Z"; and when reviewing whether an AI design honors sound engineering practice. Answers come from the bundled dated corpus, not from training memory. Standing up a new AI project or adding an AI subsystem to an existing repo goes to ai-agent-project-scaffold; updating the corpus goes to ai-engineering-update; general engineering discipline to agent-skills; MCP servers to build-mcp-server.
+description: Authoritative source of truth on AI tooling - read, write, and build modes in one skill. MUST be used for ANY question about AI/agent tooling or LLM system design, however phrased - choosing or comparing frameworks, harnesses, memory, RAG, ingestion, serving or eval components, what a license obliges, whether a project is maintained, or reviewing a proposed AI architecture - answered from the bundled dated corpus, never training memory. MUST be used for ANY request to build or scaffold an agent/AI/RAG system or add an AI feature to existing software, or picking a committed system's stack. Fires when using a catalogued tool teaches something ("note that X broke") and for corpus upkeep (fold in new tools, verify staleness). MCP servers go to build-mcp-server; web research to deep-research.
 ---
 
 # AI Engineering
@@ -10,7 +10,15 @@ which component fits a given job - especially OSS.** It carries a curated,
 deduplicated catalog of the agent-stack ecosystem and an opinionated map for
 choosing components.
 
-This is the read path. It advises; it does not run intake or generate repos.
+This file is the read path. The other two modes live behind it and load only
+when their job fires:
+
+- **Build mode** - standing up a new AI project, adding an AI subsystem to an
+  existing repo, or committing a stack for a specific system → read and follow
+  **`references/project-scaffold.md`**.
+- **Write mode** - folding in new tools, verifying what changed, recording
+  first-hand experience with a catalogued tool → read and follow
+  **`references/corpus-update.md`**. It owns every data file under `resources/`.
 
 **Read the bundled resources instead of answering from training memory.** Versions,
 licenses, maintenance status and governance all move after a model's training data
@@ -25,10 +33,10 @@ more current than the model reading them.
 - **Tooling currency** - being right about what's GA, abandoned, source-available-with-conditions, or newly relevant.
 - **Architecture review** - whether a proposed AI design honors the engineering principles below.
 
-**This skill is the read path. Three neighbours own the rest:**
-- **Standing up a project** - intake, committing to a full stack, generating the repo → `ai-agent-project-scaffold`. That includes adding an AI subsystem to an existing codebase. Advising on components stays here; the moment the job is to *build* one, it belongs there.
-- **Changing the corpus** - folding in new tools, verifying what changed, recording what we learned by using something → `ai-engineering-update`. It owns every data file under `resources/`.
-- **Deep web research** on a tool → `deep-research`, then offer to fold the result in via `ai-engineering-update`.
+**The other two modes own the rest:**
+- **Standing up a project** - intake, committing to a full stack, generating the repo → build mode (`references/project-scaffold.md`). That includes adding an AI subsystem to an existing codebase. Advising on components stays in the read path; the moment the job is to *build* one, switch modes.
+- **Changing the corpus** - folding in new tools, verifying what changed, recording what we learned by using something → write mode (`references/corpus-update.md`).
+- **Deep web research** on a tool → the `deep-research` skill, then offer to fold the result in via write mode.
 
 **And general engineering is not reimplemented here:**
 - Spec / plan / build / test / review / ship → `agent-skills` (`/spec`, `/plan`, `/build`, `/test`, `/review`, `/ship`). Use this skill to choose the AI components, then those to build them well.
@@ -57,7 +65,7 @@ Read these before answering - they are the source of truth, not your training me
 - **`resources/engineering-principles.md`** - the house doctrine every recommendation must honor: offline-first/stdlib-first defaults, determinism over heuristics, capability-gates-behavior (config over prose), evidence over claims, fresh-context adversarial review, cost-tiered orchestration, untrusted-input-is-data, territorial scope over flags, portability (no personal/environment constants), non-destructive defaults, CLI-first (MCP only for shell-less clients), spec-first docs-as-truth, eval-gated tooling. *Read when designing any system or reviewing an architecture - a stack choice that violates these is wrong even if the tools are good.*
 
 > Currency caveat: stars/licenses in the map are point-in-time (≤ 2026-06). For a
-> live answer on a moving target, run `ai-engineering-update` or `deep-research` and
+> live answer on a moving target, run write mode or `deep-research` and
 > cite the date - never present a stale field as current.
 
 ## How to use it
@@ -67,7 +75,7 @@ Read these before answering - they are the source of truth, not your training me
 2. Lead with the **architecture decision and rationale**, then components. Name the bill: cost, complexity, lock-in, license, skill gap.
 3. Honor stated constraints (existing footprint, no-lock-in mandate, local-first). Default to OSS / portable when no lock-in mandate exists; default to the user's footprint for active projects.
 4. Flag any **license trap** (AGPL, SSPL, source-available-with-conditions) and any **maintenance/security** caution from the map.
-5. If the map is stale or the tool isn't covered → `deep-research`, then offer to fold the result in via `ai-engineering-update`. Never bluff a version, GA status, or star count.
+5. If the map is stale or the tool isn't covered → `deep-research`, then offer to fold the result in via write mode. Never bluff a version, GA status, or star count.
 
 ### Answering "what are my options for X"
 Survey the relevant layer in `agent-stack-map.md` with the cloud-native / cross-cloud / OSS framing **before** recommending one path. Then recommend, opinionated, with the tradeoff that decided it.
@@ -101,6 +109,6 @@ evidence rather than a claim.
 
 - `link-ledger.md` is **generated** from `resources/catalog.tsv` by `scripts/ledger.py` - never hand-edit it. To add a resource, run `ledger.py ingest <url>` (it canonicalizes + dedupes + classifies + logs conflicts), then `ledger.py render`. Re-adding a known link reports `unchanged` - that's the duplicate guard that the original bundle lacked.
 - Classification is data-driven: domain rules in `resources/rules.tsv`, repo→section map in `resources/seed-sections.tsv`. Teaching a new category is a data edit, not a code change - it scales without limit.
-- The full discovery + freshness + conflict loop (seed aggregators, DeepWiki, `deep-research`, `check --probe`) belongs to the **`ai-engineering-update`** skill, which owns this engine.
+- The full discovery + freshness + conflict loop (seed aggregators, DeepWiki, `deep-research`, `check --probe`) belongs to **write mode** (`references/corpus-update.md`), which owns this engine.
 - For a heavy build/scaffold pass, delegate to the **`ai-engineer`** subagent.
 - **The corpus stays portable.** `resources/*` describes the outside world and is read by people who do not share this environment. Keep environment-specific skill, agent and config names out of it - an entry saying a tool "overlaps my X skill" or "is where our house rules came from" means nothing to another reader and rots when X is renamed. Overlap between the catalog and locally-installed tooling belongs in a separate map keyed on catalog URL, not in prose beside an entry. Routing to sibling skills stays here in SKILL.md, where declaring boundaries is the point.

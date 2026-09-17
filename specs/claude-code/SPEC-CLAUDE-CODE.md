@@ -372,12 +372,11 @@ use. The canonical list and the honest per-tool header conventions live in
 
 ## 8. Hook scripts (`~/.claude/hooks/`)
 
-Nineteen hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
+Seventeen wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
 `guard-rm.sh`, `block-env-files.sh`), the `~/.claude`-edit prompt
 (`ask-before-claude-folder-edits.sh`), the SessionStart inbox check
 (`agent-mail-check.sh`), the large-file read advisory
-(`read-size-advisory.sh`), the checkpoint-review nudge
-(`cover-me-nudge.sh`), the two memory-write guards
+(`read-size-advisory.sh`), the two memory-write guards
 (`memory-routing.sh` advisory-routing + `memory_lint.py` post-write lint),
 the chat-register pair (`no-meta-commentary.sh` pre-write +
 `no-meta-commentary-check.sh` post-write, sharing
@@ -385,16 +384,21 @@ the chat-register pair (`no-meta-commentary.sh` pre-write +
 (`reject_invisibles.py`), the private-folder guard
 (`guard-private.sh`, closing the shell path to `~/.claude/private` and
 `~/.claude/state`; the file tools are denied on both in settings.json
-instead), the three identifier guards (`reject_identifiers.py` pre-write,
-`reject_bad_commit_message.py` pre-commit, `scan_identifiers_on_stop.sh`
-end-of-session sweep), the published-copy guard
+instead), the two identifier guards (`reject_identifiers.py` pre-write,
+`reject_bad_commit_message.py` pre-commit), the published-copy guard
 (`reject_published_copy_edits.py`, reading
 `published-copy-paths.example.txt`), and the two resource gates
 (`memory_pressure_gate.py`, `daemon_restart_storm.py`).
-Eight are advisory/non-blocking (`read-size-advisory`, `cover-me-nudge`,
+Six are advisory/non-blocking (`read-size-advisory`,
 `memory-routing`, both `no-meta-commentary` sides, `memory_lint`'s
-judgment checks, `reject_identifiers`, and `scan_identifiers_on_stop`);
+judgment checks, and `reject_identifiers`);
 the rest can block.
+Two more scripts ship here unwired: `cover-me-nudge.sh` (the
+checkpoint-review nudge, retired from settings because it injected context
+on every tool stream for a review path that was almost never taken) and
+`scan_identifiers_on_stop.sh` (the end-of-session identifier sweep, whose
+`prepublish_scan.py` scanner was never built - re-wire it as a Stop hook if
+that tool lands). Their per-hook sections below are kept for both.
 All shell hooks require
 `jq`; the two quote-aware guards also require `perl`; the python hooks are
 stdlib python3 (all §2 deps). `_require.sh` is not a hook - it is the
@@ -579,7 +583,10 @@ Script: [`claude-code/hooks/read-size-advisory.sh`](hooks/read-size-advisory.sh)
 
 ### `cover-me-nudge.sh`
 
-PostToolUse hook (matcher `*`, wired in §7) - advisory only, never blocks. It
+PostToolUse hook (matcher `*`) - **shipped but unwired**: retired from the
+settings template because a context injection on every tool stream cost more
+than the rarely-taken review path it advertised; re-add the §7 entry to
+restore it. Advisory only, never blocks. It
 injects one line of `additionalContext` suggesting `/cover-me` at the two moments
 worth a fresh-context review: immediately after a hard-to-undo Bash command
 (`rm -rf`, `git push --force`, `DROP TABLE`/`DROP DATABASE`, a path under
@@ -786,7 +793,10 @@ Script: [`claude-code/hooks/reject_bad_commit_message.py`](hooks/reject_bad_comm
 
 ### `scan_identifiers_on_stop.sh`
 
-Stop hook - **advisory**, never refuses to stop. Sweeps the guarded
+Stop hook - **shipped but unwired**: its `prepublish_scan.py` scanner was
+never built, so the settings entry only produced a missing-scanner notice on
+every stop; re-add the §7 entry once the scanner exists. Advisory, never
+refuses to stop. Sweeps the guarded
 directories at the end of a session for what the pre-write guard cannot see:
 content that predates the hook, arrived through a git operation, or was
 written by another tool. It needs a scanner at `.claude/tools/prepublish_scan.py`

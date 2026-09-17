@@ -1,21 +1,20 @@
----
-name: ai-agent-project-scaffold
-description: Stand up a new AI/agent project - or add an AI subsystem to an existing repo - starting from a requirements intake and ending in a committed full stack. Use when the user says "scaffold an agent project", "bootstrap a RAG/agent repo", "add an agent to this codebase", "add an AI/LLM feature to our existing app"; when they ask for the stack for a specific system they intend to build ("get me a stack", "which stack should we use"), as opposed to open-ended options questions, which go to ai-engineering; when they make ANY "build me an agent that does X" request, because the intake may rightly conclude a plain script suffices; and when a vague AI build idea needs shaping first, in which case it calls interview-me and idea-refine. Hands implementation to agent-skills.
----
-
-# AI Project Scaffold
+# Build mode - project scaffold
 
 Turns an AI build request into a **grounded, hardened project skeleton** - but only
 after the requirements are clear enough to choose a stack. The orchestrator (you)
-runs the intake; the `ai-engineering` map picks the components; the `ai-engineer`
+runs the intake; the `agent-stack-map.md` picks the components; the `ai-engineer`
 subagent does the heavy build; `agent-skills` enforce build discipline.
+
+Contents: [Intake](#step-1---intake-do-not-skip) · [Select the stack](#step-2---select-the-stack) ·
+[Scaffold](#step-3---scaffold) · [Hand off](#step-4---hand-off-to-build-discipline) ·
+[Record the decision](#step-5---record-the-decision-part-of-being-done) · [Boundaries](#boundaries)
 
 ## Step 1 - Intake (do not skip)
 
 This is the AI-specific extension of general elicitation. Call `interview-me` when
 the idea is still vague enough that the fields below cannot be answered, and
 `idea-refine` to stress-test a premise that sounds shaky. Those skills get the idea
-into focus; this one carries it into a committed stack, which they do not cover.
+into focus; this mode carries it into a committed stack, which they do not cover.
 
 Gather these before proposing any stack. Use `AskUserQuestion` for choices. Fill
 what's inferable from the repo or context; ask only for the rest. Never fabricate a
@@ -35,11 +34,11 @@ where a script suffices, RAG where a SQL query suffices - say so first.
 
 ## Step 2 - Select the stack
 
-**Invoke the `ai-engineering` skill and follow its "Advising on a stack"
-procedure.** That skill owns the selection doctrine - leading with the decision
-and its deciding tradeoff, honoring stated constraints, defaulting to OSS when no
-lock-in mandate exists, flagging license traps, and refusing to bluff a version.
-Do not restate that doctrine here; a second copy drifts from the first.
+**Follow the read path's "Advising on a stack" procedure in SKILL.md.** It owns
+the selection doctrine - leading with the decision and its deciding tradeoff,
+honoring stated constraints, defaulting to OSS when no lock-in mandate exists,
+flagging license traps, and refusing to bluff a version. Do not restate that
+doctrine here; a second copy drifts from the first.
 
 What this step adds is the **exit contract**: the run does not end until every
 slot below holds a named component or an explicit "not needed".
@@ -61,8 +60,8 @@ Two rules keep the contract from being satisfied by bluffing:
 
 - **A named component exists in the corpus, or is flagged unverified.** A
   component absent from the map and catalog is a stop condition, not a blank to
-  fill from memory. Run `ai-engineering-update` or `deep-research` and fold the
-  result in.
+  fill from memory. Run write mode (`references/corpus-update.md`) or
+  `deep-research` and fold the result in.
 - **A "not needed" traces to a specific intake answer.** "No retrieval - single
   document per run, per Outcome." An unjustified "not needed" is the same bluff
   in different clothes.
@@ -104,7 +103,7 @@ an MCP server, use `build-mcp-server` / `build-mcp-app` - do not hand-roll it he
 ## Step 5 - Record the decision (part of being done)
 
 A run is not complete until the committed stack is written back. Otherwise this
-skill only ever reads from the corpus and nothing it learns reaches the next run.
+mode only ever reads from the corpus and nothing it learns reaches the next run.
 
 ```
 ledger.py decision --use-case "<shape>" --layer <slot> --component <url> --rationale "<constraint>"
@@ -128,10 +127,10 @@ That question is how the store stays populated. A column waiting on a future aud
 stays empty; the next intake is the collection point.
 
 If a component chosen here later fights back during the build, that is a field note
-against the component, not just a decision outcome. See `ai-engineering-update`.
+against the component, not just a decision outcome. See `references/corpus-update.md`.
 
 ## Boundaries
 
-- This skill **runs intake, commits a stack, and scaffolds**; it does not reimplement spec/plan/build/test (`agent-skills`). It calls `interview-me` and `idea-refine` rather than duplicating them.
-- Component knowledge comes from `ai-engineering`; corpus changes go through `ai-engineering-update`. Neither comes from memory.
+- This mode **runs intake, commits a stack, and scaffolds**; it does not reimplement spec/plan/build/test (`agent-skills`). It calls `interview-me` and `idea-refine` rather than duplicating them.
+- Component knowledge comes from the read path in SKILL.md; corpus changes go through write mode (`references/corpus-update.md`). Neither comes from memory.
 - One subagent serves the whole bundle: `ai-engineer`. No separate BA/architect agent.

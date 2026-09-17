@@ -30,7 +30,7 @@ cannot restate the removed text's content in what remains, you have not
 de-slopped it, you have lost it. When in doubt, keep the fact and cut the
 framing around it.
 
-Three corollaries, all learned the expensive way:
+Four corollaries, all learned the expensive way:
 
 - **Do not neuter real warnings.** A plain statement of a genuine hazard is good
   writing. The target is the reaching-for-effect version, never the warning.
@@ -38,6 +38,10 @@ Three corollaries, all learned the expensive way:
   redundancy with a stated owner. Check before removing it.
 - **Do not turn a conditional claim into a universal.** Cutting a qualifier is a
   deletion of information like any other. See pass 1 step 3.
+- **Do not cut the takeaway, the attribution, or the orientation.** The
+  practical implication of the facts, whose work a component is, and where a
+  decision sits in its trajectory are content. Raw facts left to imply their
+  conclusion are less finished, not more rigorous.
 
 ## The over-correction
 
@@ -48,6 +52,14 @@ explaining a data pipeline. Verbless fragments, two-word imperatives, blanket
 "never" directives and sentences built for the callback are not concision. They
 are a costume, and the reader hears someone performing authority rather than
 explaining a system.
+
+The costume has a second layer: invention. A tightening pass coins a novel
+phrase where the industry or the team already has a word, builds a sentence
+around a clever inversion, or ships a precise-sounding figure that informs no
+decision as evidence of rigor. Each of these reads as craft and costs the
+reader a translation. **If a standing term exists, it wins; if a figure changes
+nothing the reader does, it goes.** The test for any phrase: would a teammate
+say it in a standup without explaining it?
 
 **The target is regular professional prose**, in the voice of a senior engineer
 explaining a system to a colleague who has to go and do the work. Full
@@ -62,8 +74,9 @@ Terse is a setting for chat replies. It is not a prose style. Applying it to a
 shipped document is the most common route into this failure. The full catalog is
 `references/tells.md` § Over-corrected register, which covers register by
 audience, "we" over "you", headings that locate rather than argue, emphasis by
-ordering rather than typography, calibrated confidence, plain vocabulary, and
-keeping product names concrete.
+ordering rather than typography, calibrated confidence, plain vocabulary,
+coined phrasing, performative precision, what over-cutting deletes, and keeping
+product names concrete.
 
 ## Landmines
 
@@ -170,9 +183,10 @@ is the payload. Convert the rest to plain assertions.
 **5. Register, in both directions.** Down: inflated verbs and nouns doing less
 work than a plain word, vague intensifiers, claims of importance standing in for
 substance. Up: the over-corrected prose above. Verbless fragments, two-word
-imperatives, blanket "never" directives, aphoristic closers. In a shipped
-document also fix person ("we", not "you"), abstracted product names, and any
-sentence assessing the reader's organization.
+imperatives, blanket "never" directives, aphoristic closers, coined phrases
+where a standing term exists, and figures that perform precision without
+informing a decision. In a shipped document also fix person ("we", not "you"),
+abstracted product names, and any sentence assessing the reader's organization.
 
 **6. Structure.** Uniform section length, bullets where a sentence works, a
 summary that restates rather than concludes, over-emphasis, decorative rules.
@@ -211,6 +225,12 @@ configuration nobody asked for. Every element should trace to the request.
 **Symmetry bias.** Inventing a counterpart because one exists: a `stop()`
 because there is a `start()`, a disable path because there is an enable path, a
 fourth item because three felt short.
+
+**Premature settledness.** The intended design written as the current state: a
+manual step described as automated, one of two candidate designs presented as
+decided. Rewrite to what runs today, with open decisions marked open inline
+("option A OR option B - TBD") and the author's lean stated as a lean. In a
+draft decision document that is the correct register, not a weakness.
 
 **Undated claims about moving targets.** Product capabilities, pricing, version
 support. Date them or cut them.

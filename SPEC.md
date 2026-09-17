@@ -1,6 +1,6 @@
 # SPEC - ~/.agents
 
-**Status:** active · **Last updated:** 2026-07-31
+**Status:** active · **Last updated:** 2026-09-15
 
 ## What this is
 
@@ -12,42 +12,43 @@ available to Claude Code (and other skill-aware agents) on every device.
 Third-party/upstream skills are **not** published here - they are consumed from
 installed plugins (e.g. `agent-skills@addy-agent-skills`), which auto-update and
 expose namespaced `plugin:skill` entries. This repo carries only what the user
-authors or forks (**29 skills** `agent-mail`, `notes`, `wrap-up`, `cmon`,
-`statistics`, `machine-learning`,
-`my-security-review-checklist`, `deep-research`, `obsidian`, `cover-me`,
-`reflect`, `ai-engineering`, `ai-engineering-update`, `ai-agent-project-scaffold`, `hi`,
-`skill-authoring`, `sprint-board`, `repo-device-sync`, `meta-loop`, `obsidian-kg`, `code-kg`,
-`frontend-aesthetics`, `docker`, `django`, `o-o-d-a-loop`,
-`ai-slop-magic-eraser`, `teach-me`, `dimensional-data-modeling`, `data-engineering`;
+authors or forks (**23 skills** `agent-cc-configs-sync`, `agent-mail`,
+`ai-engineering`, `ai-slop-magic-eraser`, `cmon`, `code-kg`, `cover-me`,
+`deep-research`, `frontend-aesthetics`, `hi`, `meta-loop`,
+`my-security-review-checklist`, `notes`, `obsidian`, `obsidian-kg`,
+`plugin-update`, `project-knowledge-vault`, `reflect`, `repo-device-sync`,
+`skill-authoring`, `sprint-board`, `teach-me`, `wrap-up`;
 **7 subagents** `my-security-reviewer`, `supervisor`, `ai-engineer`, `advisor`,
 `researcher`, `reader`, `worker`;
 **13 commands** `agent-mail`, `my-security-review`, `supervisor`, `reflect`,
 `wrap-up`, `cmon`, and the agent-skills aliases `spec`, `plan`, `build`, `test`,
-`review`, `code-simplify`, `ship`).
+`review`, `code-simplify`, `ship` - the aliases carry
+`disable-model-invocation: true`, so they exist for the user's slash invocation
+and fallback on stations without the plugin, without double-listing beside the
+plugin's own entries in the model's context).
 
-> The `frontend-aesthetics`, `docker`, and `django` skills share one design: a method plus a **deterministic gate that runs outside the
+`skills-archive/` holds retired-but-kept skills (`data-engineering`,
+`dimensional-data-modeling`, `django`, `docker`, `machine-learning`,
+`statistics`, `o-o-d-a-loop`), moved out of `skills/` so their descriptions
+stop charging every session; restoring one is a `git mv` back plus
+`sync-skills.sh`.
+
+> The `frontend-aesthetics` skill (and the archived `docker` and `django`
+> skills) share one design: a method plus a **deterministic gate that runs outside the
 > model** (a stdlib checker script), because a checklist run by the model that
 > wrote the code is the model grading its own homework. Each passed fresh-context
 > security review before merge - which caught real, test-invisible defects
 > (a ReDoS hang, a socket-path miss, annotated-settings blindness). See
 > `tasks/plan.md` for the claims, and the `tasks/completed/` records they point at.
 
-> The `dimensional-data-modeling` and `data-engineering` pair split one domain along theory and practice: the first owns grain, SCD
-> semantics, conformance and the bus matrix, the second owns how a platform is
-> built and run, and each routes the other's questions away rather than competing
-> for the trigger. `data-engineering` organizes by **altitude** rather than topic,
-> so every reference file carries the architecture, implementation and
-> line-of-code view of its subject plus the up- and down-links between them,
-> because a choice at one altitude forecloses options at the one below. It ships
-> `dbt_audit.py` (20 checks) and 41 tests.
-
-> The `ai-engineering` bundle (`ai-engineering` + `ai-engineering-update` +
-> `ai-agent-project-scaffold` + the `ai-engineer` subagent) is split along its
-> real seams: **`ai-engineering` reads**
-> (knowledge, comparison, architecture review), **`ai-engineering-update` writes**
-> (discover, verify, and record first-hand experience), **`ai-agent-project-scaffold`
-> runs intake** and exits with a named component per stack slot. Anything learned
-> in one reaches the others through a single store and a single write command
+> The `ai-engineering` skill folds what were three sibling skills into one
+> surface with three modes, split along the same seams: the **read path** in
+> SKILL.md (knowledge, comparison, architecture review), the **write mode** in
+> `references/corpus-update.md` (discover, verify, and record first-hand
+> experience), and the **build mode** in `references/project-scaffold.md`
+> (intake that exits with a named component per stack slot). The `ai-engineer`
+> subagent serves all three. Anything learned in one mode reaches the others
+> through a single store and a single write command
 > rather than a policy asking three skills to remember each other.
 > `ledger.py` carries the catalog, field notes, stack decisions, a
 > claims-freshness axis separate from URL liveness, and a derived `map` tag; it has

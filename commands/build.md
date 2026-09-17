@@ -1,5 +1,6 @@
 ---
 description: Implement incrementally - build, test, verify, commit one thin slice at a time. Defers to agent-skills incremental-implementation when that plugin is installed.
+disable-model-invocation: true
 ---
 
 Deliver the change in thin vertical slices. Never stack multiple features or

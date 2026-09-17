@@ -206,9 +206,11 @@ constraint.
 ## Design principles
 
 **Every skill here fixes something the model gets wrong on its own.**
-`frontend-aesthetics` because default UI taste is bad. `django` because DRF's
-permission default fails open. `docker` because host escapes get handed out like
-candy. There is no generalized backend skill, because there is no generalized
+`frontend-aesthetics` because default UI taste is bad. The archived `django`
+and `docker` skills earned their seats the same way - DRF's permission default
+fails open, and host escapes get handed out like candy - and wait in
+`skills-archive/` until those stacks are in play again. There is no generalized
+backend skill, because there is no generalized
 backend mistake to correct, and a skill that only repeats what the model already
 knows never fires anyway.
 
@@ -219,9 +221,10 @@ actually enforces.
 
 **Nothing grades its own homework.** A checklist run by the model that wrote the
 code is theater. So the mechanically checkable parts ship as scripts that exit
-non-zero: `slop_check.py` for machine-writing tells, `docker_check.py` for
-compose host escapes, `django_check.py` for the fail-open defaults,
-`unicode_smuggle_check.py` for instructions hidden in invisible characters.
+non-zero: `slop_check.py` for machine-writing tells,
+`unicode_smuggle_check.py` for instructions hidden in invisible characters,
+and each archived domain skill carries its own checker with it
+(`docker_check.py`, `django_check.py`, `dbt_audit.py`).
 Judgment stays in the prose, where it belongs.
 
 **Dates, or it did not happen.** `ai-engineering` keeps one row per source in a
@@ -240,6 +243,7 @@ more than the pause that would have prevented it.
 ~/.agents/
   skills/             # one directory per skill, each with a SKILL.md
     <skill-name>/SKILL.md
+  skills-archive/     # retired-but-kept skills; not synced, restore with git mv
   agents/             # one .md per subagent (YAML frontmatter + system prompt)
   commands/           # one .md per slash command
   sync-skills.sh      # assembles ~/.claude/{skills,agents,commands} as a per-device view
@@ -268,25 +272,17 @@ description is its trigger contract and its body is the workflow.
 |---|---|
 | `agent-cc-configs-sync` | Seed or reconcile a device's Claude Code station against `specs/claude-code/` |
 | `agent-mail` | Templated markdown messaging between agents via `inbox/` folders |
-| `ai-engineering` | Choosing an AI/agent stack, and the state of a given tool, from a dated catalog |
-| `ai-agent-project-scaffold` | Intake-driven scaffolding of an AI project or subsystem |
-| `ai-engineering-update` | The write path for that catalog: discover, verify, record |
+| `ai-engineering` | AI/agent stack knowledge in three modes: read (choose from a dated catalog), write (discover, verify, record), build (intake-driven scaffolding) |
 | `ai-slop-magic-eraser` | Strips machine-writing tells from prose, then corrects what was invented |
 | `cmon` | Restates the last verbose reply in as few words as possible, then holds that register |
 | `cover-me` | Spawns the `supervisor` peer to scrutinize in-flight work |
-| `data-engineering` | Building and running a data platform: ingestion, dbt, cost, deployment |
 | `deep-research` | Multi-angle web research: parallel researchers, cross-validated, cited |
-| `dimensional-data-modeling` | Kimball star schemas: grain, conformed dimensions, SCDs, bus matrix |
-| `django` | Build, operate and harden Django and DRF |
-| `docker` | Scaffold, operate and harden containers |
 | `frontend-aesthetics` | Raise UI past the defaults that read as AI slop |
 | `hi` | Session-start orientation, read-only |
 | `meta-loop` | Orchestration: plan, fan out, verify, synthesize |
 | `my-security-review-checklist` | Pre-merge security gate for agent tooling |
-| `machine-learning` | Model building, shipping and operating, plus a static AST auditor for training code |
 | `code-kg` | Offline symbol-level knowledge graph over a codebase: imports, entry points, framework-aware liveness, agent-tooling layer, data-store inventory, coverage join |
 | `notes` | End-of-session documentation sweep into the living docs |
-| `o-o-d-a-loop` | Thought partner for a live decision under uncertainty |
 | `obsidian` | Obsidian markdown standard plus a per-vault authoring workflow |
 | `obsidian-kg` | Offline section-level knowledge graph over a markdown corpus |
 | `project-knowledge-vault` | Seeds and lints a flat, OKF-compatible project vault: the contract, a scaffolder, a conformance linter and obsidian-kg profile rows |
@@ -294,7 +290,6 @@ description is its trigger contract and its body is the workflow.
 | `repo-device-sync` | Multi-device git sync ritual |
 | `skill-authoring` | House profile for authoring and auditing agent tooling |
 | `sprint-board` | Plans, writes and audits agile backlogs as markdown |
-| `statistics` | Inference layer: intervals, tests, thresholds, risk; calculator plus analysis auditor |
 | `teach-me` | Teaches a topic and certifies understanding |
 | `wrap-up` | Full session closeout: reflect, then notes, then commit and sync |
 
@@ -518,8 +513,9 @@ removed, and everything is recoverable from git history.
   its knowledge lives in **data** - `resources/catalog.tsv` (source of truth, one row
   per URL), `rules.tsv` (domain->section auto-classify), `seed-sections.tsv`
   (repo->section). `resources/link-ledger.md` is **generated** by `ledger.py render` -
-  never hand-edit it. Teaching a new category is a data edit. The
-  `ai-engineering-update` skill owns the discovery+freshness loop around this engine.
+  never hand-edit it. Teaching a new category is a data edit. The skill's write
+  mode (`references/corpus-update.md`) owns the discovery+freshness loop around
+  this engine.
 - `.DS_Store` is git-ignored. `__archive*/` is also git-ignored - it holds
   non-destructive archive copies of retired root docs (soft-deletion; never
   hard-delete).

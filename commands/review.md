@@ -1,5 +1,6 @@
 ---
 description: Conduct a five-axis code review - correctness, readability, architecture, security, performance. Defers to agent-skills code-review-and-quality when that plugin is installed.
+disable-model-invocation: true
 ---
 
 Review the change before it merges. Scope to the diff named in the request, or

@@ -1,5 +1,6 @@
 ---
 description: Start spec-driven development - write a structured specification before writing code. Defers to agent-skills spec-driven-development when that plugin is installed.
+disable-model-invocation: true
 ---
 
 Write the spec before any implementation. It states what is being built and why,

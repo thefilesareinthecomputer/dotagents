@@ -137,7 +137,7 @@ strangers. Treat any such change as **Critical** until proven otherwise.
       no "just for this test" (`SPEC.md` invariant 5).
 - [ ] **No port published to a non-loopback interface** in compose or run
       commands: `"8000:8000"` binds all interfaces, `"127.0.0.1:8000:8000"` does
-      not. The `docker` skill's `docker_check.py` covers the container case.
+      not. `docker_check.py` (in the archived `docker` skill) covers the container case.
 - [ ] **No tunnel or relay that republishes a local service** (ngrok, cloudflared,
       `--tunnel`, LAN sharing toggles) without an explicit, recorded decision and
       authentication in front of it.

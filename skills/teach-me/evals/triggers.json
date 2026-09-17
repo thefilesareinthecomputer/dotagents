@@ -49,5 +49,5 @@
 
   {"name": "decision-not-learning", "should_trigger": false,
    "query": "I understand both approaches well enough. I need to pick one by Friday.",
-   "why": "A live decision the user owns belongs to o-o-d-a-loop. Understanding is stated as already sufficient, so there is nothing to certify."}
+   "why": "A live decision the user owns, not a learning request. Understanding is stated as already sufficient, so there is nothing to certify."}
 ]

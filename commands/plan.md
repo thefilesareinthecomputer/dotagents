@@ -1,5 +1,6 @@
 ---
 description: Break work into small verifiable tasks with acceptance criteria and dependency ordering. Defers to agent-skills planning-and-task-breakdown when that plugin is installed.
+disable-model-invocation: true
 ---
 
 Plan the scope named in the request. State your assumptions before planning, and

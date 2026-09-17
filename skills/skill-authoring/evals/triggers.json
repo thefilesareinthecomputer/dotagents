@@ -37,11 +37,11 @@
 
   {"name": "using-a-skill", "should_trigger": false,
    "query": "Use the statistics skill on this A/B test result and tell me if the difference is real.",
-   "why": "Invoking a skill, not authoring one. Belongs to statistics; this skill owns the file, never the subject matter inside it."},
+   "why": "Invoking a skill, not authoring one. The request is subject-matter use, and this skill owns the file, never the subject matter inside it."},
 
   {"name": "reading-a-skills-content", "should_trigger": false,
    "query": "What does the machine-learning skill say about handling class imbalance?",
-   "why": "A question answered by the skill's content. Belongs to machine-learning. Naming a skill file is not an authoring request."},
+   "why": "A question answered by the named skill's own content. Naming a skill file is not an authoring request."},
 
   {"name": "general-coding", "should_trigger": false,
    "query": "Refactor this Python function so it takes a config object instead of six positional arguments.",

@@ -1,7 +1,7 @@
 [
   {"name": "options-for-a-vector-store", "should_trigger": true,
    "query": "We need a vector store for about two million chunks and we're OSS-only. What are my options?",
-   "why": "The canonical options question. The skill surveys the retrieval layer of the bundled map with the OSS framing before recommending one path, and nothing is being built yet."},
+   "why": "The canonical read-path options question. The skill surveys the retrieval layer of the bundled map with the OSS framing before recommending one path, and nothing is being built yet."},
 
   {"name": "is-it-still-maintained", "should_trigger": true,
    "query": "Is LangGraph still actively maintained, or has that project gone quiet?",
@@ -9,43 +9,43 @@
 
   {"name": "what-does-this-license-oblige", "should_trigger": true,
    "query": "If we ship a commercial product on top of that AGPL vector database, what does the license actually oblige us to do?",
-   "why": "License judgment on a catalogued component. License traps are one of the four things this skill owns, and the answer comes from the corpus row, not recall."},
+   "why": "License judgment on a catalogued component. License traps are one of the things the read path owns, and the answer comes from the corpus row, not recall."},
 
   {"name": "review-a-proposed-architecture", "should_trigger": true,
    "query": "Here's the design for our support copilot: every user turn re-embeds the whole conversation and fans out to three separate indexes. Does that hold up?",
    "why": "Architecture review against the engineering principles. No new components are being chosen and no repo is being generated, so it stays on the read path."},
 
-  {"name": "what-does-this-tool-buy-me", "should_trigger": true,
-   "query": "What does a dedicated agent memory framework actually give me over writing conversation summaries to Postgres myself?",
-   "why": "Component judgment - what a tool is for, what it costs to adopt, where it breaks. The honest answer may be that the simpler path wins."},
+  {"name": "log-what-broke", "should_trigger": true,
+   "query": "Note that the install for that vector DB fails on Python 3.13 - we hit it twice today.",
+   "why": "Write mode's RECORD job. First-hand experience with a catalogued tool, with the version condition that makes the note falsifiable rather than an opinion."},
 
-  {"name": "orienting-with-no-project", "should_trigger": true,
-   "query": "What's the current state of open-source agent harnesses? I don't have a project yet, I'm just orienting.",
-   "why": "Currency plus options with build intent explicitly disclaimed. The contrast case that keeps the scaffold skill from absorbing every AI question."},
+  {"name": "discover-new-tools", "should_trigger": true,
+   "query": "Any new agent frameworks worth adding? Give the tooling catalog a refresh pass.",
+   "why": "Write mode's DISCOVER job: scan the seed sources, confirm each candidate, then dedupe-ingest through ledger.py rather than pasting links in by hand."},
 
-  {"name": "build-me-an-agent", "should_trigger": false,
-   "query": "Build me an agent that triages our inbound support email and drafts replies.",
-   "why": "Belongs to ai-agent-project-scaffold. Any build-me-an-agent request goes through intake there, even if intake concludes a plain script suffices."},
+  {"name": "check-for-staleness", "should_trigger": true,
+   "query": "Check the AI catalog for staleness - which entries haven't been verified in the last three months?",
+   "why": "Write mode's VERIFY job on both axes: liveness probing that URLs still resolve, and the more valuable claims queue on map rows whose assertions are unverified."},
 
-  {"name": "add-ai-to-an-existing-app", "should_trigger": false,
-   "query": "We have a Django app already. Add a chat assistant to it that answers from our help center articles.",
-   "why": "Belongs to ai-agent-project-scaffold, which explicitly covers adding an AI subsystem to an existing repo. Advising on components stays here; building one does not."},
+  {"name": "documented-flag-does-not-exist", "should_trigger": true,
+   "query": "That flag the docs told us to pass doesn't exist in the current release. Second time this week their docs have been wrong.",
+   "why": "The hardest write-mode positive: no maintenance pass was asked for and there is no explicit request at all, but a tool in the corpus was used and something was learned, which is exactly when a note gets recorded."},
 
-  {"name": "stack-for-a-committed-build", "should_trigger": false,
+  {"name": "build-me-an-agent", "should_trigger": true,
+   "query": "Build me an agent that watches our contracts folder and summarizes anything new that lands in it.",
+   "why": "Build mode's core request. Intake runs first, the stack is committed slot by slot, and the run may rightly conclude that a scheduled script beats an agent."},
+
+  {"name": "add-an-ai-feature-to-an-existing-app", "should_trigger": true,
+   "query": "Add an AI feature to our Rails app that suggests tags for each post as the author writes it.",
+   "why": "Adding an AI subsystem to an existing repo is build mode's job. The existing footprint becomes an intake constraint rather than a reason to skip intake."},
+
+  {"name": "stack-for-a-committed-build", "should_trigger": true,
    "query": "We've committed to building a document-extraction service this quarter. Which stack should we use?",
-   "why": "Belongs to ai-agent-project-scaffold. The hardest case on this seam: it reads like an options question, but there is a specific system being built, so it needs intake and a committed stack with every slot filled."},
-
-  {"name": "record-what-broke", "should_trigger": false,
-   "query": "Note that Chroma fell over above fifty thousand documents for us on the 0.5 line. I want that written down.",
-   "why": "Belongs to ai-engineering-update, which owns field notes and every data file under resources/."},
-
-  {"name": "refresh-the-catalog", "should_trigger": false,
-   "query": "Refresh the AI tooling catalog - I think a chunk of those entries is a year out of date.",
-   "why": "Belongs to ai-engineering-update. This skill reads the corpus; the update skill is the only write path into it."},
+   "why": "The hardest build-mode positive. It is phrased like a read-path options question, but a specific system is being built, so it needs intake and a committed stack rather than a survey of options."},
 
   {"name": "research-a-tool-from-scratch", "should_trigger": false,
    "query": "Research the state of open-weight embedding models thoroughly and come back with sources and dates.",
-   "why": "Belongs to deep-research. The subject is AI tooling, but the request is for multi-angle verified web research, which this skill delegates rather than performs; folding the result in afterward goes to ai-engineering-update."},
+   "why": "Belongs to deep-research. The subject is AI tooling, but the request is for multi-angle verified web research, which this skill delegates rather than performs; folding the result in afterward goes to write mode."},
 
   {"name": "concurrency-bug-with-an-llm-in-it", "should_trigger": false,
    "query": "Our FastAPI endpoint that calls the LLM times out under load. How do I fix the concurrency?",
@@ -53,5 +53,17 @@
 
   {"name": "write-an-mcp-server", "should_trigger": false,
    "query": "Write an MCP server that exposes our internal ticketing API.",
-   "why": "Belongs to build-mcp-server. This skill can say which MCP servers fit a stack, but MCP scaffolding is never hand-rolled here."}
+   "why": "Belongs to build-mcp-server. This skill can say which MCP servers fit a stack, but MCP scaffolding is never hand-rolled here."},
+
+  {"name": "scaffold-a-plain-web-app", "should_trigger": false,
+   "query": "Scaffold a new Next.js dashboard for our internal metrics.",
+   "why": "General application work with no AI subsystem, so it routes to agent-skills. Guards against firing on the word scaffold alone."},
+
+  {"name": "update-a-project-readme", "should_trigger": false,
+   "query": "Update our README to describe the new agent module we added.",
+   "why": "Ordinary documentation work in the user's own project, which goes to agent-skills. Write mode only ever touches the shared tooling corpus under resources/, so this guards against firing on the verb update near the word agent."},
+
+  {"name": "refresh-a-data-catalog", "should_trigger": false,
+   "query": "Our data catalog has stale table descriptions. Can we refresh them?",
+   "why": "A warehouse metadata chore, not the AI tooling corpus. Shares the words catalog, stale and refresh with write mode and shares nothing else."}
 ]
