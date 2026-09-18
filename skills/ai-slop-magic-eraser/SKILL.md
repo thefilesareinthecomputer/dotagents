@@ -6,9 +6,9 @@ license: MIT
 
 # ai-slop-magic-eraser
 
-Model prose fails in a predictable way. It does not make mistakes so much as
-make **the average**: the most likely phrasing, the most balanced structure, the
-most agreeable tone. The result reads fluent and says less than it appears to.
+Model prose fails in a predictable way: it averages. The most likely phrasing,
+the most balanced structure, the most agreeable tone - fluent text that says
+less than it appears to.
 
 This skill runs two passes that must not be conflated:
 
@@ -23,17 +23,16 @@ content gets quietly deleted under cover of "tightening".
 
 ## The invariant
 
-**A deletion that removes information is a bug, not a cleanup.**
+**A deletion that removes information is a bug.**
 
-Every cut in pass 1 must be justifiable as "the same claim, fewer words". If you
-cannot restate the removed text's content in what remains, you have not
-de-slopped it, you have lost it. When in doubt, keep the fact and cut the
-framing around it.
+Every cut in pass 1 must be justifiable as "the same claim, fewer words". If the
+removed text's content cannot be restated from what remains, the cut deleted
+information. When in doubt, keep the fact and cut the framing around it.
 
-Four corollaries, all learned the expensive way:
+Four corollaries:
 
 - **Do not neuter real warnings.** A plain statement of a genuine hazard is good
-  writing. The target is the reaching-for-effect version, never the warning.
+  writing. Rewrite the reaching-for-effect version and leave the warning itself.
 - **Do not flatten deliberate repetition.** Some duplication is a designed
   redundancy with a stated owner. Check before removing it.
 - **Do not turn a conditional claim into a universal.** Cutting a qualifier is a
@@ -41,7 +40,7 @@ Four corollaries, all learned the expensive way:
 - **Do not cut the takeaway, the attribution, or the orientation.** The
   practical implication of the facts, whose work a component is, and where a
   decision sits in its trajectory are content. Raw facts left to imply their
-  conclusion are less finished, not more rigorous.
+  own conclusion are an unfinished document.
 
 ## The over-correction
 
@@ -49,30 +48,28 @@ This pass has its own signature failure, and it is worse than the bloat it
 replaces. Strip the hedges, cut the filler, tighten every sentence, and the
 prose collapses into clipped declaratives and aphorisms: a hardboiled narrator
 explaining a data pipeline. Verbless fragments, two-word imperatives, blanket
-"never" directives and sentences built for the callback are not concision. They
-are a costume, and the reader hears someone performing authority rather than
-explaining a system.
+"never" directives and sentences built for the callback read as someone
+performing authority rather than explaining a system.
 
-The costume has a second layer: invention. A tightening pass coins a novel
-phrase where the industry or the team already has a word, builds a sentence
-around a clever inversion, or ships a precise-sounding figure that informs no
-decision as evidence of rigor. Each of these reads as craft and costs the
-reader a translation. **If a standing term exists, it wins; if a figure changes
-nothing the reader does, it goes.** The test for any phrase: would a teammate
-say it in a standup without explaining it?
+A tightening pass also invents. It coins a novel phrase where the industry or
+the team already has a word, builds a sentence around a clever inversion, or
+ships a precise-sounding figure that informs no decision. Each of these reads
+as craft and costs the reader a translation. If a standing term exists, use it;
+if a figure changes nothing the reader does, cut it. The test for any phrase:
+would a teammate say it in a standup without explaining it?
 
 **The target is regular professional prose**, in the voice of a senior engineer
 explaining a system to a colleague who has to go and do the work. Full
 sentences. A block opens with the finding, walks the mechanism in the order it
-happens, and ends at the action; emphasis comes from that ordering, not from a
-bolded thesis sentence or a constructed contrast. Confidence is set per
+happens, and ends at the action; emphasis comes from that ordering rather than
+from a bolded thesis sentence or a constructed contrast. Confidence is set per
 sentence: verified flat, real uncertainty marked, a call the reader owns offered
 as options with a lean. If the person whose name is on the document would have
 to re-word paragraphs rather than fact-check them, the pass failed.
 
-Terse is a setting for chat replies. It is not a prose style. Applying it to a
-shipped document is the most common route into this failure. The full catalog is
-`references/tells.md` § Over-corrected register, which covers register by
+Terse is a register for chat replies, and applying it to a shipped document is
+the most common route into this failure. The full catalog is
+`references/tells.md` section "Over-corrected register", which covers register by
 audience, "we" over "you", headings that locate rather than argue, emphasis by
 ordering rather than typography, calibrated confidence, plain vocabulary,
 coined phrasing, performative precision, what over-cutting deletes, and keeping
@@ -89,7 +86,7 @@ Recognize one by asking what the sentence would be if lifted out. If the answer
 is an audit finding, a defect report, meeting minutes, a status update or an
 opinion about who should own something, it is a landmine.
 
-Four costs. The document outlives the conversation and reaches people who were
+It carries four costs. The document outlives the conversation and reaches people who were
 not in the room, including whoever built the thing being criticized. It is not
 what the document is for. It recasts the author from helper to auditor, a role
 nobody agreed to. And a defect buried mid-document has no owner and no decision
@@ -99,13 +96,12 @@ path, so it changes nothing while costing goodwill.
 bite the reader during the task at hand, allow one sentence inside that
 procedure: the behavior and the workaround, no heading, no verdict, no
 attribution of blame. A defect that matters more than that is worth routing
-properly, to a risk register, an ADR, a findings memo, or a conversation with a
+to a risk register, an ADR, a findings memo, or a conversation with a
 named owner.
 
-Related and equally juvenile: the **horror-story register**, where ordinary
-mechanics get narrated for dread. Cause and effect stated once is documentation.
-Cause and effect narrated for effect is a horror story. Both are catalogued in
-`references/tells.md`.
+Related: the **horror-story register**, where ordinary mechanics get narrated
+for dread. Stating cause and effect once is documentation; narrating it for
+effect is the tell. Both are catalogued in `references/tells.md`.
 
 ## Pass 1: de-slop
 
@@ -161,12 +157,12 @@ explaining the code. A scope statement is content and stays: what is covered and
 what is not, stated once, without referring to the document as an object.
 
 **3. Hedging, and only hedging.** A hedge shipped in place of a fact is the
-worst case: it reads as caution and conveys nothing. Three outcomes per claim,
-no fourth. Verified goes in flat. Unverified is cut entirely, with no
+worst case: it reads as caution and conveys nothing. Every claim gets one of
+three outcomes. Verified goes in flat. Unverified is cut entirely, with no
 placeholder. Out of scope is covered by the scope statement. **Confirmed absence
-is a fact**: "there is no rollback procedure" is a resolved sentence, not a gap,
-though it belongs inside the procedure it affects rather than in a section of
-its own.
+is a fact**: "there is no rollback procedure" is a resolved sentence rather
+than a gap, though it belongs inside the procedure it affects and never in a
+section of its own.
 
 **Calibration is not hedging.** Filler qualifies the act of saying ("it's worth
 noting that", "generally speaking"). Calibration qualifies the claim ("*when the
@@ -207,8 +203,8 @@ Now that the prose is legible, the errors are visible. Look for:
 **Confabulated negatives, the highest-risk class.** "X has no Y", "the only way
 is", "you can't". A negative needs only absence of recall, which is
 indistinguishable from evidence of absence, so it arrives at full confidence and
-no uncertainty-triggered rule can fire on it. **Trigger on sentence shape, not
-on felt doubt.** Every capability negative gets verified or rewritten in
+no uncertainty-triggered rule can fire on it. **Trigger on sentence shape
+rather than on felt doubt.** Every capability negative gets verified or rewritten in
 memory-form with its epistemic status leading.
 
 **Invented specifics.** APIs, flags, parameters, file paths, function names,
@@ -230,7 +226,7 @@ fourth item because three felt short.
 manual step described as automated, one of two candidate designs presented as
 decided. Rewrite to what runs today, with open decisions marked open inline
 ("option A OR option B - TBD") and the author's lean stated as a lean. In a
-draft decision document that is the correct register, not a weakness.
+draft decision document that is the correct register.
 
 **Undated claims about moving targets.** Product capabilities, pricing, version
 support. Date them or cut them.
@@ -260,4 +256,4 @@ Lead with what changed in meaning, because that is the part needing review:
 4. **Anything unverifiable** - claims that could not be checked, and what would
    settle each.
 
-Do not report the polish line by line. Report the corrections line by line.
+Report the corrections line by line and the polish only as category counts.
