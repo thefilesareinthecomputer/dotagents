@@ -1,6 +1,6 @@
 ---
 name: agent-stack-map
-description: Opinionated, comparison-table map of the modern OSS agent stack - frameworks, harnesses, memory, retrieval/context, skills, ingestion, tuning/RL, self-improvement, and the NVIDIA NeMo stack - with recommended architectures and a current shortlist. The analytical core of the ai-engineering skill.
+description: Opinionated, comparison-table map of the modern OSS agent stack - frameworks, harnesses, memory, retrieval/context, skills, ingestion, tuning/RL, self-improvement, the NVIDIA NeMo stack, and media production (local speech and podcast pipelines) - with recommended architectures and a current shortlist. The analytical core of the ai-engineering skill.
 updated: 2026-07-29
 ---
 
@@ -640,6 +640,138 @@ ceiling is a governance control, not an accounting nicety, and no entrant here s
 
 ---
 
+## Section L - Media production: local speech and podcast pipelines (researched 2026-09-18)
+
+The "documents to two-host audio" system is four stages: ingest, ground, write,
+render. Every published reference architecture has the same shape; they differ in
+who writes the dialogue and what renders it.
+
+| Reference | Write stage | Render stage | What transfers | Link |
+|---|---|---|---|---|
+| NotebookLM Audio Overviews (Google) | undocumented | one audio model, up to 2 min multi-speaker per pass, disfluencies trained in | the render target: dialogue as one pass, not stitched turns | [DeepMind 2024-10-30](https://deepmind.google/blog/pushing-the-frontiers-of-audio-generation/) |
+| NVIDIA pdf-to-podcast | outline, then segments, then transcript per segment in parallel, then stitch | ElevenLabs | the outline-first decomposition; monologue and dialogue as separate workflows | [repo](https://github.com/NVIDIA-AI-Blueprints/pdf-to-podcast) |
+| PodAgent (ACL 2025) | Host, Guest and Writer agents interact, then a script is derived | CosyVoice with per-line style instructions | profiled hosts interacting beats one model writing the dialogue straight (measured) | [paper](https://aclanthology.org/2025.findings-acl.1226/) |
+| MOSS-TTSD (2026-03) | n/a | one model, 1 to 5 speakers, 60 min single pass, cloning | the three dialogue-TTS failure modes: turn-taking, cross-turn consistency, long-form stability | [repo](https://github.com/OpenMOSS/MOSS-TTSD) |
+| Open Notebook / podcast-creator | LangGraph nodes: `generate_outline` then `generate_transcript`, both written to disk as JSON before any audio | per-speaker TTS clips in batches of 5, then concatenated | the episode-profile versus speaker-profile split, and the outline as an inspectable artifact | [repo](https://github.com/lfnovo/podcast-creator) |
+| Podcastfy | one LLM pass per content chunk, prior transcript resent as context | provider TTS per turn, pydub concatenation with no gap inserted | length controlled by chunk count rather than word count; named sections as one config line | [repo](https://github.com/souzatharsis/podcastfy) |
+
+### What the published pipelines teach (verified 2026-09-18)
+
+**Outline first, then prose.** Every system that measured itself against a single
+pass writes an outline as a separate step. PodAgent's Host-agent produces guest
+profiles plus an interview outline of five sub-questions, and the Guest-agents
+answer that same outline in parallel rather than taking turns, so turn order is
+decided at the later Writer pass instead of during generation ([arXiv
+2503.00455](https://arxiv.org/abs/2503.00455), 2025-03-01). podcast-creator runs
+`generate_outline` and `generate_transcript` as distinct LangGraph nodes and writes
+`outline.json` before the script exists ([repo](https://github.com/lfnovo/podcast-creator),
+read 2026-09-18).
+
+**The writer pass is one instruction.** PodAgent's Writer-agent compiles the
+parallel answers into one script, "eliminating redundancy while preserving the
+distinct viewpoints". That instruction is what separates the pipeline that won
+from the single-pass GPT-4 baseline it beat on information density (+0.558 to
++0.707) and on LLM-judge overall score (+1.4 to +1.75) ([arXiv 2503.00455](https://arxiv.org/abs/2503.00455)).
+
+**Models ignore word counts, so control the number of passes.** Podcastfy had a
+`word_count` field and removed it in v0.3.6 (2024-11-13) when chunked longform
+landed; length is now `max_num_chunks` (default 7) and `min_chunk_size` (default
+600 characters) ([usage docs](https://github.com/souzatharsis/podcastfy/blob/main/usage/how-to.md),
+read 2026-09-18). NotebookLM ships Shorter / Default / Longer presets and publishes
+no duration behind them ([help page](https://support.google.com/notebooklm/answer/16212820),
+read 2026-09-18). Open Notebook uses `num_segments` (default 5, range 3-20) plus a
+target length stated in prose. No shipped system accepts a target duration.
+
+**Named sections are the cheapest structural lever.** Podcastfy's
+`dialogue_structure` is a list of section names the model must follow, defaulting
+to `["Introduction","Main Content Summary","Conclusion"]`. Replacing that one line
+with `["Opening Statements","Rebuttals","Closing Remarks"]` converts the episode
+into a debate, and the project ships exactly that as a worked config
+([conversation_custom.md](https://github.com/souzatharsis/podcastfy/blob/main/usage/conversation_custom.md),
+read 2026-09-18).
+
+**Under-specify the personas.** NotebookLM's hosts carry no names and no heavy
+character description, and are instructed not to say their names; disagreement is
+tuned in deliberately, because two hosts who always agree are not interesting to
+listen to ([Latent Space interview with the NotebookLM team](https://www.latent.space/p/notebooklm),
+2024-10-25).
+
+**Disfluency belongs to the render stage.** A banter pass over a sterile script is
+a documented stage in NotebookLM, but the micro-interjections, overlaps and pauses
+themselves are not in the transcript: they come from the audio model, which
+generates up to two minutes of multi-speaker dialogue per pass with overlapping
+speech and trained-in disfluencies ([Latent Space](https://www.latent.space/p/notebooklm),
+2024-10-25; [DeepMind](https://deepmind.google/blog/pushing-the-frontiers-of-audio-generation/),
+2024-10-30). A per-turn render with a constant gap cannot reproduce them, so
+writing stage directions into a stitched script is the wrong layer.
+
+**Script quality is measurable without a reference text.** PodAgent's automatic
+metrics need no gold script: Distinct-N normalized over a 100-token sliding window,
+MATTR (mean type-token ratio over a sliding window), Semantic-Div (cosine distance
+between BERT embeddings of segments) and information density as Shannon entropy.
+Its LLM-judge rubric scores coherence, engagingness, diversity, informativeness and
+speaker-diversity on a -3 to +3 comparative scale ([arXiv 2503.00455](https://arxiv.org/abs/2503.00455)).
+These run over any script file, which is what makes a slop gate falsifiable rather
+than a matter of taste.
+
+**Two profiles, not one config blob.** Open Notebook separates an episode profile
+(speaker-config reference, outline model, transcript model, default briefing,
+`num_segments`, language) from a speaker profile (`tts_provider`, `tts_model`, and
+per speaker a name, `voice_id`, backstory and personality). Unset per-speaker
+fields fall back to the profile level, with one exception: a per-speaker
+`tts_config` **replaces** the profile-level config entirely rather than merging
+([podcast-creator README](https://github.com/lfnovo/podcast-creator), read
+2026-09-18). A cascade where one key replaces while its siblings merge is a trap
+worth designing out of a new config surface.
+
+**Ingestion in the shipped systems.** Open Notebook delegates extraction to
+content-core, with Docling as the default engine and a lightweight path of pypdf
+for PDFs and trafilatura for web pages; image types route through Docling OCR,
+which is significantly slower and needs an extra ([content support](https://www.open-notebook.ai/features/content-support)
+and [issue 1104](https://github.com/lfnovo/open-notebook/issues/1104), read
+2026-09-18).
+
+**Podcastfy's failure modes are the ones to design against.** Longform resends the
+whole prior transcript with every chunk, so token cost grows quadratically with
+episode length. Transcripts above 4096 characters fail against OpenAI TTS; the
+issue is open and the proposed fix is chunk-then-stitch before synthesis
+([issue 19](https://github.com/souzatharsis/podcastfy/issues/19), read 2026-09-18).
+Speaker tags are recovered from free text by regex, and a malformed tag silently
+drops the turn instead of raising. The quadratic-token and silent-drop points come
+from a third-party audit of version 0.4.1 rather than from upstream, so treat them
+as reported rather than confirmed.
+
+**Stance.** No agent framework is warranted for the write stage. Two persona
+contexts alternating turns over one loaded model, with a reusable prompt cache, is
+a few dozen lines on mlx-lm or any chat API; CrewAI-class orchestration adds a
+dependency and an LLM abstraction that does not speak local runtimes natively, for
+a loop that has no branching. Ground by context-stuffing until the corpus outgrows
+the window (262K on Gemma 4 and Qwen3.8), then add sqlite-vec or LanceDB, both
+Apache-2.0. Avoid mlx-embeddings (GPLv3 per PyPI 0.1.0, 2026-03-24) and pymupdf4llm
+(AGPL) in a repo that may go public.
+
+| Layer | Pick on Apple Silicon | License | Verified |
+|---|---|---|---|
+| Ingest | Docling for layout, pypdf when text is enough, trafilatura for HTML | MIT, BSD-3, Apache-2.0 | 2026-09-18 |
+| Write | [mlx-lm](https://github.com/ml-explore/mlx-lm) v0.31.3 (2026-04-22), documented reusable prompt cache for multi-turn; 4-bit Qwen3.8-27B loads text-only under stock mlx-lm, Gemma 4 31B mlx-community repos are mlx-vlm conversions | MIT | 2026-09-18 |
+| Render | [mlx-audio](https://github.com/Blaizzy/mlx-audio) v0.5.4 (2026-09-14); Kokoro for speed, MOSS-TTSD for Apache-licensed multi-speaker with cloning, Higgs for quality under a non-Apache weight license | MIT runtime, see catalog for weights | 2026-09-18 |
+| Whole app | none runs on MLX; Open Notebook (MIT) and SurfSense (custom license) are Docker web apps around Ollama and replace a pipeline rather than extend one | | 2026-09-18 |
+
+Measured on mlx-audio on 2026-09-18 (Apple Silicon, 64GB, one two-host script):
+Higgs Audio v2 3B q8 renders at RTF 0.35 warm, Kokoro 82M at RTF 0.066 on the same
+input, so Kokoro is roughly five times faster. The MLX buffer cache is uncapped by
+default and reached 50GB of resident memory on that 3B model during a single
+render; `mx.set_cache_limit` bounds it and should be set before any long render on
+a shared-memory machine. Details in [`field-notes.md`](field-notes.md).
+
+Ollama v0.19 (2026-03-30) moved Apple Silicon inference to an MLX backend for
+safetensors models, so the old speed argument for choosing Ollama over mlx-lm is
+gone; the remaining difference is a server versus a library. No published benchmark
+ranks open models on two-host dialogue writing; EQ-Bench's creative and longform
+boards are the nearest proxy and are judge-scored.
+
+---
+
 ## Recommended architectures by use case
 
 ### 1) Fastest path to a serious OSS agent stack
@@ -714,6 +846,12 @@ control plane, composable with local storage/memory/graph, and friendly to
 - **Nemotron 3** - the family licence is **not uniform**: Nano and Super under the NVIDIA Open Model License, Ultra announced under OpenMDW-1.1. Check the individual model card (verified 2026-07-28).
 - **NeMo Agent Toolkit** - renamed twice (`agentiq`→`aiqtoolkit`→`nvidia-nat`) with all compatibility shims deleted, and breaking changes ship in minor releases. Pin the version; treat any pre-2026 tutorial as stale (verified 2026-07-28).
 - **NeMo-Aligner** - unmaintained since 2025-05-15; superseded by NeMo RL. Do not start new work on it (verified 2026-07-28).
+- **Higgs Audio weights** - repo code is Apache-2.0 but v2 weights are under a Llama-3-derived community license and v3 weights are research and non-commercial with a creator grant. Read the HF LICENSE file, not the repo badge (verified 2026-09-18).
+- **pymupdf4llm** - AGPL-3.0 or Artifex commercial, and its PyMuPDF Layout dependency went AGPL at 1.28.2 (verified 2026-09-18).
+- **marker-pdf** - Apache-2.0 code, RAIL-M weights gated above USD 5M funding or revenue (verified 2026-09-18).
+- **MinerU** - Apache-2.0 plus MAU and revenue terms; the model card still says agpl-3.0 (verified 2026-09-18).
+- **mlx-embeddings** - GPLv3 per PyPI (verified 2026-09-18).
+- **SurfSense** - custom license with a proprietary subtree (verified 2026-09-18).
 
 ---
 

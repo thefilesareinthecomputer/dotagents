@@ -6,9 +6,9 @@ description: Full session closeout in one pass - clear the peer inbox, then refl
 # wrap-up
 
 ```
-fetch → inbox → reflect → notes → commit → security review → push → parity
-        (agent-mail) (memory) (docs)  (repo-device-sync)  (my-security-reviewer,
-                                                          over everything since the last push)
+fetch → inbox → reflect → notes → ignore audit → commit → security review → push → parity
+        (agent-mail) (memory) (docs)  (gitignore)   (repo-device-sync)  (my-security-reviewer,
+                                                                         over everything since the last push)
 ```
 
 The review runs once, after the commit and before the push, over every commit
@@ -73,7 +73,7 @@ tier.
 
 ```bash
 python3 "$HOME/.agents/skills/wrap-up/scripts/closeout_lint.py"   # exit 1 on FAIL
-python3 "$HOME/.claude/tools/settings_lint.py" "$(git rev-parse --show-toplevel)"   # permission rules: broad, inert, dead, machine-bound, duplicated
+[ -f "$HOME/.claude/tools/settings_lint.py" ] && python3 "$HOME/.claude/tools/settings_lint.py" "$(git rev-parse --show-toplevel)"   # permission rules, where the tool is seeded
 ```
 
 Fix findings first. Announce the tier and what decided it - and if the sweep lists
@@ -157,7 +157,26 @@ not run a separate root-doc pass here.
 file still over budget afterwards is live plan and the user's call - it does not
 block the commit.
 
-## Step 5 - Commit, review, reconcile, push
+## Step 5 - Ignore audit, commit, review, reconcile, push
+
+**Before staging anything**, check the tree against `.gitignore`:
+
+```bash
+python3 "$HOME/.agents/skills/wrap-up/scripts/gitignore_audit.py" audit   # exit 1 on findings
+```
+
+It lists every tracked or untracked path that looks ignore-worthy (env files,
+caches, build output, logs, local databases, OS and editor litter) and has no
+ignore rule, grouped by the pattern that would cover it, with paths new this
+session marked `[new]`. Put each pattern to the user as one question: add it or
+keep tracking. A keep that should not be asked again gets a `!path/` negation
+line in `.gitignore`; the audit skips anything under one, which is how test
+fixtures that ship a `node_modules/` stay quiet.
+For a yes, run `add` with the agreed patterns, and `git rm -r --cached` any
+`[tracked]` hit under it so the rule takes effect - name those paths, since the
+next push deletes them from every other clone. A `tracked but ignored` list is
+the same question for files a rule already names. Never add a rule or untrack a
+file without the answer.
 
 `repo-device-sync` from Phase 2 (Phase 1 ran in step 0). Its staged-set
 verification, one-commit default and pre-push re-fetch are not restated here.
@@ -170,7 +189,10 @@ The repo's recorded conventions decide it. Single branch: push it. Paired stable
 branch: push the working branch, advance the stable one **by refspec, never
 checkout**, end on the working branch. Feature branch: push that branch only.
 [references/branch-shapes.md](references/branch-shapes.md). Confirm with
-`git status -sb` and `git branch -vv`.
+`git status -sb` and `git branch -vv`; if the session left the tree checked
+out anywhere else - a mid-session detour that was never reverted - switch
+back to that branch before finishing, unless the user directed this session
+to end elsewhere.
 
 ## Report
 

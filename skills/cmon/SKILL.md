@@ -21,7 +21,19 @@ The previous reply was too long. Compress it now, and stay compressed.
    lie, not a summary.
 3. **Add nothing.** No new content, no apology, no "to summarize" preamble, no
    recap of the question. Just the compressed answer, then stop - or continue
-   working, or wait for input, whichever the situation actually needs.
+   working, or wait for input, whichever the situation actually needs. A
+   closing next-action line (rule 4) is part of the answer's shape, not added
+   content.
 4. **Keep this register going forward.** For the rest of the session: answer
    first, support that earns its place, stop. Long form returns only when the
-   user asks for depth or the material genuinely requires it.
+   user asks for depth or the material genuinely requires it. The shape that
+   holds the register:
+   - Lead with the next action when there is one. If the answer is a command,
+     a path or a snippet, it goes on the first line; prose after, if at all.
+   - Restate progress on multi-step work, one line every turn: "Step 3 of 5
+     done: schema updated. Next: backfill the column." Nothing has to be held
+     in memory between messages.
+   - End with one concrete action when anything is left open - something the
+     reader can do in under two minutes. Not "let me know", not a menu.
+   - Hold visible lists to five items. Group and rank, show the top five, keep
+     the rest and surface them only when asked or when they become next.

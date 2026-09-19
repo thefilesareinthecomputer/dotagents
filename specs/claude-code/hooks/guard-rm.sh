@@ -14,7 +14,12 @@
 # Routine low-blast removals (a single named file, no -r, no glob) PASS - the
 # guard targets the dangerous habit, not every rm. Companion to
 # block-env-files.sh / ask-before-claude-folder-edits.sh / deny-bash-file-writes.sh.
-# Requires jq + perl (both §2 station deps); fails open if absent.
+# Needs jq (payload parsing), perl (the shell-quote state machine) and python3
+# (the normpath climb check). A missing dependency denies the call instead of
+# allowing it; see _require.sh.
+
+. "$(dirname "$0")/_require.sh" 2>/dev/null || { printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"hook preamble missing: _require.sh. This guard cannot evaluate the call, so it refuses."}}\n'; exit 0; }
+require_deps jq perl python3
 
 input=$(cat)
 tool=$(printf '%s' "$input" | jq -r '.tool_name // ""')

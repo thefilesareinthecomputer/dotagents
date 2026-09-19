@@ -81,7 +81,8 @@ A catalog row carries pipe-separated section tags drawn from the vocabulary
 already in use: `frameworks`, `harnesses`, `memory`, `rag`, `vectordb`,
 `ingestion`, `skills`, `serving`, `models`, `tuning`, `eval`, `codeintel`,
 `security`, `frontend`, `learning`, `docs`, `papers`, `youtube`, `adjacent`,
-`deepwiki`, `triage`, `map`. Reuse a tag before inventing one.
+`deepwiki`, `triage`, `map`, `media` (added 2026-09-18: speech, audio and
+media-production models and pipelines). Reuse a tag before inventing one.
 
 Two tags carry meaning beyond categorization:
 

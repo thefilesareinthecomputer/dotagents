@@ -286,6 +286,12 @@ The principles each block enforces:
    policy; adjust freely. The `statusLine` and `subagentStatusLine` blocks
    point at the scripts seeded from §9; keep each block and its script
    together (both present or both dropped).
+10. **Updates are on-demand, not automatic** - `DISABLE_AUTOUPDATER=1` in
+    `env` turns off the background auto-updater; `claude update`/`claude
+    install <target>` stay available for a deliberate update. `autoUpdatesChannel`
+    is inert while the disable is set, but stays pinned to `stable` rather than
+    `latest` so a future removal of the disable defaults conservative instead
+    of reverting to the bleeding-edge channel.
 
 Template:
 
@@ -372,10 +378,11 @@ use. The canonical list and the honest per-tool header conventions live in
 
 ## 8. Hook scripts (`~/.claude/hooks/`)
 
-Seventeen wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
+Eighteen wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
 `guard-rm.sh`, `block-env-files.sh`), the `~/.claude`-edit prompt
 (`ask-before-claude-folder-edits.sh`), the SessionStart inbox check
-(`agent-mail-check.sh`), the large-file read advisory
+(`agent-mail-check.sh`), the reply-length nudge (`cmon_nudge.py`), the
+large-file read advisory
 (`read-size-advisory.sh`), the two memory-write guards
 (`memory-routing.sh` advisory-routing + `memory_lint.py` post-write lint),
 the chat-register pair (`no-meta-commentary.sh` pre-write +
@@ -389,9 +396,9 @@ instead), the two identifier guards (`reject_identifiers.py` pre-write,
 (`reject_published_copy_edits.py`, reading
 `published-copy-paths.example.txt`), and the two resource gates
 (`memory_pressure_gate.py`, `daemon_restart_storm.py`).
-Six are advisory/non-blocking (`read-size-advisory`,
-`memory-routing`, both `no-meta-commentary` sides, `memory_lint`'s
-judgment checks, and `reject_identifiers`);
+Seven are advisory/non-blocking (`read-size-advisory`,
+`cmon_nudge`, `memory-routing`, both `no-meta-commentary` sides,
+`memory_lint`'s judgment checks, and `reject_identifiers`);
 the rest can block.
 Two more scripts ship here unwired: `cover-me-nudge.sh` (the
 checkpoint-review nudge, retired from settings because it injected context
@@ -608,6 +615,25 @@ contract, counter reset, session isolation and the no-model-call check); run
 after any edit.
 
 Script: [`claude-code/hooks/cover-me-nudge.sh`](hooks/cover-me-nudge.sh).
+
+### `cmon_nudge.py`
+
+SessionStart (matcher `startup|resume`) and UserPromptSubmit - advisory only,
+never blocks. Keeps chat replies short by measurement rather than by standing
+instruction. At session start it injects one line saying cmon is enforced and
+naming the threshold, so the first long reply is less likely, not just the
+second. On every prompt it reads the model's previous main-thread turn from the
+transcript, counts words outside fenced code, and if the count is over
+`CMON_WORDS` (default 150) injects one line with the count and a pointer at the
+`cmon` rules. The model judges: compress, or carry on because the user asked
+for that length. Under the threshold it is silent, so a short session costs one
+line. Deliberately not a Stop hook: blocking at Stop would re-send the reply,
+which the user rejected as a waste of time; the nudge lands on the next reply
+instead. Fail-open on every path (missing transcript, malformed lines,
+sidechain rows, garbage stdin → silence, exit 0). Tests at
+`tests/station-hooks/test-cmon-nudge.py` (14 cases); run after any edit.
+
+Script: [`claude-code/hooks/cmon_nudge.py`](hooks/cmon_nudge.py).
 
 ### `memory-routing.sh`
 

@@ -10,6 +10,12 @@
 # If a command legitimately needs a program's own output on disk, the agent
 # must say so and the USER decides how to run it - the agent does not get a
 # dialog to approve its own bypass.
+#
+# Needs jq (payload parsing) and perl (the shell-quote state machine). A
+# missing dependency denies the call instead of allowing it; see _require.sh.
+
+. "$(dirname "$0")/_require.sh" 2>/dev/null || { printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"hook preamble missing: _require.sh. This guard cannot evaluate the call, so it refuses."}}\n'; exit 0; }
+require_deps jq perl
 
 input=$(cat)
 tool=$(printf '%s' "$input" | jq -r '.tool_name // ""')

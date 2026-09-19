@@ -42,4 +42,7 @@ git status -sb        # clean, and on the branch work belongs on
 git branch -vv        # every tracked branch in sync
 ```
 
-Confirm it rather than assuming it.
+Confirm it rather than assuming it. If the checkout landed anywhere else - a
+mid-session detour to inspect another branch, a stray `git checkout` that was
+never reverted - check back out to the branch this table names before
+finishing, unless the user asked this session to end somewhere else.

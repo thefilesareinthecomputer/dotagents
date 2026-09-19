@@ -1,5 +1,19 @@
 seq	date	url	kind	resolution	state
+48	2026-09-18	https://aclanthology.org/2025.findings-acl.1226	manual-override	'adjacent' -> 'papers|media'	hot
+53	2026-09-18	https://arxiv.org/abs/2307.14335	manual-override	'papers' -> 'papers|media'	hot
+54	2026-09-18	https://arxiv.org/abs/2408.09869	manual-override	'papers' -> 'papers|ingestion'	hot
+58	2026-09-18	https://arxiv.org/abs/2503.00455	manual-override	'papers' -> 'papers|media'	hot
+55	2026-09-18	https://arxiv.org/abs/2510.00485	manual-override	'papers' -> 'papers|media|eval'	hot
+56	2026-09-18	https://arxiv.org/abs/2510.08373	manual-override	'papers' -> 'papers|media'	hot
+57	2026-09-18	https://arxiv.org/abs/2510.23541	manual-override	'papers' -> 'papers|media'	hot
+44	2026-09-18	https://blaizzy.github.io/mlx-audio/models/tts	manual-override	'adjacent' -> 'docs|media'	hot
+59	2026-09-18	https://blog.google/innovation-and-ai/models-and-research/google-labs/notebooklm-audio-overviews-50-languages	manual-override	'learning' -> 'media|learning'	hot
+60	2026-09-18	https://blog.google/innovation-and-ai/models-and-research/google-labs/notebooklm-new-features-december-2024	manual-override	'learning' -> 'media|learning'	hot
+61	2026-09-18	https://blog.google/innovation-and-ai/products/notebooklm-update-october-2024	manual-override	'learning' -> 'media|learning'	hot
+46	2026-09-18	https://deepmind.google/blog/pushing-the-frontiers-of-audio-generation	manual-override	'adjacent' -> 'media|learning'	cold
+52	2026-09-18	https://deepmind.google/blog/pushing-the-frontiers-of-audio-generation	kept-manual	kept 'media|learning|map', auto said 'adjacent'	hot
 3	2026-07-27	https://docs.cloud.google.com/spanner/docs/graph/overview	manual-override	'docs|frameworks' -> 'docs|adjacent|map'	hot
+49	2026-09-18	https://eqbench.com/creative_writing.html	manual-override	'adjacent' -> 'eval'	hot
 43	2026-09-02	https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai	manual-override	'adjacent' -> 'security|docs'	hot
 37	2026-09-02	https://github.com/CaviraOSS/PageLM	manual-override	'triage' -> 'learning|adjacent'	hot
 2	2026-07-27	https://github.com/DeusData/codebase-memory-mcp	tag-union	'memory' + 'codeintel|memory' -> 'memory|codeintel'	hot
@@ -26,12 +40,18 @@ seq	date	url	kind	resolution	state
 39	2026-09-02	https://github.com/gridex/gridex	manual-override	'triage' -> 'adjacent'	hot
 28	2026-09-02	https://github.com/karpathy/llm-council	manual-override	'triage' -> 'frameworks|adjacent'	hot
 1	2026-07-01	https://github.com/langchain-ai/deepagents	tag-union	'frameworks' + 'frameworks|harnesses|map' -> 'frameworks|harnesses|map'	hot
+69	2026-09-18	https://github.com/lfnovo/open-notebook/blob/main/docs/2-CORE-CONCEPTS/podcasts-explained.md	manual-override	'media|rag|frontend' -> 'media|docs'	hot
+70	2026-09-18	https://github.com/lfnovo/open-notebook/blob/main/docs/3-USER-GUIDE/creating-podcasts.md	manual-override	'media|rag|frontend' -> 'media|docs'	hot
+71	2026-09-18	https://github.com/lfnovo/open-notebook/issues/1104	manual-override	'media|rag|frontend' -> 'media|ingestion'	hot
+72	2026-09-18	https://github.com/lfnovo/open-notebook/pull/1334	manual-override	'media|rag|frontend' -> 'media|learning'	hot
 33	2026-09-02	https://github.com/lyogavin/airllm	manual-override	'triage' -> 'serving|models'	hot
 40	2026-09-02	https://github.com/magnitudedev/magnitude	manual-override	'triage' -> 'serving|models'	hot
 41	2026-09-02	https://github.com/microsoft/agent-governance-toolkit	manual-override	'learning' -> 'security|harnesses'	hot
 29	2026-09-02	https://github.com/opensandbox-group/OpenSandbox	manual-override	'triage' -> 'security|harnesses|serving'	hot
 26	2026-08-14	https://github.com/semantica-agi/semantica	manual-override	'triage' -> 'memory|rag|frameworks'	hot
 22	2026-08-14	https://github.com/shcherbak-ai/contextgem	manual-override	'triage' -> 'ingestion|rag|frameworks'	hot
+73	2026-09-18	https://github.com/souzatharsis/podcastfy/blob/main/usage/conversation_custom.md	manual-override	'media|learning' -> 'media|docs'	hot
+74	2026-09-18	https://github.com/souzatharsis/podcastfy/blob/main/usage/how-to.md	manual-override	'media|learning' -> 'media|docs'	hot
 14	2026-08-14	https://github.com/superlinked/sie	tag-union	'serving' + 'serving|map' -> 'serving|map'	hot
 30	2026-09-02	https://github.com/superloglabs/superlog	manual-override	'triage' -> 'eval|serving|adjacent'	hot
 27	2026-08-14	https://github.com/vshulcz/deja-vu	manual-override	'triage' -> 'memory|harnesses|eval'	hot
@@ -40,5 +60,16 @@ seq	date	url	kind	resolution	state
 12	2026-08-09	https://github.com/yc-software/qm	manual-override	'harnesses, map' -> 'harnesses|map'	cold
 13	2026-08-14	https://github.com/yc-software/qm	kept-manual	kept 'harnesses|map', auto said 'triage'	hot
 23	2026-08-14	https://github.com/zhaoxuya520/reverse-skill	manual-override	'triage' -> 'skills|eval|security'	hot
+63	2026-09-18	https://podcast-agent.github.io/demo	manual-override	'adjacent' -> 'media|papers'	hot
+67	2026-09-18	https://podcastfy.readthedocs.io/en/latest/podcastfy.html	manual-override	'docs' -> 'docs|media'	hot
+50	2026-09-18	https://pypdf.readthedocs.io/en/stable/meta/faq.html	manual-override	'adjacent' -> 'docs|ingestion'	hot
 8	2026-07-28	https://pypi.org/project/nvidia-nat	manual-override	'adjacent' -> 'docs|frameworks'	hot
+68	2026-09-18	https://pypi.org/project/podcast-creator	manual-override	'docs' -> 'docs|media'	hot
+64	2026-09-18	https://soul-ailab.github.io/soulx-podcast	manual-override	'adjacent' -> 'media|models'	hot
+47	2026-09-18	https://support.google.com/notebooklm/answer/16212820	manual-override	'adjacent' -> 'media|docs'	cold
+51	2026-09-18	https://support.google.com/notebooklm/answer/16212820	kept-manual	kept 'media|docs', auto said 'adjacent'	hot
+66	2026-09-18	https://trafilatura.readthedocs.io/	manual-override	'docs' -> 'docs|ingestion'	hot
+62	2026-09-18	https://www.latent.space/p/notebooklm	manual-override	'learning' -> 'media|learning'	hot
+45	2026-09-18	https://www.lmsys.org/blog/2026-06-04-higgs-audio-v3-tts	manual-override	'adjacent' -> 'media|models'	hot
 9	2026-07-28	https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron	manual-override	'docs|adjacent' -> 'docs|models'	hot
+65	2026-09-18	https://www.open-notebook.ai/features/content-support	manual-override	'adjacent' -> 'media|docs|ingestion'	hot

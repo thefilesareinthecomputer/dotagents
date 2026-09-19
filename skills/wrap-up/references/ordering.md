@@ -26,7 +26,11 @@ Numbers are the step numbers used by SKILL.md's headings, so they start at zero.
    The docs sweep changes files.
    Committing first means committing twice or amending.
 
-5. **Commit before push, with a second fetch between.**
+5. **Ignore audit before commit, after notes.**
+   Notes is the last step that creates files, so the audit sees the whole set the commit would stage.
+   Before the commit an uncovered cache or env file is one question and one ignore line; after it, the file is in history and comes out only with a second commit that deletes it from every other clone.
+
+   **Commit before push, with a second fetch between.**
    The fetch from step 0 is stale by now; another machine may have pushed during the session.
 
 6. **Branch parity last**, because it advances a branch to a commit that must already exist on the remote.

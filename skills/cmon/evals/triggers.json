@@ -28,5 +28,11 @@
     "query": "shorten this README section",
     "should_trigger": false,
     "why": "editing an artifact, not correcting the reply register"
+  },
+  {
+    "name": "just-the-next-step",
+    "query": "ugh just tell me the next step",
+    "should_trigger": true,
+    "why": "verbosity complaint asking for the action-first shape"
   }
 ]

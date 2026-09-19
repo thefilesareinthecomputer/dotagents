@@ -1,5 +1,6 @@
 {
   "env": {
+    "DISABLE_AUTOUPDATER": "1",
     "DISABLE_TELEMETRY": "1",
     "DISABLE_ERROR_REPORTING": "1",
     "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1",
@@ -161,7 +162,8 @@
       {
         "matcher": "startup|resume",
         "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/agent-mail-check.sh", "timeout": 10 }
+          { "type": "command", "command": "bash ~/.claude/hooks/agent-mail-check.sh", "timeout": 10 },
+          { "type": "command", "command": "python3 ~/.claude/hooks/cmon_nudge.py", "timeout": 5 }
         ]
       },
       {
@@ -176,7 +178,8 @@
       {
         "hooks": [
           { "type": "command", "command": "python3 ~/.claude/hooks/daemon_restart_storm.py", "timeout": 10 },
-          { "type": "command", "command": "python3 ~/.claude/hooks/memory_pressure_gate.py", "timeout": 10 }
+          { "type": "command", "command": "python3 ~/.claude/hooks/memory_pressure_gate.py", "timeout": 10 },
+          { "type": "command", "command": "python3 ~/.claude/hooks/cmon_nudge.py", "timeout": 5 }
         ]
       }
     ]
@@ -204,5 +207,5 @@
       }
     }
   },
-  "autoUpdatesChannel": "latest"
+  "autoUpdatesChannel": "stable"
 }

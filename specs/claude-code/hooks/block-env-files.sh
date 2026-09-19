@@ -9,6 +9,10 @@
 # Companion to the permissions.deny rules in settings.json. The deny rules are the
 # declarative first line; this hook adds the Bash coverage (deny rules can't pattern
 # match arbitrary shell commands) and the human-readable "ask the user" guidance.
+# Needs jq; a missing jq denies the call instead of allowing it (see _require.sh).
+
+. "$(dirname "$0")/_require.sh" 2>/dev/null || { printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"hook preamble missing: _require.sh. This guard cannot evaluate the call, so it refuses."}}\n'; exit 0; }
+require_deps jq
 
 input=$(cat)
 tool=$(printf '%s' "$input" | jq -r '.tool_name // ""')
