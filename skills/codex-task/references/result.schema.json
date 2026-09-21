@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "codex-task result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "files_changed", "notes", "blocked_on"],
+  "properties": {
+    "summary": { "type": "string" },
+    "files_changed": { "type": "array", "items": { "type": "string" } },
+    "notes": { "type": "string" },
+    "blocked_on": { "type": "string" }
+  }
+}

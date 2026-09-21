@@ -301,6 +301,14 @@ If a `settings.json` already exists on the device, **merge, don't replace** -
 diff against this template, show the delta, get approval (non-destructive
 rule + §7.6's own hook both apply).
 
+**Delegation to Codex** goes only through
+`~/.agents/skills/codex-task/scripts/codex_task.py`, which runs Codex headless
+in an isolated worktree and `CODEX_HOME` with writes confined to a file
+allowlist. No `permissions.allow` entry for it is seeded, so each run prompts
+once; adding one is a privilege change and the user's call. Any other `codex`
+invocation from a session keeps prompting too. Facts and boundaries in
+[`../codex/SPEC-CODEX.md`](../codex/SPEC-CODEX.md).
+
 ### Secrets out of agent context (extends §7 principle 3)
 
 Extends principle 3. A separate leak path from git: a repo with a clean

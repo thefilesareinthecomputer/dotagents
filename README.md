@@ -41,7 +41,7 @@ repo directly, with no install step.**
 |---|---|---|
 | **Claude Code** | `sync-skills.sh` | [SPEC-CLAUDE-CODE](specs/claude-code/SPEC-CLAUDE-CODE.md) |
 | **Antigravity CLI** | one `skills.json` | [SPEC-ANTIGRAVITY](specs/antigravity/SPEC-ANTIGRAVITY.md) |
-| **Codex CLI** | none | [SPEC-CODEX](specs/codex/SPEC-CODEX.md) |
+| **Codex CLI** | none for skills; a three-key `config.toml` privacy fragment | [SPEC-CODEX](specs/codex/SPEC-CODEX.md) |
 | **GitHub Copilot** | none | [SPEC-COPILOT](specs/copilot/SPEC-COPILOT.md) |
 | **Cursor** | none | [SPEC-CURSOR](specs/cursor/SPEC-CURSOR.md) |
 | **deepagents** | passed in code | [SPEC-DEEPAGENTS](specs/deepagents/SPEC-DEEPAGENTS.md) |
@@ -282,6 +282,7 @@ description is its trigger contract and its body is the workflow.
 | `meta-loop` | Orchestration: plan, fan out, verify, synthesize |
 | `my-security-review-checklist` | Pre-merge security gate for agent tooling |
 | `code-kg` | Offline symbol-level knowledge graph over a codebase: imports, entry points, framework-aware liveness, agent-tooling layer, data-store inventory, coverage join |
+| `codex-task` | Delegates one bounded task from Claude Code to the local Codex CLI in an isolated worktree, writes confined to a file allowlist, diff reviewed before apply |
 | `notes` | End-of-session documentation sweep into the living docs |
 | `obsidian` | Obsidian markdown standard plus a per-vault authoring workflow |
 | `obsidian-kg` | Offline section-level knowledge graph over a markdown corpus |

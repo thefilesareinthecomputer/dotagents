@@ -71,6 +71,8 @@ Verified by probe 2026-08-29.
 
 `cursor-agent --approve-mcps` auto-approves every server and is never seeded, under the rule that widening values move only in the restrictive direction.
 
+The ChatGPT desktop app writes MCP server and plugin entries into `~/.codex/config.toml` on its own, and those load into every headless Codex run from that home. Two per-invocation ways to run without them, verified 2026-09-19: `--ignore-user-config`, which keeps auth but still writes project trust back into the real file, and a separate `CODEX_HOME` with `auth.json` symlinked in, which isolates everything. The `codex-task` skill uses both; detail in [`codex/SPEC-CODEX.md`](codex/SPEC-CODEX.md).
+
 ## Playwright is the only server this repo standardizes
 
 Its entry, flags, pinning discipline and permission posture are in [`claude-code/SPEC-CLAUDE-CODE.md`](claude-code/SPEC-CLAUDE-CODE.md) section 3.2.

@@ -10,7 +10,7 @@ needs around it.
 |---|---|---|
 | [`claude-code/`](claude-code/SPEC-CLAUDE-CODE.md) | Claude Code | `sync-skills.sh` |
 | [`antigravity/`](antigravity/SPEC-ANTIGRAVITY.md) | Antigravity CLI (`agy`) | `~/.gemini/config/skills.json` |
-| [`codex/`](codex/SPEC-CODEX.md) | OpenAI Codex CLI | none, reads `~/.agents/skills` |
+| [`codex/`](codex/SPEC-CODEX.md) | OpenAI Codex CLI | none for skills, reads `~/.agents/skills`; a three-key `config.toml` privacy fragment |
 | [`copilot/`](copilot/SPEC-COPILOT.md) | GitHub Copilot (VS Code + CLI) | none, reads `~/.agents/skills` |
 | [`cursor/`](cursor/SPEC-CURSOR.md) | Cursor (IDE + CLI) | none, reads `~/.agents/skills` |
 | [`goose/`](goose/SPEC-GOOSE.md) | goose | none, reads `~/.agents/skills` |

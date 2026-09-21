@@ -100,6 +100,61 @@ Note the boundary this does and does not draw: a separate `CODEX_HOME` is a
 configuration boundary, not an isolation boundary. A process running as the same
 user can still read the default home directly.
 
+## Delegation from Claude Code: the `codex-task` skill
+
+Claude Code hands Codex one bounded task through
+`skills/codex-task/scripts/codex_task.py`, the only sanctioned way a session
+spawns Codex. It runs `codex exec` headless in a detached git worktree, harvests
+a patch filtered to an explicit file allowlist, and applies it only after the
+delegating agent reviews the diff. Built and verified 2026-09-19/20 on desktop
+against `codex-cli 0.155.1`; the spec that built it is archived under
+`tasks/completed/`.
+
+**The ChatGPT desktop app is not a surface.** It bundles no CLI, local server or
+MCP server. The Homebrew cask `codex` is a separate install, and `codex login`
+signs in with the ChatGPT plan, whose Codex usage quota bounds delegation (a
+quota hit surfaces as an error item in the JSONL, not a hang). "Astra" is
+GPT-6 Astra, the model, reached with `-m gpt-6-astra`; it is not a product.
+
+**`codex mcp-server` is gone at 0.155.1.** `codex --help` lists `mcp` (client
+management) and the experimental `app-server`; neither is an MCP server a
+Claude Code session can register. OpenAI's own `codex-plugin-cc` drives the app
+server, has no per-file write scope, and is not installed here.
+
+**Facts the skill rests on, probed 2026-09-19:**
+
+| Fact | How it was seen |
+|---|---|
+| `workspace-write` denies writes outside the `-C` root, including `$HOME` and other repos, but `/tmp` and `$TMPDIR` are writable unless `sandbox_workspace_write.exclude_slash_tmp` and `exclude_tmpdir_env_var` are set | `codex sandbox -c 'sandbox_mode="workspace-write"'` probe, then `TMP_DENIED` with both keys |
+| Network is off under `workspace-write` by default | `NET_DENIED` |
+| Inside a detached worktree Codex can edit files and run `git status` and `git diff`, but not `git add`; making the worktree's git dir writable does not help because git then locks the main `.git`, which must stay read-only | worktree probe with and without `writable_roots` |
+| `--ignore-user-config` drops the ChatGPT app's `[mcp_servers.*]` and `[plugins.*]` while auth still works | headless run reported no MCP servers or tools |
+| **A headless run still writes `[projects."<repo>"] trust_level = "trusted"` into `~/.codex/config.toml`, even with `--ignore-user-config`** | first live canary appended the entry; that trust persists into interactive sessions |
+| An isolated `CODEX_HOME` with `auth.json` symlinked to `~/.codex/auth.json` runs without a second login, leaves the real config byte-identical, and takes the trust entry instead; the real `auth.json` mtime did not change | second live canary |
+| `codex exec` reads stdin when it is a pipe; an unclosed stdin is the hang | `Reading additional input from stdin...` |
+
+The locked flag set, the exit-code contract and the review gate are in
+`skills/codex-task/SKILL.md`. Two boundaries it does not draw: reads are not
+bounded (see above), and the model is hosted by OpenAI, so delegated work stays
+within the medium-stakes lane below.
+
+**Settings audit, 2026-09-19** (config reference at
+learn.chatgpt.com/docs/config-file/config-reference). The skill passes these per
+run because it ignores the user config; the station values are the fragment
+under Station config below:
+
+| Key | Skill passes | Station value |
+|---|---|---|
+| `analytics.enabled` | `false` | `false` |
+| `otel.metrics_exporter` | default `none` under an empty home | `"none"` (default is `statsig`; trace and log exporters default to `none`) |
+| `features.memories` | `false` | left on by the ChatGPT app; `memories.disable_on_external_context = true` added |
+| `history.persistence` | `--ephemeral` | default `save-all`; 241 MB of sessions on disk that day |
+| `shell_environment_policy.inherit` | `"core"` plus `include_only=[HOME,PATH,USER,LANG,SHELL,TMPDIR]` | default; built-in filters only match `*KEY*`, `*SECRET*`, `*TOKEN*` by name, which is why the skill adds the allowlist (honoring of `include_only` at 0.155.1 not yet verified live) |
+
+Training use of prompts under ChatGPT sign-in is governed by the ChatGPT
+account's data controls, not by any Codex key. Zero data retention is an
+API-key-plan property and does not apply to ChatGPT sign-in.
+
 ## Models
 
 Codex runs OpenAI models, which are hosted third-party. Under `SPEC.md`
@@ -119,6 +174,7 @@ installed. Shapes are defined once in
 | Subagents | `N/A` | - | no subagent tree of its own |
 | Commands | `N/A` | - | no command tree; the portable route is a skill |
 | Rules | `NATIVE` | repo-root `AGENTS.md` | Codex's analogue to `CLAUDE.md`, read per repo; no global rules file to seed |
+| Privacy and hygiene | `FRAGMENT` | `~/.codex/config.toml` | seedable keys: `analytics.enabled = false`, `otel.metrics_exporter = "none"`, `memories.disable_on_external_context = true`. Values move only in the restrictive direction; merge into the existing tables, never replace the file (see Station config below) |
 | Permissions | `FRAGMENT` | `~/.codex/config.toml` | seedable keys only: `[projects."<path>"] trust_level`. Never copy the file - it also carries credentials-adjacent state, plugin enablement and machine-specific paths. Path eligibility is bounded: each path is approved by the user at seed time, only a specific repository root is ever written, and no ancestor directory is eligible - trusting `$HOME` or a multi-repo `dev/` would silently trust every repo cloned under it afterward |
 | Sandbox level | `N/A` | - | passed per invocation (`-s`), not configured |
 | Hooks | `N/A` | - | no hook mechanism |
@@ -133,5 +189,51 @@ than a variant of this one.
 
 ## Station config
 
-Not yet adapted beyond the table above. An `AGENTS.md` template remains a backlog
-item in `tasks/plan.md`.
+### Install and sign-in
+
+```
+brew install --cask codex      # codex-cli; 0.155.1 on desktop, 2026-09-19
+codex login                    # browser sign-in with the ChatGPT plan
+codex login status             # expect "Logged in using ChatGPT"
+```
+
+The ChatGPT desktop app does not provide the CLI; the cask is the only install
+path this spec supports, and the same ChatGPT plan covers both. Nothing else is
+installed: skills load from `~/.agents/skills` natively, and the `codex-task`
+skill needs only the binary on `PATH` and a completed login.
+
+### `~/.codex/config.toml` fragment
+
+Applied on desktop 2026-09-19, validated with `codex exec --strict-config`. Merge
+these keys into the existing tables; the file also holds the ChatGPT app's
+plugin and MCP entries and must never be replaced wholesale.
+
+```toml
+[analytics]
+enabled = false
+
+[otel]
+metrics_exporter = "none"      # trace and log exporters already default to none
+
+[memories]
+disable_on_external_context = true
+```
+
+Left as the user's choice: `history.persistence` (default `save-all`;
+`history.max_bytes` caps it), `memories.generate_memories` (on, set by the
+ChatGPT app; turn off for repos holding client code), `model` and
+`model_reasoning_effort` (station taste, `gpt-6-astra` / `high` on desktop).
+
+### Verify
+
+```
+codex exec --strict-config -s read-only --ephemeral --json 'Reply with exactly OK' </dev/null
+```
+
+An unrecognized key errors out here; a parse-clean file returns one
+`agent_message` item with `OK`. Then confirm the delegation skill end to end:
+`python3 -m unittest discover -s ~/.agents/skills/codex-task/tests` (offline,
+27 cases), and one live `codex_task.py run` on a scratch repo with a single
+allowed file.
+
+An `AGENTS.md` template remains a backlog item in `tasks/plan.md`.
