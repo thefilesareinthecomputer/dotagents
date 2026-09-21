@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -319,6 +320,72 @@ class TestArgv(Base):
         self.assertIn("Make f return 2.", brief)
         self.assertIn("- src/allowed.py", brief)
         self.assertIn("- src/new_allowed.py", brief)
+
+
+class TestBoundaryHardening(Base):
+    """Reproductions for the five findings from the 2026-09-20 security review."""
+
+    def test_pathspec_magic_filename_does_not_abort_the_run(self):
+        # Codex creates ':(exclude)sneaky.txt'. Harvest passes changed names to
+        # `git diff` as pathspecs, so the name is read as magic, not a file.
+        # The run must still complete and still record the out-of-scope file.
+        r = self.run_task(mode="pathspec")
+        self.assertIn(r.returncode, (0, 3), r.stderr)
+        rpt, run_dir = self.report()
+        self.assertTrue((run_dir / "report.json").exists())
+        self.assertIn(":(exclude)sneaky.txt", rpt["changed_out_of_scope"])
+        self.assertEqual(rpt["changed_in_scope"], ["src/allowed.py"])
+        # The report naming it is not enough: dropped.patch is what the
+        # operator reads to see what Codex touched out of scope.
+        dropped = (run_dir / "dropped.patch").read_text()
+        self.assertIn("sneaky.txt", dropped, "dropped.patch omits the out-of-scope file")
+
+    def test_symlink_swap_of_an_allowed_file_is_refused(self):
+        # An allowed name whose mode became 120000 must not reach the real tree.
+        r = self.run_task(mode="symlink")
+        rpt, run_dir = self.report()
+        self.assertNotIn("src/allowed.py", rpt["changed_in_scope"])
+        patch = (run_dir / "allowed.patch").read_text()
+        self.assertNotIn("120000", patch)
+        real = self.repo / "src" / "allowed.py"
+        self.assertFalse(real.is_symlink(), "symlink reached the real repo")
+
+    def test_run_id_cannot_traverse_out_of_the_state_dir(self):
+        # `clean --run ..` and `apply --run ..` must not resolve to the state
+        # dir's parent. TOKEN_RE admits '..'.
+        victim = self.state / "home"
+        self.assertEqual(self.run_task().returncode, 0)
+        self.assertTrue(victim.exists())
+        # TOKEN_RE admits '..'; the only thing stopping traversal is that the
+        # parent usually holds no report.json. Put one there and it is not.
+        rpt, _ = self.report()
+        (self.state.parent / "report.json").write_text(json.dumps(rpt))
+        for cmd in ("clean", "apply"):
+            r = self.run_cmd(cmd, "--run", "..")
+            self.assertEqual(r.returncode, 2, f"{cmd} accepted '..': {r.stdout}{r.stderr}")
+        self.assertTrue(victim.exists(), "state dir contents were removed via '..'")
+
+    def test_codex_is_killed_when_the_parent_is_interrupted(self):
+        # start_new_session=True means a parent kill orphans Codex. The poll
+        # loop must tear the group down on the way out.
+        env = dict(self.env, FAKE_CODEX_MODE="sleep", FAKE_CODEX_SLEEP="60")
+        args = ["run", "--repo", str(self.repo), "--brief", str(self.brief),
+                "--allow", "src/allowed.py", "--timeout", "60"]
+        proc = subprocess.Popen([sys.executable, str(SCRIPT), *args], env=env,
+                                text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        deadline = time.time() + 20
+        child = None
+        while time.time() < deadline and child is None:
+            out = subprocess.run(["pgrep", "-f", "fake_codex.py"], capture_output=True, text=True)
+            child = out.stdout.strip() or None
+            if child is None:
+                time.sleep(0.3)
+        self.assertIsNotNone(child, "fake codex never started")
+        proc.terminate()
+        proc.wait(timeout=20)
+        time.sleep(2)
+        out = subprocess.run(["pgrep", "-f", "fake_codex.py"], capture_output=True, text=True)
+        self.assertEqual(out.stdout.strip(), "", "Codex survived the parent")
 
 
 class TestClean(Base):

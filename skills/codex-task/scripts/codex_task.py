@@ -39,6 +39,8 @@ DEFAULT_TIMEOUT = 900
 MAX_TIMEOUT = 1800
 PRUNE_DAYS = 7
 TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+# Must start alphanumeric, so '.', '..' and a leading '-' are all excluded.
+RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 EXIT_OK, EXIT_ARGS, EXIT_OUT_OF_SCOPE, EXIT_CODEX_ERROR, EXIT_TIMEOUT = 0, 2, 3, 4, 5
 
@@ -215,6 +217,10 @@ def child_env(home: Path) -> dict[str, str]:
     return env
 
 
+def _raise_interrupt(signum, frame):
+    raise KeyboardInterrupt(f"signal {signum}")
+
+
 def spawn_codex(argv: list[str], prompt: str, run_dir: Path, timeout: int,
                 home: Path) -> tuple[int, str]:
     """Run Codex, streaming JSONL to events.jsonl. Returns (rc, reason)."""
@@ -240,12 +246,29 @@ def spawn_codex(argv: list[str], prompt: str, run_dir: Path, timeout: int,
                     pass
 
         threading.Thread(target=feed, daemon=True).start()
+        # SIGTERM's default action ends this process without unwinding, so the
+        # finally below never runs. Turn both signals into an exception.
+        prior = {}
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            prior[sig] = signal.getsignal(sig)
+            signal.signal(sig, _raise_interrupt)
         deadline = time.monotonic() + timeout
-        while proc.poll() is None:
-            if time.monotonic() > deadline:
+        # start_new_session=True detaches Codex from this process group, so
+        # without the finally it survives anything that kills the parent -
+        # including the Bash-tool timeout SKILL.md tells the operator to set.
+        # It would keep editing the worktree and spending with nothing left to
+        # harvest it or stop it.
+        try:
+            while proc.poll() is None:
+                if time.monotonic() > deadline:
+                    _kill_group(proc)
+                    return proc.returncode if proc.returncode is not None else -9, "timeout"
+                time.sleep(0.2)
+        finally:
+            for sig, handler in prior.items():
+                signal.signal(sig, handler)
+            if proc.poll() is None:
                 _kill_group(proc)
-                return proc.returncode if proc.returncode is not None else -9, "timeout"
-            time.sleep(0.2)
     return proc.returncode, "exited"
 
 
@@ -288,6 +311,24 @@ def parse_events(run_dir: Path) -> dict:
     return {"messages": messages, "errors": errors, "usage": usage}
 
 
+def symlink_entries(ws: Path, base: str, paths: list[str]) -> list[str]:
+    """Of `paths`, those whose post-image mode is 120000 (a symlink)."""
+    if not paths:
+        return []
+    out = git(["diff", "--no-renames", "--raw", "-z", base, "--", *paths], ws).stdout
+    # -z raw format: ":<srcmode> <dstmode> <srcsha> <dstsha> <status>\0<path>\0"
+    fields = out.split("\0")
+    found = []
+    for i in range(0, len(fields) - 1, 2):
+        meta, path = fields[i], fields[i + 1]
+        if not meta.startswith(":"):
+            continue
+        parts = meta[1:].split()
+        if len(parts) >= 2 and parts[1] == "120000":
+            found.append(path)
+    return sorted(set(found))
+
+
 def harvest(ws: Path, allow: list[str], run_dir: Path, base: str) -> tuple[list[str], list[str]]:
     """Diff the worktree against the base commit; write allowed.patch; return
     (in_scope, out_of_scope). Diffing against base rather than the index means
@@ -297,6 +338,14 @@ def harvest(ws: Path, allow: list[str], run_dir: Path, base: str) -> tuple[list[
     changed = sorted(n for n in names if n)
     in_scope = [n for n in changed if n in allow]
     out_scope = [n for n in changed if n not in allow]
+    # The allowlist filters names; it says nothing about modes. Codex can keep
+    # an allowed name and turn it into a symlink, which `apply` would then put
+    # in the real tree pointing anywhere. Treat a mode change to 120000 as out
+    # of scope so it is reported and dropped rather than applied.
+    linked = symlink_entries(ws, base, in_scope)
+    if linked:
+        in_scope = [n for n in in_scope if n not in linked]
+        out_scope = sorted(out_scope + linked)
     patch = ""
     if in_scope:
         patch = git(["diff", "--no-renames", "--binary", base, "--", *in_scope], ws).stdout
@@ -397,9 +446,15 @@ def cmd_run(a: argparse.Namespace) -> int:
 
 
 def load_report(run_id: str) -> tuple[Path, dict]:
-    if not TOKEN_RE.match(run_id):
+    # TOKEN_RE admits '.' and '..', which resolve to the state dir and its
+    # parent. `clean --run ..` deleted the parent outright, so the run id is
+    # confined to a direct child by name, not just by character class.
+    if not RUN_ID_RE.match(run_id):
         raise TaskError("bad run id")
-    run_dir = state_dir() / run_id
+    sdir = state_dir()
+    run_dir = sdir / run_id
+    if run_dir.resolve().parent != sdir.resolve():
+        raise TaskError(f"run id {run_id!r} does not name a run directory")
     rpt = run_dir / "report.json"
     if not rpt.exists():
         raise TaskError(f"no report at {rpt}")

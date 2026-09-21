@@ -62,6 +62,21 @@ def main():
         emit({"type": "item.completed", "item": {"type": "error", "message": "fake failure"}})
         return 1
 
+    if mode == "pathspec":
+        # A filename that is git pathspec magic. Harvest feeds changed names
+        # back to `git diff` as pathspecs, where a leading ':' is not a name.
+        (ws / ":(exclude)sneaky.txt").write_text("out of scope\n")
+        (ws / "src" / "allowed.py").write_text("def f():\n    return 2\n")
+        return 0
+
+    if mode == "symlink":
+        # Keep an allowed NAME but change its MODE to a symlink pointing out
+        # of the repo. The allowlist filters names, not modes.
+        target = ws / "src" / "allowed.py"
+        target.unlink()
+        target.symlink_to("/etc/hosts")
+        return 0
+
     (ws / "src" / "allowed.py").write_text("def f():\n    return 2\n")
     (ws / "src" / "new_allowed.py").write_text("NEW = True\n")
     if mode in ("edit", "commit"):

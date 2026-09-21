@@ -132,6 +132,7 @@ server, has no per-file write scope, and is not installed here.
 | **A headless run still writes `[projects."<repo>"] trust_level = "trusted"` into `~/.codex/config.toml`, even with `--ignore-user-config`** | first live canary appended the entry; that trust persists into interactive sessions |
 | An isolated `CODEX_HOME` with `auth.json` symlinked to `~/.codex/auth.json` runs without a second login, leaves the real config byte-identical, and takes the trust entry instead; the real `auth.json` mtime did not change | second live canary |
 | `codex exec` reads stdin when it is a pipe; an unclosed stdin is the hang | `Reading additional input from stdin...` |
+| Both git directories are denied: the worktree's own (`.git/worktrees/<id>/`) and the real repo's common dir, `hooks/` included - the path that would otherwise be code execution on the user's next commit | `codex sandbox` with the skill's exclusion flags, repo and worktree both outside `/tmp`, 2026-09-20. Probing this through a `codex-task` brief does not work: the brief tells the model `.git` is read-only, so it declines rather than being blocked, and a repo under `/tmp` denies for the wrong reason |
 
 The locked flag set, the exit-code contract and the review gate are in
 `skills/codex-task/SKILL.md`. Two boundaries it does not draw: reads are not
@@ -149,7 +150,7 @@ under Station config below:
 | `otel.metrics_exporter` | default `none` under an empty home | `"none"` (default is `statsig`; trace and log exporters default to `none`) |
 | `features.memories` | `false` | left on by the ChatGPT app; `memories.disable_on_external_context = true` added |
 | `history.persistence` | `--ephemeral` | default `save-all`; 241 MB of sessions on disk that day |
-| `shell_environment_policy.inherit` | `"core"` plus `include_only=[HOME,PATH,USER,LANG,SHELL,TMPDIR]` | default; built-in filters only match `*KEY*`, `*SECRET*`, `*TOKEN*` by name, which is why the skill adds the allowlist (honoring of `include_only` at 0.155.1 not yet verified live) |
+| `shell_environment_policy.inherit` | `"core"` plus `include_only=[HOME,PATH,USER,LANG,SHELL,TMPDIR]`, and the skill builds the child environment itself | default; built-in filters only match `*KEY*`, `*SECRET*`, `*TOKEN*` by name. **`include_only` is accepted under `--strict-config` and then ignored at 0.155.1** - probed 2026-09-20, the whole parent environment reached the sandboxed shell, so the skill scrubs in Python and passes the key only as a second layer |
 
 Training use of prompts under ChatGPT sign-in is governed by the ChatGPT
 account's data controls, not by any Codex key. Zero data retention is an
@@ -178,7 +179,7 @@ installed. Shapes are defined once in
 | Permissions | `FRAGMENT` | `~/.codex/config.toml` | seedable keys only: `[projects."<path>"] trust_level`. Never copy the file - it also carries credentials-adjacent state, plugin enablement and machine-specific paths. Path eligibility is bounded: each path is approved by the user at seed time, only a specific repository root is ever written, and no ancestor directory is eligible - trusting `$HOME` or a multi-repo `dev/` would silently trust every repo cloned under it afterward |
 | Sandbox level | `N/A` | - | passed per invocation (`-s`), not configured |
 | Hooks | `N/A` | - | no hook mechanism |
-| MCP servers | `N/A` | `~/.codex/config.toml`, `[mcp_servers.<name>]` | nothing is seeded. This harness has no persistent per-tool allow or deny list, so a server cannot be bounded once registered. A desktop application's installer can write entries into this file without the user registering anything, and one such entry can expose a language runtime as a tool, so the inventory is taken with `codex mcp list` and the enabled column is read before trusting the file. Placement rules: [`../MCP-PLACEMENT.md`](../MCP-PLACEMENT.md) |
+| MCP servers | `N/A` | `~/.codex/config.toml`, `[mcp_servers.<name>]` | nothing is seeded. This harness has no persistent per-tool allow or deny list, so a server cannot be bounded once registered. A desktop application's installer writes entries into this file without the user registering anything, and one such entry can expose a language runtime as a tool. The file is not even a complete inventory: an enabled plugin supplies its own server, which appears in no file at all and can carry a plugin-side `enabled = false` that config-level plugin enablement overrides. `codex mcp list` is the inventory, and its enabled column is read before trusting anything. Placement rules: [`../MCP-PLACEMENT.md`](../MCP-PLACEMENT.md) |
 
 The single `FRAGMENT` row is the whole reason this harness cannot be seeded with
 a file copy. Plugin enablement in that same file applies to **every** session
@@ -192,7 +193,7 @@ than a variant of this one.
 ### Install and sign-in
 
 ```
-brew install --cask codex      # codex-cli; 0.155.1 on desktop, 2026-09-19
+brew install --cask codex      # codex-cli; 0.155.1 on both stations
 codex login                    # browser sign-in with the ChatGPT plan
 codex login status             # expect "Logged in using ChatGPT"
 ```
@@ -204,7 +205,7 @@ skill needs only the binary on `PATH` and a completed login.
 
 ### `~/.codex/config.toml` fragment
 
-Applied on desktop 2026-09-19, validated with `codex exec --strict-config`. Merge
+Applied on both stations, validated with `codex exec --strict-config`. Merge
 these keys into the existing tables; the file also holds the ChatGPT app's
 plugin and MCP entries and must never be replaced wholesale.
 
