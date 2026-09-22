@@ -1,6 +1,6 @@
 ---
 name: code-kg
-description: Builds and queries a SQLite+FTS5 knowledge graph over any codebase - import/dependency edges, symbols with line ranges, entry points, liveness tiers that shortlist dead code, agent-tooling layer, data-store inventory. Parses python, javascript/typescript, go, rust, c/c++, java, c#, powershell, bash, sql, terraform, docker/compose/CI yaml, make, html/css, json, toml and markdown, stdlib only; understands tsconfig aliases and Django/Next.js wiring. Use to index, map or query a repo ("what imports X", "blast radius", "find dead code", "what databases does this use"), orient in an unfamiliar repo, trace how two files connect, or fold test coverage in to find never-executed code. Markdown corpora go to obsidian-kg. Fully offline except `coverage run` and `data --inspect`, both consent-gated.
+description: Builds and queries a SQLite+FTS5 knowledge graph over any codebase - import/dependency edges, symbols with line ranges, entry points, liveness tiers that shortlist dead code, subsystem communities, coupling hotspots, agent-tooling layer, data-store inventory. Parses 20+ languages including python, typescript, go, rust, java, c/c++, bash, sql and terraform, stdlib only; understands tsconfig aliases and Django/Next.js wiring. Use to index, map or query a repo ("what imports X", "blast radius", "what subsystems exist", "find dead code", "what databases does this use"), orient in an unfamiliar repo, trace how two files connect, or fold test coverage in to find never-executed code. Markdown corpora go to obsidian-kg. Fully offline except `coverage run` and `data --inspect`, both consent-gated.
 ---
 
 # code-kg
@@ -38,6 +38,8 @@ machine-readable.
 | `path <repo> <a> <b>` | shortest connection between two files |
 | `entrypoints <repo>` | detected roots, ranked: convention/config first, test main-guards last |
 | `dead <repo>` | liveness tiers (below) |
+| `god-nodes <repo>` | files ranked by executable-edge degree - fan-in, fan-out, blast radius |
+| `communities <repo>` | subsystems clustered from the import graph, with a modularity score |
 | `unresolved <repo>` | worklist: imports that look local but resolve nowhere |
 | `externals <repo>` | third-party dependencies by import count |
 | `data <repo>` | data-store inventory: engines with evidence, schema files, data files |
@@ -122,6 +124,14 @@ watches lockfiles, so re-`ingest` after installing packages.
   dispatch or plugin registries: treat the bottom tiers as a shortlist to
   investigate, never a delete list. With coverage folded in, `dead` adds
   the sharpest cut: live but never executed by any recorded run.
+- **`communities` is only as good as its modularity score** - read that
+  first. Above ~0.3 the groups are real structure; near zero the repo has no
+  community structure and the split is arbitrary. Groups follow edges, not
+  directories, so an entry point clusters with whatever launches it rather
+  than with its siblings, and files with no executable edge stay unplaced.
+- **`god-nodes` ranks coupling, not quality.** A high degree says a change
+  has a wide blast radius, which is what an entry point or a shared type
+  module is for. Weak refs never count toward it.
 - **Truncation is declared** (`TRUNCATED`); never fill the remainder by
   inference. Read the underlying source before asserting a fact from a hit.
 

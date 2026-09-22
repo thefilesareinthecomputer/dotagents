@@ -54,6 +54,7 @@ from __future__ import annotations
 import argparse
 import ast
 import hashlib
+import heapq
 import json
 import os
 import posixpath
@@ -2621,6 +2622,220 @@ def dead_report(repo: Path, include_weak: bool = True) -> dict:
             "live_but_never_covered": never_covered}
 
 
+# ---------- communities ----------
+def _live_adjacency(repo: Path) -> tuple[dict, dict, float]:
+    """Undirected weighted adjacency over executable edges, project origin
+    only. Direction is dropped on purpose: for "what belongs together",
+    importer and imported are the same subsystem. Parallel edges between a
+    pair (a re-export beside an import) add weight, which is the honest
+    signal - those two files are more coupled than a single reference."""
+    con = open_fresh(repo)
+    kinds = tuple(sorted(LIVE_KINDS))
+    marks = ",".join("?" * len(kinds))
+    rows = con.execute(
+        f"SELECT DISTINCT e.src, e.dst, e.kind FROM edges e"
+        f" JOIN files s ON s.id = e.src AND s.origin = 'project'"
+        f" JOIN files d ON d.id = e.dst AND d.origin = 'project'"
+        f" WHERE e.dst IS NOT NULL AND e.src != e.dst"
+        f" AND e.kind IN ({marks})", kinds).fetchall()
+    con.close()
+    adj: dict[str, dict[str, float]] = {}
+    for src, dst, _kind in rows:
+        a, b = (src, dst) if src < dst else (dst, src)
+        adj.setdefault(a, {})
+        adj.setdefault(b, {})
+        adj[a][b] = adj[a].get(b, 0.0) + 1.0
+        adj[b][a] = adj[b].get(a, 0.0) + 1.0
+    deg = {n: sum(w.values()) for n, w in adj.items()}
+    m = sum(deg.values()) / 2.0
+    return adj, deg, m
+
+
+def _greedy_modularity(adj: dict, deg: dict, m: float) -> dict[str, int]:
+    """Clauset-Newman-Moore: every node starts alone, then repeatedly merge
+    the connected pair with the largest modularity gain until no merge
+    improves the partition. Chosen over label propagation because it is
+    deterministic without tie-breaking tricks and optimizes a stated
+    objective, so the modularity score reported beside it means something.
+
+    Merge candidates live in a heap with lazy invalidation - a popped entry
+    whose gain no longer matches the current graph is recomputed and pushed
+    back rather than trusted, which is what keeps this near-linear on the
+    sparse graphs import structure produces."""
+    if m <= 0:
+        return {}
+    comm = {n: i for i, n in enumerate(sorted(adj))}
+    members = {i: {n} for n, i in comm.items()}
+    tot = {comm[n]: deg[n] for n in adj}
+    # Inter-community weight, keyed low-id first.
+    link: dict[tuple[int, int], float] = {}
+    for a, nbrs in adj.items():
+        for b, w in nbrs.items():
+            ca, cb = comm[a], comm[b]
+            if ca == cb:
+                continue
+            key = (ca, cb) if ca < cb else (cb, ca)
+            link[key] = w  # symmetric fill; each pair written twice, same w
+
+    def gain(ca: int, cb: int) -> float:
+        key = (ca, cb) if ca < cb else (cb, ca)
+        w = link.get(key, 0.0)
+        return w / m - (tot[ca] * tot[cb]) / (2.0 * m * m)
+
+    heap = [(-gain(a, b), a, b) for a, b in link]
+    heapq.heapify(heap)
+    while heap:
+        negdq, ca, cb = heapq.heappop(heap)
+        if ca not in members or cb not in members:
+            continue
+        key = (ca, cb) if ca < cb else (cb, ca)
+        if key not in link:
+            continue
+        fresh = gain(ca, cb)
+        if abs(fresh - (-negdq)) > 1e-12:
+            heapq.heappush(heap, (-fresh, ca, cb))
+            continue
+        if fresh <= 1e-12:
+            break  # no remaining merge improves Q; the heap is max-first
+        keep, drop = (ca, cb) if ca < cb else (cb, ca)
+        members[keep] |= members.pop(drop)
+        tot[keep] += tot.pop(drop)
+        for n in members[keep]:
+            comm[n] = keep
+        # Rewire every link that touched the absorbed community.
+        moved = [k for k in link if drop in k]
+        for k in moved:
+            w = link.pop(k)
+            other = k[0] if k[1] == drop else k[1]
+            if other == keep:
+                continue
+            nk = (keep, other) if keep < other else (other, keep)
+            link[nk] = link.get(nk, 0.0) + w
+        for k in list(link):
+            if keep in k:
+                other = k[0] if k[1] == keep else k[1]
+                heapq.heappush(heap, (-gain(keep, other), keep, other))
+    return comm
+
+
+def _community_label(files: list[str]) -> str:
+    """Name a community by the directory most of its members sit in. No
+    model is consulted - this is a path fact.
+
+    The plurality directory beats the shared prefix, which was the first
+    attempt: on a real tree every subsystem under src/ shares the prefix
+    src/, so four distinct communities all came back labelled `src/` and the
+    labels distinguished nothing. A tie goes to the deeper path, because the
+    more specific name is the more useful one."""
+    dirs: dict[str, int] = {}
+    for f in files:
+        d = f.rsplit("/", 1)[0] + "/" if "/" in f else "(root)"
+        dirs[d] = dirs.get(d, 0) + 1
+    return sorted(dirs.items(),
+                  key=lambda kv: (-kv[1], -kv[0].count("/"), kv[0]))[0][0]
+
+
+def communities_report(repo: Path) -> dict:
+    """Subsystems discovered from the import graph rather than declared by
+    the directory tree - groups of files that reference each other far more
+    than they reference the rest of the repo.
+
+    Read `modularity` before reading the groups: it scores how much real
+    structure the partition found. Above ~0.3 the communities mean
+    something; near zero the graph has no community structure and the split
+    is arbitrary, which is the expected answer for a small or a uniformly
+    connected repo. Files with no executable edge cannot be placed at all
+    and are returned as `singletons`, not forced into a group."""
+    adj, deg, m = _live_adjacency(repo)
+    comm = _greedy_modularity(adj, deg, m)
+    groups: dict[int, list[str]] = {}
+    for node, cid in comm.items():
+        groups.setdefault(cid, []).append(node)
+
+    con = open_fresh(repo)
+    all_files = {r[0] for r in con.execute(
+        "SELECT id FROM files WHERE origin = 'project'")}
+    con.close()
+
+    singletons = sorted(all_files - {n for g in groups.values()
+                                     for n in g if len(groups[comm[n]]) > 1})
+    kept = [sorted(g) for g in groups.values() if len(g) > 1]
+    # Size first, then label, then the member list: a total order, so two
+    # runs over the same graph emit byte-identical output.
+    kept.sort(key=lambda g: (-len(g), _community_label(g), g))
+
+    # Two communities can still share a plurality directory. A label that
+    # names two different things is worse than a longer one, so collisions
+    # get a rank suffix rather than being left ambiguous.
+    seen: dict[str, int] = {}
+    labels = []
+    for files in kept:
+        base = _community_label(files)
+        seen[base] = seen.get(base, 0) + 1
+        labels.append(base if seen[base] == 1 else f"{base} #{seen[base]}")
+
+    out = []
+    for idx, files in enumerate(kept):
+        inside = set(files)
+        internal = sum(w for a in files for b, w in adj.get(a, {}).items()
+                       if b in inside) / 2.0
+        external = sum(w for a in files for b, w in adj.get(a, {}).items()
+                       if b not in inside)
+        out.append({"id": idx, "label": labels[idx],
+                    "size": len(files), "files": files,
+                    "internal_edges": int(internal),
+                    "external_edges": int(external)})
+
+    q = 0.0
+    if m > 0:
+        for files in kept + [[s] for s in singletons if s in adj]:
+            inside = set(files)
+            in_w = sum(w for a in files for b, w in adj.get(a, {}).items()
+                       if b in inside) / 2.0
+            tot_w = sum(deg.get(a, 0.0) for a in files)
+            q += in_w / m - (tot_w / (2.0 * m)) ** 2
+    return {"communities": out, "modularity": round(q, 4),
+            "singletons": singletons, "edge_weight": int(m)}
+
+
+# ---------- degree ----------
+def god_nodes_report(repo: Path, limit: int = 20) -> dict:
+    """Files ranked by executable-edge degree: the ones most of the repo
+    depends on (fan_in) and the ones that reach most of it (fan_out).
+
+    Only LIVE_KINDS count. A weak ref - a path string, a doc link, a Docker
+    COPY - is presence, not dependency, and counting it crowns build files as
+    architectural hubs. Self-edges and zero-degree files are dropped, and
+    indexed dependency code never competes with the project's own.
+
+    A high rank is a statement about coupling, not about quality: it says a
+    change here has a wide blast radius, which is sometimes exactly what an
+    entry point or a shared type module is for. Static analysis also cannot
+    see dynamic dispatch or plugin registries, so an absent file is not
+    proof of a file nothing depends on."""
+    con = open_fresh(repo)
+    kinds = tuple(sorted(LIVE_KINDS))
+    marks = ",".join("?" * len(kinds))
+    rows = con.execute(
+        f"SELECT f.id, f.role,"
+        f" (SELECT count(DISTINCT e.dst) FROM edges e WHERE e.src = f.id"
+        f"  AND e.dst IS NOT NULL AND e.dst != f.id"
+        f"  AND e.kind IN ({marks})),"
+        f" (SELECT count(DISTINCT e.src) FROM edges e WHERE e.dst = f.id"
+        f"  AND e.src != f.id AND e.kind IN ({marks}))"
+        f" FROM files f WHERE f.origin = 'project'",
+        kinds + kinds).fetchall()
+    con.close()
+    nodes = [{"file": fid, "role": role, "fan_in": fan_in,
+              "fan_out": fan_out, "degree": fan_in + fan_out}
+             for fid, role, fan_out, fan_in in rows if fan_in + fan_out]
+    # Degree first; at a tie the chokepoint everyone imports outranks the
+    # file that imports everything, because breaking it costs more. Path
+    # last so the ordering is total and the output is diffable.
+    nodes.sort(key=lambda n: (-n["degree"], -n["fan_in"], n["file"]))
+    return {"nodes": nodes[:limit], "total": len(nodes)}
+
+
 # ---------- coverage ----------
 def _norm_cov_path(repo: Path, raw: str, file_ids: set[str]) -> str | None:
     p = raw.replace("\\", "/")
@@ -3223,6 +3438,50 @@ def cmd_externals(args: argparse.Namespace) -> int:
         for r in p] and 0 or 0)
 
 
+def cmd_communities(args: argparse.Namespace) -> int:
+    payload = communities_report(repo_dir(args.repo))
+
+    def render(p):
+        q = p["modularity"]
+        verdict = ("real structure" if q >= 0.3 else
+                   "weak - read these groups as a hint, not a map")
+        print(f"Subsystems inferred from the import graph."
+              f"  modularity {q} ({verdict})")
+        for c in p["communities"]:
+            print(f"\n{c['label']}  ({c['size']} files,"
+                  f" {c['internal_edges']} internal /"
+                  f" {c['external_edges']} external edges)")
+            for f in c["files"]:
+                print(f"  {f}")
+        if p["singletons"]:
+            print(f"\nunplaced ({len(p['singletons'])}): no executable edge"
+                  f" to cluster on")
+            for f in p["singletons"]:
+                print(f"  {f}")
+        return 0
+    return emit(args, payload, render)
+
+
+def cmd_god_nodes(args: argparse.Namespace) -> int:
+    payload = god_nodes_report(repo_dir(args.repo), args.limit)
+
+    def render(p):
+        print("Files ranked by executable-edge degree. High rank means a"
+              " wide blast radius, not bad design - an entry point or a"
+              " shared type module belongs here. Dynamic dispatch and"
+              " plugin registries are invisible to this count.")
+        print(f"\n  {'in':>4} {'out':>4} {'deg':>4}  file")
+        for r in p["nodes"]:
+            role = "" if r["role"] == "source" else f"  ({r['role']})"
+            print(f"  {r['fan_in']:>4} {r['fan_out']:>4} {r['degree']:>4}"
+                  f"  {r['file']}{role}")
+        shown = len(p["nodes"])
+        print(f"\nshowing {shown} of {p['total']} files with"
+              f" at least one executable edge")
+        return 0
+    return emit(args, payload, render)
+
+
 ENTRY_RANK = {"convention": 0, "config": 0, "bin": 1, "script": 1,
               "dockerfile": 1, "compose": 1, "make": 2, "workflow": 2,
               "page": 2, "main-guard": 3, "shebang": 3}
@@ -3674,6 +3933,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--limit", type=int, default=30)
     add("entrypoints", cmd_entrypoints)
     add("dead", cmd_dead)
+    p = add("god-nodes", cmd_god_nodes)
+    p.add_argument("--limit", type=int, default=20)
+    add("communities", cmd_communities)
     p = add("coverage", cmd_coverage)
     p.add_argument("action", choices=["run", "ingest", "report"])
     p.add_argument("artifact", nargs="?")

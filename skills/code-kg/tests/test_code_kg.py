@@ -1342,6 +1342,187 @@ class TestRelayAnswerKey(unittest.TestCase):
         self.assertEqual(got, expected)
 
 
+class TestCommunities(unittest.TestCase):
+    """Modularity clustering over executable edges: the subsystems nobody
+    declared. Assertions are structural, not algorithm-specific - they say
+    what any correct partition of this fixture must contain."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmpdir = tempfile.mkdtemp()
+        cls.repo = Path(cls.tmpdir) / "repo"
+        shutil.copytree(FIXTURE, cls.repo,
+                        ignore=shutil.ignore_patterns(".code-kg",
+                                                      "__pycache__"))
+        code_kg.ingest(cls.repo)
+        cls.report = code_kg.communities_report(cls.repo)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmpdir, ignore_errors=True)
+
+    def _community_of(self, path):
+        for c in self.report["communities"]:
+            if path in c["files"]:
+                return c["id"]
+        self.fail(f"{path} landed in no community")
+
+    def test_web_files_cluster_together(self):
+        a = self._community_of("web/index.ts")
+        self.assertEqual(a, self._community_of("web/lib/api.ts"))
+        self.assertEqual(a, self._community_of("web/models.ts"))
+
+    def test_leaf_files_follow_their_only_neighbor(self):
+        # helpers.py is reached only by util.py, and only_tested.py only by
+        # test_util.py. A degree-1 node has no other community to join.
+        self.assertEqual(self._community_of("app/helpers.py"),
+                         self._community_of("app/util.py"))
+        self.assertEqual(self._community_of("app/only_tested.py"),
+                         self._community_of("tests/test_util.py"))
+
+    def test_entry_point_clusters_with_its_launchers(self):
+        # app/main.py has 2 edges into app/ and 3 from the things that start
+        # it (Dockerfile, pyproject.toml, scripts/deploy.sh). Grouping it
+        # with the launch surface rather than with app/ internals is the
+        # correct read of the graph, and directory layout does not override
+        # it. Pinned because it looks like a bug and is not.
+        main = self._community_of("app/main.py")
+        self.assertEqual(main, self._community_of("Dockerfile"))
+        self.assertNotEqual(main, self._community_of("app/util.py"))
+
+    def test_app_and_web_are_separate(self):
+        self.assertNotEqual(self._community_of("app/main.py"),
+                            self._community_of("web/index.ts"))
+
+    def test_disconnected_component_is_its_own_community(self):
+        # infra/ touches nothing else; no correct partition merges it.
+        cid = self._community_of("infra/main.tf")
+        self.assertEqual(cid, self._community_of("infra/modules/net/main.tf"))
+        members = next(c["files"] for c in self.report["communities"]
+                       if c["id"] == cid)
+        self.assertEqual(sorted(members),
+                         ["infra/main.tf", "infra/modules/net/main.tf"])
+
+    def test_modularity_is_reported_and_in_range(self):
+        q = self.report["modularity"]
+        self.assertIsInstance(q, float)
+        self.assertGreaterEqual(q, -1.0)
+        self.assertLessEqual(q, 1.0)
+
+    def test_communities_carry_a_path_label(self):
+        web = next(c for c in self.report["communities"]
+                   if "web/index.ts" in c["files"])
+        self.assertEqual(web["label"], "web/")
+
+    def test_deterministic_across_runs(self):
+        again = code_kg.communities_report(self.repo)
+        self.assertEqual(again, self.report)
+
+    def test_ranked_by_size_descending(self):
+        sizes = [c["size"] for c in self.report["communities"]]
+        self.assertEqual(sizes, sorted(sizes, reverse=True))
+        for c in self.report["communities"]:
+            self.assertEqual(c["size"], len(c["files"]))
+
+    def test_isolated_files_are_singletons_not_communities(self):
+        # app/orphan.py has no executable edge in either direction.
+        placed = {f for c in self.report["communities"] for f in c["files"]}
+        self.assertNotIn("app/orphan.py", placed)
+        self.assertIn("app/orphan.py", self.report["singletons"])
+
+    def test_labels_are_unique(self):
+        labels = [c["label"] for c in self.report["communities"]]
+        self.assertEqual(len(labels), len(set(labels)))
+
+    def test_label_prefers_plurality_directory_over_shared_prefix(self):
+        # The shared prefix of these is src/, which would name every
+        # subsystem in a src/-rooted repo identically.
+        self.assertEqual(
+            code_kg._community_label(
+                ["src/relay/tools/a.py", "src/relay/tools/b.py",
+                 "src/relay/tools/c.py", "src/relay/main.py",
+                 "tests/test_a.py"]),
+            "src/relay/tools/")
+
+    def test_label_tie_goes_to_the_deeper_path(self):
+        self.assertEqual(
+            code_kg._community_label(
+                ["src/a.py", "src/b.py", "src/srv/c.py", "src/srv/d.py"]),
+            "src/srv/")
+
+    def test_cli_json_surface(self):
+        out = subprocess.run(
+            [sys.executable, str(ENGINE), "communities", str(self.repo),
+             "--json"],
+            capture_output=True, text=True, timeout=120,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+        self.assertEqual(out.returncode, 0, out.stderr)
+        payload = json.loads(out.stdout)
+        self.assertIn("modularity", payload)
+        self.assertTrue(payload["communities"])
+
+
+class TestGodNodes(unittest.TestCase):
+    """Degree ranking over executable edges: the architectural hotspots."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmpdir = tempfile.mkdtemp()
+        cls.repo = Path(cls.tmpdir) / "repo"
+        shutil.copytree(FIXTURE, cls.repo,
+                        ignore=shutil.ignore_patterns(".code-kg",
+                                                      "__pycache__"))
+        code_kg.ingest(cls.repo)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmpdir, ignore_errors=True)
+
+    def test_ranks_the_hub_first(self):
+        rows = code_kg.god_nodes_report(self.repo)["nodes"]
+        self.assertEqual(rows[0]["file"], "app/main.py")
+        self.assertEqual(rows[0]["fan_in"], 3)
+        self.assertEqual(rows[0]["fan_out"], 2)
+        self.assertEqual(rows[0]["degree"], 5)
+
+    def test_carries_role_for_judgment(self):
+        rows = code_kg.god_nodes_report(self.repo)["nodes"]
+        roles = {r["file"]: r["role"] for r in rows}
+        self.assertEqual(roles["app/main.py"], "source")
+        self.assertEqual(roles["tests/test_util.py"], "test")
+
+    def test_weak_edges_do_not_inflate_degree(self):
+        # Dockerfile COPY lines are weak refs, not executable dependencies;
+        # counting them would crown the Dockerfile as the repo's hub.
+        rows = code_kg.god_nodes_report(self.repo)["nodes"]
+        by_file = {r["file"]: r for r in rows}
+        self.assertLess(by_file["Dockerfile"]["degree"],
+                        by_file["app/main.py"]["degree"])
+
+    def test_zero_degree_files_are_excluded(self):
+        rows = code_kg.god_nodes_report(self.repo)["nodes"]
+        self.assertNotIn("app/orphan.py", {r["file"] for r in rows})
+        self.assertTrue(all(r["degree"] > 0 for r in rows))
+
+    def test_deterministic_and_limited(self):
+        a = code_kg.god_nodes_report(self.repo, limit=3)["nodes"]
+        b = code_kg.god_nodes_report(self.repo, limit=3)["nodes"]
+        self.assertEqual(a, b)
+        self.assertEqual(len(a), 3)
+        degrees = [r["degree"] for r in a]
+        self.assertEqual(degrees, sorted(degrees, reverse=True))
+
+    def test_cli_json_surface(self):
+        out = subprocess.run(
+            [sys.executable, str(ENGINE), "god-nodes", str(self.repo),
+             "--json"],
+            capture_output=True, text=True, timeout=120,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(
+            json.loads(out.stdout)["nodes"][0]["file"], "app/main.py")
+
+
 class TestCli(unittest.TestCase):
     """End to end through the actual CLI surface."""
 
