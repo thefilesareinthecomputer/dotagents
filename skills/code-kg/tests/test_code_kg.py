@@ -1194,12 +1194,14 @@ class TestScanSafety(unittest.TestCase):
 DEPS_FIXTURE = Path(__file__).resolve().parent / "fixture-deps"
 
 # The vendored half of fixture-deps is written at test time rather than
-# committed. Its directory names are the ones every .gitignore and every
-# publish holdback excludes, so committed copies were silently absent from
-# a fresh clone and TestDepsIndexing failed for anyone but the author.
-# Renaming the directories was the other option and it was worse: the deps
-# scanner matches `.venv`, `venv` and `node_modules` by name, so a renamed
-# fixture would pass while testing nothing.
+# committed. Its directory names are the ones publish holdbacks exclude, and
+# a publish script that builds only --exclude entries offers no negation
+# escape hatch the way .gitignore's ! rules do, so committed copies reached a
+# clone of this repo but never reached the published tree - where
+# TestDepsIndexing then failed with no local fix available. Renaming the
+# directories was the other option and it was worse:
+# the deps scanner matches `.venv`, `venv` and `node_modules` by name, so a
+# renamed fixture would pass while testing nothing.
 VENDORED = {
     "node_modules/leftpad/index.js":
         'module.exports = function leftpad(str, len, ch) {\n'
@@ -1479,6 +1481,41 @@ class TestCommunities(unittest.TestCase):
         placed = {f for c in self.report["communities"] for f in c["files"]}
         self.assertNotIn("app/orphan.py", placed)
         self.assertIn("app/orphan.py", self.report["singletons"])
+
+    def test_render_truncates_but_json_does_not(self):
+        env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+        text = subprocess.run(
+            [sys.executable, str(ENGINE), "communities", str(self.repo),
+             "--limit", "1"],
+            capture_output=True, text=True, timeout=120, env=env)
+        self.assertEqual(text.returncode, 0, text.stderr)
+        self.assertIn("TRUNCATED", text.stdout)
+        # The machine-readable payload stays whole - truncation is a render
+        # concern, and a consumer parsing --json must never silently lose
+        # members.
+        raw = subprocess.run(
+            [sys.executable, str(ENGINE), "communities", str(self.repo),
+             "--limit", "1", "--json"],
+            capture_output=True, text=True, timeout=120, env=env)
+        payload = json.loads(raw.stdout)
+        self.assertNotIn("TRUNCATED", raw.stdout)
+        for c in payload["communities"]:
+            self.assertEqual(len(c["files"]), c["size"])
+
+    def test_negative_limit_shows_everything_and_claims_nothing(self):
+        # -1 is the common "no limit" idiom. Unclamped, files[:-1] would drop
+        # the last member of every group while TRUNCATED claimed size+1 were
+        # hidden - fewer files shown AND a larger number reported.
+        out = subprocess.run(
+            [sys.executable, str(ENGINE), "communities", str(self.repo),
+             "--limit", "-1"],
+            capture_output=True, text=True, timeout=120,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertNotIn("TRUNCATED", out.stdout)
+        for c in self.report["communities"]:
+            for f in c["files"]:
+                self.assertIn(f, out.stdout)
 
     def test_labels_are_unique(self):
         labels = [c["label"] for c in self.report["communities"]]

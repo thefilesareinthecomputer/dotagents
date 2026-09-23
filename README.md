@@ -281,7 +281,7 @@ description is its trigger contract and its body is the workflow.
 | `hi` | Session-start orientation, read-only |
 | `meta-loop` | Orchestration: plan, fan out, verify, synthesize |
 | `my-security-review-checklist` | Pre-merge security gate for agent tooling |
-| `code-kg` | Offline symbol-level knowledge graph over a codebase: imports, entry points, framework-aware liveness, agent-tooling layer, data-store inventory, coverage join |
+| `code-kg` | Offline symbol-level knowledge graph over a codebase: imports, entry points, framework-aware liveness, subsystem communities, coupling hotspots, agent-tooling layer, data-store inventory, coverage join |
 | `codex-task` | Delegates one bounded task from Claude Code to the local Codex CLI in an isolated worktree, writes confined to a file allowlist, diff reviewed before apply |
 | `notes` | End-of-session documentation sweep into the living docs |
 | `obsidian` | Obsidian markdown standard plus a per-vault authoring workflow |

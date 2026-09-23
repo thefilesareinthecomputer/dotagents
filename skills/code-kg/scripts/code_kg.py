@@ -3442,6 +3442,11 @@ def cmd_communities(args: argparse.Namespace) -> int:
     payload = communities_report(repo_dir(args.repo))
 
     def render(p):
+        # A negative limit is the common "no limit" idiom, so honor it as
+        # that. Passing it through would let Python read it as
+        # slice-from-the-end, quietly dropping the last member of every group
+        # while the count claimed MORE were hidden than actually were.
+        lim = None if args.limit < 0 else args.limit
         q = p["modularity"]
         verdict = ("real structure" if q >= 0.3 else
                    "weak - read these groups as a hint, not a map")
@@ -3451,13 +3456,18 @@ def cmd_communities(args: argparse.Namespace) -> int:
             print(f"\n{c['label']}  ({c['size']} files,"
                   f" {c['internal_edges']} internal /"
                   f" {c['external_edges']} external edges)")
-            for f in c["files"]:
+            for f in c["files"][:lim]:
                 print(f"  {f}")
+            if lim is not None and c["size"] > lim:
+                print(f"  TRUNCATED: {c['size'] - lim} more")
         if p["singletons"]:
-            print(f"\nunplaced ({len(p['singletons'])}): no executable edge"
+            unplaced = p["singletons"]
+            print(f"\nunplaced ({len(unplaced)}): no executable edge"
                   f" to cluster on")
-            for f in p["singletons"]:
+            for f in unplaced[:lim]:
                 print(f"  {f}")
+            if lim is not None and len(unplaced) > lim:
+                print(f"  TRUNCATED: {len(unplaced) - lim} more")
         return 0
     return emit(args, payload, render)
 
@@ -3935,7 +3945,10 @@ def main(argv: list[str] | None = None) -> int:
     add("dead", cmd_dead)
     p = add("god-nodes", cmd_god_nodes)
     p.add_argument("--limit", type=int, default=20)
-    add("communities", cmd_communities)
+    p = add("communities", cmd_communities)
+    p.add_argument("--limit", type=int, default=25,
+                   help="max files listed per group and per unplaced"
+                        " section; --json is never truncated")
     p = add("coverage", cmd_coverage)
     p.add_argument("action", choices=["run", "ingest", "report"])
     p.add_argument("artifact", nargs="?")
