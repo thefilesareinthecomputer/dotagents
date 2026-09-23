@@ -1193,6 +1193,52 @@ class TestScanSafety(unittest.TestCase):
 
 DEPS_FIXTURE = Path(__file__).resolve().parent / "fixture-deps"
 
+# The vendored half of fixture-deps is written at test time rather than
+# committed. Its directory names are the ones every .gitignore and every
+# publish holdback excludes, so committed copies were silently absent from
+# a fresh clone and TestDepsIndexing failed for anyone but the author.
+# Renaming the directories was the other option and it was worse: the deps
+# scanner matches `.venv`, `venv` and `node_modules` by name, so a renamed
+# fixture would pass while testing nothing.
+VENDORED = {
+    "node_modules/leftpad/index.js":
+        'module.exports = function leftpad(str, len, ch) {\n'
+        '  str = String(str);\n'
+        '  ch = ch || " ";\n'
+        '  while (str.length < len) {\n'
+        '    str = ch + str;\n'
+        '  }\n'
+        '  return str;\n'
+        '};\n',
+    "node_modules/leftpad/package.json":
+        '{\n'
+        '  "name": "leftpad",\n'
+        '  "version": "1.0.0",\n'
+        '  "main": "index.js"\n'
+        '}\n',
+    ".venv/lib/python3.12/site-packages/helperlib/__init__.py":
+        'from helperlib.core import clamp\n'
+        '\n'
+        'DEFAULT = 7\n'
+        '\n'
+        '__all__ = ["clamp", "DEFAULT"]\n',
+    ".venv/lib/python3.12/site-packages/helperlib/core.py":
+        '"""Fake installed library; xylophone_marker_token identifies'
+        ' dep-only text."""\n'
+        '\n'
+        '\n'
+        'def clamp(value, low, high):\n'
+        '    return max(low, min(high, value))\n'
+        '\n'
+        '\n'
+        'class Widget:\n'
+        '    def __init__(self, size):\n'
+        '        self.size = size\n'
+        '\n'
+        '    def grow(self, amount):\n'
+        '        self.size = clamp(self.size + amount, 0, 100)\n',
+}
+
 
 class TestDepsIndexing(unittest.TestCase):
     """Dependency code is visible on request, firewalled by default."""
@@ -1201,6 +1247,10 @@ class TestDepsIndexing(unittest.TestCase):
         self.tmpdir = tempfile.mkdtemp()
         self.repo = Path(self.tmpdir) / "repo"
         shutil.copytree(DEPS_FIXTURE, self.repo)
+        for rel, body in VENDORED.items():
+            dst = self.repo / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.write_text(body)
 
     def tearDown(self):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
