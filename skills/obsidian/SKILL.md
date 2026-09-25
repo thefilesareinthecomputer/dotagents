@@ -2,14 +2,14 @@
 name: obsidian
 description: >-
   Universal Obsidian-flavored markdown standard plus a per-vault authoring workflow. Covers
-  syntax (frontmatter/Properties, wiki-links, embeds, callouts, block refs, tags, tasks,
-  tables, footnotes, MathJax, Mermaid, highlights) and the house style for notes that render
-  cleanly in Obsidian's Live Preview. Probes each vault's .obsidian config and existing notes,
-  then MIRRORS that vault's conventions instead of imposing defaults. Use when authoring or
-  editing .md inside an Obsidian vault (a `.obsidian/` folder is present), when the user
-  mentions Obsidian, a vault, wikilinks, [[links]], callouts, properties, embeds, block
-  references, Dataview, Tasks, Templater, or Bases, or for any Obsidian syntax question.
-  Prefer this over generic markdown whenever a vault is present.
+  syntax (frontmatter, tags, tasks, tables, footnotes, MathJax, Mermaid, highlights) and a
+  house style that renders cleanly in Live Preview. Probes each vault's config and notes,
+  then MIRRORS its conventions instead of imposing defaults. Use when authoring or editing
+  .md inside an Obsidian vault (a `.obsidian/` folder is present), when the user mentions
+  Obsidian, a vault, wikilinks, [[links]], callouts, properties, embeds, block references,
+  Dataview, Tasks, Templater, or Bases, or for any Obsidian syntax question. Also use when a
+  vault note will be published to Azure DevOps, GitHub or a repo docs folder, which changes
+  its links. Prefer this over generic markdown whenever a vault is present.
 ---
 
 # obsidian (universal standard)
@@ -103,7 +103,8 @@ frontmatter must be quoted: `related: "[[Other Note]]"`. See
 [references/PROPERTIES.md](references/PROPERTIES.md).
 
 **Linking rule**, `[[wikilinks]]` for in-vault notes (when `useMarkdownLinks=false`);
-`[text](url)` for external URLs only:
+`[text](url)` for external URLs, and required for cross-file links in notes that get
+published outside the vault (see "Notes published outside the vault" below):
 ```
 [[Note Name]]
 [[Note Name|Display Text]]
@@ -124,6 +125,32 @@ frontmatter must be quoted: `related: "[[Other Note]]"`. See
 > are NOT index-tree nodes stay normal spaced prose and are not linked. (Stock forms
 > still work - `[[#Heading]]` wikilink, or `[x](#Heading%20Text)` URL-encoded - but the
 > token style is this user's default and sidesteps encoding.)
+
+**Notes published outside the vault** (user ruling 2026-09-25). When we know a doc or
+artifact gets copied or published somewhere that renders only standard markdown, such as an
+Azure DevOps repo or wiki, GitHub, or a repo's `docs/` folder, three rules apply together,
+because each one depends on the others:
+
+1. **Every reference to another doc in the set is a link.** At minimum it links to the file,
+   `[Setup Guide](setup-guide.md)`, and wherever the reference means a particular section
+   it links to that section's anchor, `[Deploying a change](runbook.md#4-deploying-a-change)`.
+   These are relative markdown links, never wikilinks, which those hosts show as literal
+   brackets. A path into or out of a subfolder carries the folder:
+   `../runbook.md#4-deploying-a-change`.
+2. **Every heading a link can target is a lowercase token**, hyphen-separated with no
+   spaces, capitals or punctuation, such as `## 4-deploying-a-change`. The anchor is
+   then the heading text minus its `#` marks, a string-literal match: Obsidian resolves it
+   literally, and a git host produces the same string when it slugifies the heading
+   (lowercase, spaces to hyphens, punctuation dropped). A spaced or capitalized heading
+   gets a different anchor in each place and cannot be a portable link target, so in
+   these notes the UPPERCASE landmark style above gives way to lowercase at every level.
+3. **The index tree lists those token headings**, so every anchor another doc can link to
+   is visible at the top of the target.
+
+A spaced subsection inside a token section has no portable anchor; link its token section
+and name the subsection in text, as in "in
+[Troubleshooting](runbook.md#7-troubleshooting), under Connection errors". Notes that stay in the vault keep wikilinks. If it's unclear whether a note
+gets published, ask, or look for a repo `docs/` copy or a publishing step before choosing.
 
 **Embeds / transclusion**, `!` prefix. See [references/EMBEDS.md](references/EMBEDS.md):
 ```
