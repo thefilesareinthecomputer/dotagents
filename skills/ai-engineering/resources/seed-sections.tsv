@@ -273,3 +273,15 @@ asg017/sqlite-vec	vectordb
 lancedb/lancedb	vectordb
 EQ-bench/creative-writing-bench	eval
 ayghri/i-have-adhd	skills
+typesafe-ai/skills	skills
+typesafe-ai/typesafe-sdk-python	serving
+typesafe-ai/typesafe-sdk-js	serving
+typesafe-ai/system-one-adapter-python	serving
+block/buzz	harnesses
+agentclientprotocol/agent-client-protocol	harnesses
+agentclientprotocol/claude-agent-acp	harnesses
+agentclientprotocol/codex-acp	harnesses
+agentclientprotocol/registry	harnesses
+agentclientprotocol/python-sdk	frameworks
+agentclientprotocol/typescript-sdk	frameworks
+agentclientprotocol/rust-sdk	frameworks

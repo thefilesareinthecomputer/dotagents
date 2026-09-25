@@ -1,5 +1,7 @@
 seq	date	url	kind	resolution	state
 48	2026-09-18	https://aclanthology.org/2025.findings-acl.1226	manual-override	'adjacent' -> 'papers|media'	hot
+79	2026-09-25	https://agentclientprotocol.com/	manual-override	'adjacent' -> 'docs|harnesses'	hot
+76	2026-09-23	https://aitmpl.com/component/mod/productivity/jev-skill-suggestion	manual-override	'adjacent' -> 'skills'	hot
 53	2026-09-18	https://arxiv.org/abs/2307.14335	manual-override	'papers' -> 'papers|media'	hot
 54	2026-09-18	https://arxiv.org/abs/2408.09869	manual-override	'papers' -> 'papers|ingestion'	hot
 58	2026-09-18	https://arxiv.org/abs/2503.00455	manual-override	'papers' -> 'papers|media'	hot
@@ -10,9 +12,11 @@ seq	date	url	kind	resolution	state
 59	2026-09-18	https://blog.google/innovation-and-ai/models-and-research/google-labs/notebooklm-audio-overviews-50-languages	manual-override	'learning' -> 'media|learning'	hot
 60	2026-09-18	https://blog.google/innovation-and-ai/models-and-research/google-labs/notebooklm-new-features-december-2024	manual-override	'learning' -> 'media|learning'	hot
 61	2026-09-18	https://blog.google/innovation-and-ai/products/notebooklm-update-october-2024	manual-override	'learning' -> 'media|learning'	hot
+78	2026-09-25	https://buzz.xyz/	manual-override	'adjacent' -> 'docs|harnesses'	hot
 46	2026-09-18	https://deepmind.google/blog/pushing-the-frontiers-of-audio-generation	manual-override	'adjacent' -> 'media|learning'	cold
 52	2026-09-18	https://deepmind.google/blog/pushing-the-frontiers-of-audio-generation	kept-manual	kept 'media|learning|map', auto said 'adjacent'	hot
 3	2026-07-27	https://docs.cloud.google.com/spanner/docs/graph/overview	manual-override	'docs|frameworks' -> 'docs|adjacent|map'	hot
+75	2026-09-23	https://docs.typesafe.ai/	manual-override	'adjacent' -> 'serving|docs'	hot
 49	2026-09-18	https://eqbench.com/creative_writing.html	manual-override	'adjacent' -> 'eval'	hot
 43	2026-09-02	https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai	manual-override	'adjacent' -> 'security|docs'	hot
 37	2026-09-02	https://github.com/CaviraOSS/PageLM	manual-override	'triage' -> 'learning|adjacent'	hot
@@ -69,6 +73,7 @@ seq	date	url	kind	resolution	state
 47	2026-09-18	https://support.google.com/notebooklm/answer/16212820	manual-override	'adjacent' -> 'media|docs'	cold
 51	2026-09-18	https://support.google.com/notebooklm/answer/16212820	kept-manual	kept 'media|docs', auto said 'adjacent'	hot
 66	2026-09-18	https://trafilatura.readthedocs.io/	manual-override	'docs' -> 'docs|ingestion'	hot
+77	2026-09-23	https://venturebeat.com/security/companies-are-putting-jev-in-charge-of-ai-agent-decisions-and-prompt-injection-can-influence-the-verdict	manual-override	'adjacent' -> 'security'	hot
 62	2026-09-18	https://www.latent.space/p/notebooklm	manual-override	'learning' -> 'media|learning'	hot
 45	2026-09-18	https://www.lmsys.org/blog/2026-06-04-higgs-audio-v3-tts	manual-override	'adjacent' -> 'media|models'	hot
 9	2026-07-28	https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron	manual-override	'docs|adjacent' -> 'docs|models'	hot

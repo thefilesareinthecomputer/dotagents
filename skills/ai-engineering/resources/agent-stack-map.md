@@ -123,6 +123,7 @@ Stars/status verified 2026-07-01 where dated; treat undated `verify` cells as un
 | browser-use | verify | Browser-driving harness | Drives a real browser for web tasks. | Brittle to site changes. | [repo](https://github.com/browser-use/browser-harness) |
 | Omnigent | Apache-2.0 | **Meta-harness** (layer *above* harnesses) | Databricks-built: runs Claude Code, Codex, Cursor, OpenCode, Hermes + YAML-defined custom agents behind one orchestration API; OS-level sandboxing (bubblewrap/seatbelt), stacked cost/access policies, sessions shareable across terminal/web/mobile. ~7.2k★ (2026-07-14). | **Self-described alpha; 571 open issues - pin versions.** Corporate backing (Databricks + Neon). | [repo](https://github.com/omnigent-ai/omnigent) |
 | QM | MIT | **Meta-harness** (company-scale, layer *above* harnesses) | Y Combinator's multiplayer agent harness, open-sourced 2026-07-31 and run internally across accounting, legal, events and engineering. Per-person and per-room workspaces with scoped memory, files, keychain, permissions, crons and durable sandboxes; Slack + web under one identity. Headless core over Postgres; adapters for Pi, OpenCode, Codex, Claude Code. ~12.4k★ (2026-08-08). | **A deployed service, not a local CLI** - `qm init` scaffolds a Fly/AWS deployment repo; BYO model keys, no hosted tier. Skills arrive as git skill packs under `deploy/layers/<org>/`, not from `~/.agents/skills`. YC calls it early and buggy. | [repo](https://github.com/yc-software/qm) |
+| Buzz | Apache-2.0 | **Human-agent team workspace** (Slack-shaped, one Nostr relay) | Block's channels, threads, DMs, git hosting and YAML workflows, with every agent a keyed member signed for by its owner. `buzz-acp` drives Goose, Claude Code, Codex and ten preset harnesses over ACP; agents act through the `buzz` CLI. Relay + Postgres 17 + Redis + S3; Postgres full-text search only. 34.4k★ (2026-09-25). | Pre-1.0. Harnesses default to `bypassPermissions` with every ACP request auto-approved; channel membership is the only access control; workflow approval gates not implemented (verified in code 2026-09-25). No knowledge curation beyond per-agent memory and uncurated notes. A team server you operate, not a local tool. | [repo](https://github.com/block/buzz) |
 | alook | Apache-2.0 | Multi-agent coordination layer | Gives local coding agents email addresses, roles and an org chart; agents route tasks to each other, report via inbox/Kanban. ~0.9k★ (2026-07-14). | v0.0.x; **"self-hosted" is partial - the orchestrator is a Cloudflare-hosted component.** Shared-memory claim undocumented. | [repo](https://github.com/alookai/alook) |
 | Grok Build | Apache-2.0 | Coding-agent harness (vendor) | xAI's terminal coding agent: Rust full-screen TUI, headless mode for CI, editor integration over the Agent Client Protocol. ~22.8k★ (2026-07-27). | **Squashed periodic exports from an internal monorepo** (1 contributor, 12 commits) - a vendor drop, not a community codebase. Tuned for Grok. | [repo](https://github.com/xai-org/grok-build) |
 | herdr | Apache-2.0 | Multi-agent terminal multiplexer | One Rust binary showing every running agent's state (blocked/working/done); sessions survive detach and restart; socket API lets agents spawn their own panes. ~21.1k★ (2026-07-27). | Plugin marketplace - vet extensions separately. Sits beside the harnesses and runs them; it has no agent loop of its own. | [repo](https://github.com/ogulcancelik/herdr) |
@@ -143,6 +144,54 @@ Stars/status verified 2026-07-01 where dated; treat undated `verify` cells as un
 > worktree, not an SDK call. Still too young to recommend as a default - and note that
 > the adoption leader ships **no spend ceiling at all** while auto-retrying premium
 > agents, so cost governance is the tier's open problem, not a solved one.
+> The Agent Client Protocol (B.1) is becoming the standard shape of that per-harness adapter.
+
+### B.1 - Agent Client Protocol: one driver for many harnesses (researched 2026-09-25)
+
+ACP does for coding agents what LSP did for language servers: a client speaks one protocol and drives any agent that implements it, instead of carrying an argv builder and an output parser per CLI.
+Claims below were verified against the [spec](https://github.com/agentclientprotocol/agent-client-protocol) at commit 4ef6c75, the [claude-agent-acp](https://github.com/agentclientprotocol/claude-agent-acp) and [codex-acp](https://github.com/agentclientprotocol/codex-acp) adapters at e6681d2 and bf37821, the [docs](https://agentclientprotocol.com/), and live `initialize` handshakes, all on 2026-09-25.
+
+**How it works.**
+The client launches the agent as a subprocess, and both sides exchange JSON-RPC 2.0 messages over stdio, one per line, with stdout reserved for protocol traffic and stderr for logs.
+The client calls `initialize` to negotiate the integer protocol version and exchange capabilities, then `session/new` with an absolute working directory and the MCP servers the agent should connect to.
+Each `session/prompt` is one turn: the agent streams `session/update` notifications (message and thought chunks, tool calls with status, plans, mode changes, usage), and the prompt's response carries the stop reason.
+`session/cancel` is a notification, and the agent must stop and answer the pending prompt with `stopReason: "cancelled"` rather than an error.
+The client is also a server, because the agent calls back into it for `session/request_permission` and, when the client advertises them, for `fs/*` and `terminal/*`, so a client must never block its read loop waiting for its own prompt to return.
+Streamable HTTP is an active RFD rather than a stable transport, so remote agents have no standard wire yet.
+
+**Resume works on current agents.**
+`session/load` (replays history) and `session/resume` (restores without replay) are optional capabilities in v1.
+Live handshakes on 2026-09-25 returned `loadSession: true` from OpenCode 1.18.15 (`opencode acp`), GitHub Copilot CLI 1.0.81 (`copilot --acp`) and cursor-agent 2026.08.25 (`cursor-agent acp`, which its top-level help does not list), and OpenCode also advertised resume, fork, list and close.
+The Claude and Codex adapters advertise load, resume, list, fork and close in code.
+
+**The client does not own permissions.**
+The spec says an agent MAY request permission before a tool call, so which calls reach the client is the agent's policy.
+The Claude adapter loads user, project and local Claude Code settings, so allow and deny rules and the permission mode settle a call first, and only calls still marked "ask" reach the client.
+The Codex adapter forwards only what Codex's sandbox and approval policy escalate, and its default mode auto-reviews and asks only about actions it flags as unsafe.
+Neither adapter routes edits or shell commands through the client's `fs/*` or `terminal/*` methods; the wrapped agent runs them in its own process.
+ACP therefore centralizes the conversation and the approval UI, but a deny list held only in the client covers only the calls an agent chooses to ask about, and enforcement still belongs in each agent's configuration or an OS sandbox around it.
+
+**Steering lives in extensions.**
+Stable v1 offers cancel and nothing else mid-turn, and the v2 prompt RFD states that it "does not specify queueing, steering, or whether agents insert new prompts while busy."
+The Claude and Codex adapters both implement a `_session/steering` request, advertised through `_meta.steering.supported`, that injects a message into the running turn, and the Claude adapter also queues a plain `session/prompt` sent mid-turn.
+Goose has its own `_goose/unstable/session/steer`.
+OpenCode, Copilot and cursor-agent advertised no steering in their handshakes, so a portable client needs cancel-and-re-prompt as the fallback.
+
+**Claude billing.**
+The Claude adapter offers subscription login only to clients that advertise terminal auth.
+Anthropic's [Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview) (fetched 2026-09-25) says: "Unless previously approved, Anthropic does not allow third party developers to offer claude.ai login or rate limits for their products, including agents built on the Claude Agent SDK."
+A product that ships an ACP client should plan on API keys for Claude, and no official source addresses an individual running the adapter on their own subscription.
+
+**Versioning and governance.**
+The stable wire version is 1, new capabilities are additive, and each connection speaks exactly one negotiated version.
+The v2 draft (2026-07-20) replaces `session/load` with `session/resume` plus replay, drops session modes, and moves client-side `fs/*` and `terminal/*` to MCP.
+Zed started ACP in August 2025 and co-governs it with JetBrains, and one lead maintainer from each holds the veto under an interim model aimed at a foundation.
+The [registry](https://github.com/agentclientprotocol/registry) lists 42 agents, and the clients page lists Zed and JetBrains natively plus Neovim, Emacs, VS Code and dozens more through plugins.
+IBM's Agent Communication Protocol shares the acronym and is unrelated: it was a REST protocol, and LF AI & Data announced on 2025-08-29 that it is winding down into A2A.
+
+**Stance.**
+Use ACP as the driver for non-Claude harnesses in any multi-agent client, because it removes per-CLI parsing, every agent probed supports resume, and several agents speak it natively.
+Keep enforcement in agent configuration or an OS sandbox rather than the client, treat steering as an optional capability with cancel-and-re-prompt behind it, and write against v1 with the v2 draft in view.
 
 ---
 

@@ -13,6 +13,7 @@ it. Replacements are illustrative, not substitutions to apply blindly.
 - [Intensifiers and hand-waving](#intensifiers-and-hand-waving)
 - [Filler transitions](#filler-transitions)
 - [Structure](#structure)
+- [Document shape](#document-shape)
 - [Symbols and syntax](#symbols-and-syntax)
 - [Thought patterns](#thought-patterns)
 
@@ -240,6 +241,24 @@ a word for the thing. A coined phrase is a defect even when it is shorter.
 
 **Test:** would a teammate say this phrase in a standup? If it would need
 explaining, use the word they would have used.
+
+### Constructed phrasing
+
+A sentence assembled to be defensible rather than said. It usually comes out of a
+correction pass: a claim was flagged as too strong, and instead of the plain
+true statement the pass bolts on a clause that technically avoids the objection
+and that nobody would say aloud. Dangling participles, compressions that read as
+riddles, and verbs stacked on verbs come from the same habit.
+
+| Constructed | What a person says |
+|---|---|
+| "a gold table with quality checks, and any number of reports can read it" | "a gold table with quality checks, ready for reporting" |
+| "We cover running the managed connectors we already have" | "The procedures below are for the connectors we already run" |
+| "Each check is a query we fill in before running, replacing names in angle brackets" | "Each check is a SQL query with placeholders in angle brackets that we fill in before running it" |
+| "Every query takes these values, named in its `customize` line" | "Each query's `customize` line lists which of these it uses" |
+
+**Test:** read it aloud to a teammate. If you would never say it that way, write
+it the way you would, then check the claim survived the rewrite.
 
 ### Performative precision
 
@@ -484,6 +503,51 @@ review the config" → say what to look for.
 | A horizontal rule between every section | Headings already separate |
 | "Key Takeaways" / "TL;DR" bolted on | If needed, the document is too long |
 | Every list exactly three items | Reality is rarely three |
+
+---
+
+## Document shape
+
+Sentence-level cleanup does not rescue a document whose parts arrive in an order
+the reader cannot follow. Generated documents fail here in recognizable ways: a
+section exists because documents of this kind usually have one, a table of
+placeholders or terms lands before the reader has anything to use it on,
+sections that should be parallel are shaped differently, and the reader has to
+jump ahead to understand what they are reading now. The result reads as random,
+arbitrary or unintentional even when every sentence is true.
+
+**Progressive disclosure.** Open with what the document is for and the one thing
+most readers need, then add depth in the order a reader needs it, so they can
+stop at any point and still be right. Summary before detail, the common case
+before the exception, the concept before its mechanism, the procedure before the
+reference material it relies on.
+
+**Nothing before its context.** A term, placeholder, command, legend or table
+appears only after the reader knows why it is there. A legend sits beside the
+first thing it decodes. A section opens with a sentence saying what it answers.
+
+**Every section earns its place.** Each one answers a question the reader of this
+document actually has, stated or implied by the opener. A section that exists
+because a template or the source material had one is cut or merged.
+
+**Cohesion.** One thing has one name throughout. Parallel sections share one
+shape, so a reader who learned one does not relearn the next. The order does the
+transitions; connective filler does not. The document reads as one author's
+plan rather than pasted fragments.
+
+| Tell | Fix |
+|---|---|
+| A placeholder table or legend before any content that uses it | One sentence in the opener naming the convention with an example, and the table where the content that uses it begins |
+| A section opening straight into a table or code block | A first sentence saying what the section answers |
+| Reference material (queries, commands, lookup tables) ahead of the explanation that motivates it | Explanation first, reference after, or the reference in its own section at the end |
+| A concept used in one section and defined in a later one | Define it on first use, or move the definition up |
+| Sibling sections shaped differently for no reason | One shape, applied to all of them |
+| A section with no question behind it | Cut it, or fold it into the section whose question it answers |
+| The same fact stated in several places | One home, cross-referenced by anchor |
+
+**Test:** read only the headings and each section's first sentence, top to
+bottom. If that skim does not tell a coherent story of what the document covers
+and in what order, the structure is wrong however clean the sentences are.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: ai-slop-magic-eraser
-description: Strips the tells of machine-generated writing while preserving meaning exactly, then corrects errors, hallucinations, contradictions and inventions. Removes hedging, sycophancy, meta-commentary, inflated register, formulaic cadence, em dashes and emojis, and equally fixes the opposite failure - clipped aphoristic prose that asserts instead of informs. Use when text is described as reading like AI, like ChatGPT, generic, templated, bloated, corny, cringe, or "not how I talk"; when it reads as clipped, noir, preachy, or like it is performing authority; when polishing any model-drafted document before it ships; when asked to de-slop, tighten, or humanize writing. Read it BEFORE drafting a document someone else will read. Ships a linter (scripts/slop_check.py). Not for code logic.
+description: Strips the tells of machine-generated writing while preserving meaning exactly, then corrects errors, hallucinations, contradictions and inventions. Removes hedging, sycophancy, meta-commentary, inflated register, formulaic cadence, em dashes and emojis, and fixes clipped aphoristic prose that asserts instead of informs. Use when text is described as reading like AI, like ChatGPT, generic, templated, bloated, corny, cringe, or "not how I talk"; when it reads as clipped, noir, preachy, or like it is performing authority; when a document reads as disorganized, arbitrary or hard to follow; when polishing a model-drafted document before it ships; when asked to de-slop, tighten, or humanize writing. Read it BEFORE drafting a document someone else will read. Ships a linter. Not for code logic.
 license: MIT
 ---
 
@@ -188,7 +188,20 @@ abstracted product names, and any sentence assessing the reader's organization.
 summary that restates rather than concludes, over-emphasis, decorative rules.
 Headings that argue rather than locate, and any heading carrying a count.
 
-**7. Symbols.** Any character a standard keyboard cannot produce - dashes,
+**7. Document shape.** A document of clean sentences still fails when its parts
+arrive in an order the reader cannot follow, and it then reads as random,
+arbitrary or scatterbrained. Check the reading order top to bottom: the opener
+says what the document is for and what most readers need; depth arrives in the
+order a reader needs it, so they can stop at any point and still be right;
+nothing (a term, placeholder, command, legend or table) appears before the
+reader knows why it is there; every section answers a question the reader of
+this document has, and opens with a sentence saying which; parallel sections
+share one shape; one thing has one name. The test is to read only the headings
+and each section's first sentence: if that skim does not tell a coherent story,
+fix the order before touching another sentence. `references/tells.md` section
+"Document shape" has the catalog.
+
+**8. Symbols.** Any character a standard keyboard cannot produce - dashes,
 curly quotes, ellipses, bullets, arrows, math signs, ligatures, exotic spaces,
 emoji, and anything invisible. The linter catches every one of them by
 codepoint; the judgment calls are what replaces a dash and whether an accented
