@@ -9,8 +9,7 @@ description: >-
   PROJECTS/, when asked to set up, seed, scaffold or template a project's
   notes, when checking whether a vault conforms or why the graph or the board
   tools read it badly, or when a project needs a home for its meetings, chat,
-  learnings, questions and user stories. Works for any project in any domain.
-  The knowledge base, learning path and research flows around it belong to
+  learnings, questions and user stories. The knowledge base, learning path and research flows around it belong to
   their own skills; so do the board (sprint-board) and the graph (obsidian-kg).
 ---
 

@@ -386,13 +386,14 @@ use. The canonical list and the honest per-tool header conventions live in
 
 ## 8. Hook scripts (`~/.claude/hooks/`)
 
-Eighteen wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
+Nineteen wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
 `guard-rm.sh`, `block-env-files.sh`), the `~/.claude`-edit prompt
 (`ask-before-claude-folder-edits.sh`), the SessionStart inbox check
 (`agent-mail-check.sh`), the reply-length nudge (`cmon_nudge.py`), the
 large-file read advisory
 (`read-size-advisory.sh`), the two memory-write guards
 (`memory-routing.sh` advisory-routing + `memory_lint.py` post-write lint),
+the skill-description lint (`skill_description_lint.py`, post-write),
 the chat-register pair (`no-meta-commentary.sh` pre-write +
 `no-meta-commentary-check.sh` post-write, sharing
 `no-meta-commentary.patterns`), the invisible-character guard
@@ -677,6 +678,22 @@ Stdlib only; **fails OPEN** (a bug in the lint exits 0, never blocks a write).
 Tests: `tests/station-hooks/test-memory-lint.py` (12 cases).
 
 Script: [`claude-code/hooks/memory_lint.py`](hooks/memory_lint.py).
+
+### `skill_description_lint.py`
+
+PostToolUse hook (matcher `Write|Edit|MultiEdit|NotebookEdit|Update|Create`,
+wired in §7) - GLOBAL. After a write to a `SKILL.md` it checks that file's
+frontmatter description with skill-authoring's `scripts/check_descriptions.py`,
+reached through `~/.claude/skills/skill-authoring/` (or `SKILL_DESCRIPTION_CHECKER`),
+so the rule lives in one place. A description over the 800-character house cap,
+or a plain scalar containing `: `, **FAILS LOUD** (exit 2, reason on stderr),
+because both pass Claude Code silently and break stricter harnesses such as
+Copilot's skill loader. Paths with a `tests` or `fixtures` component are skipped,
+since fixtures carry deliberately invalid skills. Stdlib only; **fails OPEN** (a
+missing checker or a bug in the hook exits 0). Tests:
+`tests/station-hooks/test-skill-description-lint.py` (8 cases).
+
+Script: [`claude-code/hooks/skill_description_lint.py`](hooks/skill_description_lint.py).
 
 ### `no-meta-commentary.sh` + `no-meta-commentary-check.sh`
 

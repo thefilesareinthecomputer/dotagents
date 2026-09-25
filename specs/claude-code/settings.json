@@ -156,6 +156,12 @@
         "hooks": [
           { "type": "command", "command": "bash ~/.claude/hooks/no-meta-commentary-check.sh", "timeout": 5 }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
+        "hooks": [
+          { "type": "command", "command": "python3 ~/.claude/hooks/skill_description_lint.py", "timeout": 10 }
+        ]
       }
     ],
     "SessionStart": [

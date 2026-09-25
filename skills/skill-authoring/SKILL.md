@@ -22,7 +22,7 @@ Re-verify before trusting version-sensitive details.
 | Field | Rule |
 |---|---|
 | `name` | lowercase a-z 0-9 hyphens, 1-64 chars, **must match the directory name**, no leading/trailing/consecutive hyphens, no "anthropic"/"claude" |
-| `description` | 1-1024 chars hard limit, **600-800 is the house target**, **third person**, states what the skill does AND the concrete conditions that should trigger it, no XML tags. A plain scalar must contain no `: ` (colon followed by space) or the YAML fails to parse; use a spaced hyphen, or a `>-` folded block. |
+| `description` | **at most 800 chars, the house cap** (the standard allows 1024; aim for 600-800), checked by `scripts/check_descriptions.py`, **third person**, states what the skill does AND the concrete conditions that should trigger it, no XML tags. A plain scalar must contain no `: ` (colon followed by space) or the YAML fails to parse; use a spaced hyphen, or a `>-` folded block. |
 | `license` | optional, include when a skill may be shared |
 | `metadata` | optional string map; put custom keys (e.g. `version`) HERE, not top-level |
 | `allowed-tools` | optional, experimental in the standard |
@@ -145,9 +145,11 @@ Edits to an existing skill are additive and backwards compatible unless the user
 Run over `skills/*/SKILL.md`, `agents/*.md`, `commands/*.md`:
 
 1. Frontmatter parses; `name` matches directory; lowercase-hyphen; <=64 chars.
-2. `description` non-empty, 600-800 chars (1024 is the standard's hard cap),
-   third person, has explicit when-to-fire conditions, no XML, and no `: ` in a
-   plain scalar. Claude Code's parser is lenient about both, so neither shows up
+2. `description` non-empty, at most 800 chars (the house cap; 1024 is the
+   standard's hard limit), third person, has explicit when-to-fire conditions,
+   no XML, and no `: ` in a plain scalar. `scripts/check_descriptions.py`
+   checks the cap and the colon rule over every skill and exits 1 on either.
+   Claude Code's parser is lenient about both, so neither shows up
    until a stricter harness reads the file - Copilot rejected 8 of 24 skills on
    these two faults on 2026-08-08. Check with `copilot skill list` and
    `opencode debug skill`, run from outside any repository; neither needs
@@ -277,7 +279,9 @@ which one it was is part of reporting the work.
 
 ## Completion gate (MANDATORY before a new or changed skill is committed)
 
-A skill is not done when the prose is written. In order:
+A skill is not done when the prose is written. First, `scripts/check_descriptions.py`
+exits 0: a description over the 800-character cap, or a plain scalar containing
+`: `, passes Claude Code silently and breaks stricter harnesses. Then, in order:
 
 1. **Slop pass** - run `ai-slop-magic-eraser`'s `scripts/slop_check.py` over
    SKILL.md and every `references/` file; fix the findings or consciously keep

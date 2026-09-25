@@ -15,7 +15,8 @@ Keep the file as slim as it can be while still operating the skill; when a secti
 Every skill's frontmatter `description` loads at session start whether the skill is used or not, so with this many skills the descriptions bloat context cumulatively or not at all.
 Keep each one as short as it can be while still routing reliably: lead with what the skill is, then the trigger situations, then the boundary lines that send neighboring requests elsewhere.
 Nothing else belongs there, and overlap with a sibling's description is a routing defect - two skills claiming the same words confuse the agent worse than either being verbose.
-Hard limits stay as they are: the open standard caps a description at 1024 characters and this house holds them under 800, verified against the strictest parser (`copilot skill list`).
+Hard limits stay as they are: the open standard caps a description at 1024 characters and this house caps it at 800.
+After editing any skill's frontmatter, run `python3 skills/skill-authoring/scripts/check_descriptions.py`, which checks every description against the cap and the plain-scalar colon rule and exits 1 on a failure; `copilot skill list` remains the strictest parser for anything else.
 
 **Abstract behavior into tested code wherever possible.**
 The reliable form of a skill capability is a deterministic script - usually stdlib Python or bash - that SKILL.md invokes and interprets, with its own tests behind it.
