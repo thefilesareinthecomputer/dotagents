@@ -277,7 +277,7 @@ description is its trigger contract and its body is the workflow.
 | `cmon` | Restates the last verbose reply in as few words as possible, then holds that register |
 | `cover-me` | Spawns the `supervisor` peer to scrutinize in-flight work |
 | `deep-research` | Multi-angle web research: parallel researchers, cross-validated, cited |
-| `frontend-aesthetics` | Raise UI past the defaults that read as AI slop |
+| `frontend-aesthetics` | Raise UI past the defaults that read as AI slop, and verify the rendered result in a browser |
 | `hi` | Session-start orientation, read-only |
 | `meta-loop` | Orchestration: plan, fan out, verify, synthesize |
 | `my-security-review-checklist` | Pre-merge security gate for agent tooling |

@@ -1,0 +1,43 @@
+{
+  "note": "Invented data for an evaluation fixture. The tool, company, people, and addresses are fictional.",
+  "queue": "Pellwick Fiber - customer support triage",
+  "as_of": "2026-03-10T14:30:00Z",
+  "fields": {
+    "priority": ["urgent", "high", "normal", "low"],
+    "status": ["new", "open", "pending", "escalated"],
+    "sla_minutes_remaining": "Minutes until the response SLA breaches, as of as_of. Negative means already breached by that many minutes.",
+    "assignee": "Empty string means unassigned."
+  },
+  "tickets": [
+    {"id": "PW-4870", "subject": "Fiber installation appointment moved three times and the latest technician never arrived during the promised window", "requester": "Dana Okafor", "priority": "urgent", "status": "escalated", "sla_minutes_remaining": -312, "assignee": "Priya Vance", "updated": "2026-03-10T13:58:00Z"},
+    {"id": "PW-4871", "subject": "Charged twice for March", "requester": "Tomas Brennick", "priority": "high", "status": "open", "sla_minutes_remaining": -95, "assignee": "", "updated": "2026-03-10T12:41:00Z"},
+    {"id": "PW-4872", "subject": "ONT light blinking red since the storm last night", "requester": "Ines Marlowe", "priority": "urgent", "status": "new", "sla_minutes_remaining": -42, "assignee": "", "updated": "2026-03-10T13:47:00Z"},
+    {"id": "PW-4873", "subject": "Router drops the 5 GHz network every evening between 7 and 9 pm even after two factory resets and a firmware update", "requester": "Callum Reyes", "priority": "high", "status": "open", "sla_minutes_remaining": -7, "assignee": "Jonah Pell", "updated": "2026-03-10T14:21:00Z"},
+    {"id": "PW-4874", "subject": "Outage reported on Linden Terrace", "requester": "Hollis Achebe", "priority": "urgent", "status": "escalated", "sla_minutes_remaining": 3, "assignee": "Priya Vance", "updated": "2026-03-10T14:27:00Z"},
+    {"id": "PW-4875", "subject": "Cannot log in to the customer portal after the password reset email link expired before I could open it on my phone", "requester": "Wren Castellano", "priority": "normal", "status": "new", "sla_minutes_remaining": 12, "assignee": "", "updated": "2026-03-10T14:05:00Z"},
+    {"id": "PW-4876", "subject": "Static IP request for home office", "requester": "Arjun Mehta-Lowe", "priority": "low", "status": "open", "sla_minutes_remaining": 1380, "assignee": "Sofia Lindgren", "updated": "2026-03-10T09:12:00Z"},
+    {"id": "PW-4877", "subject": "Autopay failed but my card is valid and the bank says no decline was ever recorded on their side for this account", "requester": "Beatrix Nwosu", "priority": "high", "status": "pending", "sla_minutes_remaining": 25, "assignee": "Marcus Oyelaran", "updated": "2026-03-10T11:36:00Z"},
+    {"id": "PW-4878", "subject": "Speed test shows 90 Mbps on a 500 Mbps plan", "requester": "Felix Ambrose", "priority": "normal", "status": "open", "sla_minutes_remaining": 48, "assignee": "Jonah Pell", "updated": "2026-03-10T13:02:00Z"},
+    {"id": "PW-4879", "subject": "Move service to a new address on the 28th", "requester": "Greta Halvorsen", "priority": "low", "status": "new", "sla_minutes_remaining": 2280, "assignee": "", "updated": "2026-03-10T08:44:00Z"},
+    {"id": "PW-4880", "subject": "Question about the student discount", "requester": "Kofi Delacroix", "priority": "low", "status": "pending", "sla_minutes_remaining": 2745, "assignee": "Sofia Lindgren", "updated": "2026-03-09T16:20:00Z"},
+    {"id": "PW-4881", "subject": "Technician left the fiber drop cable across the driveway and it has already been run over by the delivery van twice", "requester": "Maren Voss", "priority": "high", "status": "open", "sla_minutes_remaining": -130, "assignee": "Marcus Oyelaran", "updated": "2026-03-10T10:15:00Z"},
+    {"id": "PW-4882", "subject": "Cancel service - moving abroad", "requester": "Lucia Ferreira-Hunt", "priority": "normal", "status": "open", "sla_minutes_remaining": 240, "assignee": "Ada Kimura", "updated": "2026-03-10T12:09:00Z"},
+    {"id": "PW-4883", "subject": "Parental controls schedule ignores weekends", "requester": "Rohan Isaksen", "priority": "normal", "status": "new", "sla_minutes_remaining": 90, "assignee": "", "updated": "2026-03-10T13:30:00Z"},
+    {"id": "PW-4884", "subject": "Invoice shows a late fee even though payment posted two days before the due date according to my bank statement", "requester": "Yusuf Carraway", "priority": "normal", "status": "escalated", "sla_minutes_remaining": -18, "assignee": "Ada Kimura", "updated": "2026-03-10T14:12:00Z"},
+    {"id": "PW-4885", "subject": "Mesh extender will not pair", "requester": "Elsie Moravec", "priority": "normal", "status": "open", "sla_minutes_remaining": 180, "assignee": "Jonah Pell", "updated": "2026-03-10T11:58:00Z"},
+    {"id": "PW-4886", "subject": "Business line: VoIP calls cut out after exactly 60 seconds on outbound calls to mobile numbers only, inbound calls are fine", "requester": "Oren Blackwood", "priority": "urgent", "status": "open", "sla_minutes_remaining": 9, "assignee": "Priya Vance", "updated": "2026-03-10T14:24:00Z"},
+    {"id": "PW-4887", "subject": "Request copy of contract", "requester": "Nadia Petrakis", "priority": "low", "status": "open", "sla_minutes_remaining": 2880, "assignee": "Sofia Lindgren", "updated": "2026-03-09T15:02:00Z"},
+    {"id": "PW-4888", "subject": "New customer: which plan fits a household of six", "requester": "Idris Fairweather", "priority": "low", "status": "new", "sla_minutes_remaining": 1440, "assignee": "", "updated": "2026-03-10T10:48:00Z"},
+    {"id": "PW-4889", "subject": "Email notifications arrive in Spanish", "requester": "Clementine Obi", "priority": "low", "status": "open", "sla_minutes_remaining": 960, "assignee": "Ada Kimura", "updated": "2026-03-10T09:37:00Z"},
+    {"id": "PW-4890", "subject": "Refund for the week-long outage in February", "requester": "Stellan Ruiz", "priority": "high", "status": "open", "sla_minutes_remaining": 55, "assignee": "Marcus Oyelaran", "updated": "2026-03-10T12:55:00Z"},
+    {"id": "PW-4891", "subject": "Equipment return label never arrived", "requester": "Harriet Quon", "priority": "normal", "status": "pending", "sla_minutes_remaining": 600, "assignee": "Jonah Pell", "updated": "2026-03-09T17:43:00Z"},
+    {"id": "PW-4892", "subject": "Wi-Fi name shows the previous owner's network", "requester": "Leander Mbeki", "priority": "normal", "status": "new", "sla_minutes_remaining": 120, "assignee": "", "updated": "2026-03-10T13:51:00Z"},
+    {"id": "PW-4893", "subject": "Accessibility: need bills in large print and a support phone line that works with a relay service", "requester": "Theodora Nakashima", "priority": "high", "status": "new", "sla_minutes_remaining": 35, "assignee": "", "updated": "2026-03-10T14:02:00Z"},
+    {"id": "PW-4894", "subject": "Upgrade to 1 Gbps", "requester": "Mateo Grünewald", "priority": "low", "status": "open", "sla_minutes_remaining": 1920, "assignee": "Sofia Lindgren", "updated": "2026-03-10T07:58:00Z"},
+    {"id": "PW-4895", "subject": "Port forwarding for game server", "requester": "Saoirse Adeyemi", "priority": "low", "status": "pending", "sla_minutes_remaining": 3120, "assignee": "", "updated": "2026-03-09T13:26:00Z"},
+    {"id": "PW-4896", "subject": "Complaint about sales call", "requester": "Bartholomew Enright", "priority": "normal", "status": "open", "sla_minutes_remaining": 300, "assignee": "Ada Kimura", "updated": "2026-03-10T11:11:00Z"},
+    {"id": "PW-4897", "subject": "Service paused while traveling - how to resume early", "requester": "Mirela Tanaka", "priority": "normal", "status": "open", "sla_minutes_remaining": 420, "assignee": "Marcus Oyelaran", "updated": "2026-03-10T10:33:00Z"},
+    {"id": "PW-4898", "subject": "IPv6 not assigned", "requester": "Ansel Fitzgerald-Oduya", "priority": "low", "status": "new", "sla_minutes_remaining": 2160, "assignee": "", "updated": "2026-03-10T09:05:00Z"},
+    {"id": "PW-4899", "subject": "Duplicate account created during signup", "requester": "Rosalind Keane", "priority": "normal", "status": "escalated", "sla_minutes_remaining": -1, "assignee": "Priya Vance", "updated": "2026-03-10T14:29:00Z"}
+  ]
+}

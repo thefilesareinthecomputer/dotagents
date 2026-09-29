@@ -1,0 +1,68 @@
+{
+  "probe": "render_probe/1",
+  "procedure": "For each page and width: serve this folder over http://127.0.0.1, navigate to the page fresh, resize to the width, press Tab once, evaluate scripts/render_probe.js, save the result, and run tests/render_canary_compare.py on it.",
+  "pages": {
+    "defects.html": {
+      "320": {
+        "tabPresses": 1,
+        "focusMeasured": true,
+        "checks": {
+          "overflow": {"status": "findings", "items": ["seed-wide"]},
+          "contrast": {"status": "findings", "items": ["seed-low-contrast"], "unmeasurable": ["seed-gradient-text"]},
+          "targets": {"status": "findings", "items": ["seed-icon-button"], "inline": ["seed-inline-link"], "notItems": ["seed-inline-link"]},
+          "smallText": {"status": "findings", "items": ["seed-small-text"]},
+          "images": {"status": "findings", "items": ["seed-img-noalt", "seed-img-upscaled"], "reasons": {"seed-img-noalt": ["missing-alt"], "seed-img-upscaled": ["upscaled"]}},
+          "animations": {"status": "findings", "items": ["seed-spinner"]},
+          "fonts": {"status": "ok"},
+          "focus": {"status": "findings", "items": ["seed-focus-button"]}
+        }
+      },
+      "1440": {
+        "tabPresses": 1,
+        "focusMeasured": true,
+        "checks": {
+          "overflow": {"status": "ok", "notItems": ["seed-wide"]},
+          "contrast": {"status": "findings", "items": ["seed-low-contrast"], "unmeasurable": ["seed-gradient-text"]},
+          "targets": {"status": "findings", "items": ["seed-icon-button"], "inline": ["seed-inline-link"], "notItems": ["seed-inline-link"]},
+          "smallText": {"status": "findings", "items": ["seed-small-text"]},
+          "images": {"status": "findings", "items": ["seed-img-noalt", "seed-img-upscaled"], "reasons": {"seed-img-noalt": ["missing-alt"], "seed-img-upscaled": ["upscaled"]}},
+          "animations": {"status": "findings", "items": ["seed-spinner"]},
+          "fonts": {"status": "ok"},
+          "focus": {"status": "findings", "items": ["seed-focus-button"]}
+        }
+      }
+    },
+    "clean.html": {
+      "320": {
+        "tabPresses": 1,
+        "focusMeasured": true,
+        "noFindings": true,
+        "checks": {
+          "overflow": {"status": "ok"},
+          "contrast": {"status": "ok"},
+          "targets": {"status": "ok"},
+          "smallText": {"status": "ok"},
+          "images": {"status": "ok"},
+          "animations": {"status": "ok"},
+          "fonts": {"status": "ok"},
+          "focus": {"status": "ok", "items": ["seed-first-focus"]}
+        }
+      },
+      "1440": {
+        "tabPresses": 1,
+        "focusMeasured": true,
+        "noFindings": true,
+        "checks": {
+          "overflow": {"status": "ok"},
+          "contrast": {"status": "ok"},
+          "targets": {"status": "ok"},
+          "smallText": {"status": "ok"},
+          "images": {"status": "ok"},
+          "animations": {"status": "ok"},
+          "fonts": {"status": "ok"},
+          "focus": {"status": "ok", "items": ["seed-first-focus"]}
+        }
+      }
+    }
+  }
+}

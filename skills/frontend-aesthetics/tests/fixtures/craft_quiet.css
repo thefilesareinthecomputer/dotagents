@@ -1,0 +1,52 @@
+/* Fixture: legitimate near misses that must draw no --craft finding. Used by tests/test_craft.py. */
+/* .ghost { transition: all 1s; animation: pulse 1s infinite; } */
+
+.card {
+  transition: opacity 200ms ease, transform 500ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.fade {
+  transition: opacity 0.5s ease 900ms;
+}
+
+.static {
+  transition: none;
+}
+
+.inherit {
+  transition: inherit;
+}
+
+.token {
+  transition: var(--transition-standard);
+  transition-duration: var(--duration-slow);
+}
+
+.marquee {
+  animation: infinite-scroll 20s linear 2;
+}
+
+.quote::before {
+  content: "transition: all 2s; animation: spin 1s infinite";
+}
+
+.reset {
+  outline: none;
+}
+
+.menu:focus-within {
+  outline: none;
+}
+
+.action:focus {
+  outline: none;
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}

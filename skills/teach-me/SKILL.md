@@ -82,7 +82,9 @@ Descending to teaching is success, not failure: guided beats unassisted
 
 **5. CERT - inline, closed-book, scored.** 3-5 retrieval questions including
 at least one transfer question, interleaved across subtopics [interleaving],
-recall-format over recognition where possible [retrieval]. Before revealing
+recall-format over recognition where possible [retrieval]. Word every question the way
+one engineer asks another in a technical debrief: the system first in plain words, then
+one direct ask per line, three at most, never presupposing the outcome. Before revealing
 any answers: the user predicts their score [jol]. After each attempt: verdict
 plus explanatory feedback - feedback nearly doubles the testing effect
 [feedback-timing] [retrieval]. Score is correct/total; partials count 0.5.

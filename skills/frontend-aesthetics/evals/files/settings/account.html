@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Account - Settings - Tallyhouse</title>
+  <!-- Evaluation fixture. Tallyhouse and the account holder are fictional. -->
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      font-size: var(--text-md);
+      line-height: var(--leading-body);
+      color: var(--color-text);
+      background: var(--color-canvas);
+    }
+
+    h1, h2, h3 { line-height: var(--leading-heading); margin: 0; }
+    p { margin: 0; }
+
+    .skip-link {
+      position: absolute;
+      left: var(--space-4);
+      top: -3rem;
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-surface);
+      color: var(--color-text);
+      border-radius: var(--radius-control);
+    }
+    .skip-link:focus-visible { top: var(--space-4); }
+
+    :focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    .sidebar {
+      background: var(--color-surface);
+      border-right: 1px solid var(--color-border);
+      padding: var(--space-5) var(--space-4);
+    }
+
+    .wordmark {
+      display: block;
+      font-size: var(--text-lg);
+      font-weight: var(--weight-bold);
+      color: var(--color-text);
+      text-decoration: none;
+      padding: 0 var(--space-3) var(--space-5);
+    }
+
+    .nav-group + .nav-group { margin-top: var(--space-5); }
+
+    .nav-label {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      padding: 0 var(--space-3) var(--space-2);
+    }
+
+    .nav-list { list-style: none; margin: 0; padding: 0; }
+
+    .nav-link {
+      display: block;
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-control);
+      color: var(--color-text);
+      text-decoration: none;
+      transition: background-color var(--duration-feedback) var(--ease-standard);
+    }
+    .nav-link:hover { background: var(--color-surface-muted); }
+    .nav-link[aria-current="page"] {
+      background: var(--color-surface-muted);
+      font-weight: var(--weight-medium);
+      box-shadow: inset 3px 0 0 var(--color-accent);
+    }
+
+    .main {
+      padding: var(--space-6) var(--space-6) var(--space-7);
+    }
+
+    .page-header {
+      max-width: var(--content-max);
+      margin-bottom: var(--space-6);
+    }
+    .breadcrumb {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-2);
+    }
+    .page-header h1 { font-size: var(--text-2xl); font-weight: var(--weight-bold); }
+    .page-header p { margin-top: var(--space-2); color: var(--color-text-secondary); }
+
+    .panel {
+      max-width: var(--content-max);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      padding: var(--space-5);
+    }
+    .panel + .panel { margin-top: var(--space-5); }
+    .panel h2 { font-size: var(--text-lg); font-weight: var(--weight-bold); }
+    .panel-intro { margin-top: var(--space-1); color: var(--color-text-secondary); }
+
+    .fields {
+      display: grid;
+      gap: var(--space-4);
+      margin-top: var(--space-5);
+    }
+    .field { display: grid; gap: var(--space-1); }
+    .field label { font-weight: var(--weight-medium); }
+    .hint { font-size: var(--text-sm); color: var(--color-text-secondary); }
+
+    .input {
+      font: inherit;
+      color: var(--color-text);
+      background: var(--color-surface);
+      min-height: 2.5rem;
+      padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--color-border-control);
+      border-radius: var(--radius-control);
+      width: 100%;
+      max-width: 28rem;
+    }
+    .input[aria-invalid="true"] { border-color: var(--color-danger); border-width: 2px; }
+
+    .field-error {
+      font-size: var(--text-sm);
+      color: var(--color-danger);
+      font-weight: var(--weight-medium);
+    }
+    .field-error[hidden] { display: none; }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-3);
+      margin-top: var(--space-5);
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--color-border);
+    }
+
+    .button {
+      font: inherit;
+      font-weight: var(--weight-medium);
+      min-height: 2.5rem;
+      padding: 0 var(--space-4);
+      border-radius: var(--radius-control);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background-color var(--duration-feedback) var(--ease-standard),
+        border-color var(--duration-feedback) var(--ease-standard);
+    }
+    .button--primary { background: var(--color-accent); color: var(--color-on-accent); }
+    .button--primary:hover { background: var(--color-accent-hover); }
+    .button--secondary {
+      background: var(--color-surface);
+      color: var(--color-text);
+      border-color: var(--color-border-control);
+    }
+    .button--secondary:hover { background: var(--color-surface-muted); }
+    .button--danger {
+      background: var(--color-surface);
+      color: var(--color-danger);
+      border-color: var(--color-danger);
+    }
+    .button--danger:hover { background: var(--color-danger-bg); }
+    .button[aria-disabled="true"] { cursor: progress; }
+
+    .form-status { font-size: var(--text-sm); color: var(--color-text-secondary); }
+    .form-status[data-state="saved"] { color: var(--color-success); font-weight: var(--weight-medium); }
+    .form-status[data-state="error"] { color: var(--color-danger); font-weight: var(--weight-medium); }
+
+    .panel--danger { border-color: var(--color-danger); }
+
+    @media (max-width: 48rem) {
+      .app { grid-template-columns: minmax(0, 1fr); }
+      .sidebar { border-right: 0; border-bottom: 1px solid var(--color-border); padding: var(--space-4); }
+      .wordmark { padding-bottom: var(--space-3); }
+      .nav-group + .nav-group { margin-top: var(--space-3); }
+      .nav-list { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+      .main { padding: var(--space-5) var(--space-4) var(--space-6); }
+      .panel { padding: var(--space-4); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .nav-link, .button { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="app">
+    <aside class="sidebar">
+      <a class="wordmark" href="#">Tallyhouse</a>
+      <nav aria-label="Main">
+        <div class="nav-group">
+          <p class="nav-label" id="nav-workspace">Workspace</p>
+          <ul class="nav-list" aria-labelledby="nav-workspace">
+            <li><a class="nav-link" href="#">Dashboard</a></li>
+            <li><a class="nav-link" href="#">Invoices</a></li>
+            <li><a class="nav-link" href="#">Clients</a></li>
+            <li><a class="nav-link" href="#">Reports</a></li>
+          </ul>
+        </div>
+        <div class="nav-group">
+          <p class="nav-label" id="nav-settings">Settings</p>
+          <ul class="nav-list" aria-labelledby="nav-settings">
+            <li><a class="nav-link" href="account.html" aria-current="page">Account</a></li>
+            <li><a class="nav-link" href="notifications.html">Notifications</a></li>
+            <li><a class="nav-link" href="#">Billing</a></li>
+            <li><a class="nav-link" href="#">Team</a></li>
+          </ul>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="main" id="main">
+      <header class="page-header">
+        <p class="breadcrumb">Settings</p>
+        <h1>Account</h1>
+        <p>Your profile appears on every invoice you send.</p>
+      </header>
+
+      <section class="panel" aria-labelledby="profile-heading">
+        <h2 id="profile-heading">Profile</h2>
+        <p class="panel-intro">Clients see this name and business on invoices and reminders.</p>
+        <form data-demo-save novalidate>
+          <div class="fields">
+            <div class="field">
+              <label for="full-name">Full name</label>
+              <input class="input" id="full-name" name="full-name" autocomplete="name" value="Ines Adebayo-Clarke">
+            </div>
+            <div class="field">
+              <label for="business">Business name</label>
+              <input class="input" id="business" name="business" autocomplete="organization" value="Adebayo-Clarke Surveying">
+              <p class="hint" id="business-hint">Leave blank to invoice under your own name.</p>
+            </div>
+            <div class="field">
+              <label for="reply-email">Reply-to email</label>
+              <input class="input" id="reply-email" name="reply-email" type="email" autocomplete="email" value="ines@adebayo-clarke.example">
+            </div>
+          </div>
+          <div class="actions">
+            <button class="button button--primary" type="submit">Save profile</button>
+            <p class="form-status" role="status" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="password-heading">
+        <h2 id="password-heading">Password</h2>
+        <p class="panel-intro">You will stay signed in on this device after changing it.</p>
+        <form data-demo-save data-min-length="12" novalidate>
+          <div class="fields">
+            <div class="field">
+              <label for="current-password">Current password</label>
+              <input class="input" id="current-password" name="current-password" type="password" autocomplete="current-password">
+            </div>
+            <div class="field">
+              <label for="new-password">New password</label>
+              <input class="input" id="new-password" name="new-password" type="password" autocomplete="new-password" aria-describedby="new-password-hint new-password-error">
+              <p class="hint" id="new-password-hint">At least 12 characters.</p>
+              <p class="field-error" id="new-password-error" hidden>Error: the new password needs at least 12 characters.</p>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="button button--primary" type="submit">Change password</button>
+            <p class="form-status" role="status" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel panel--danger" aria-labelledby="close-heading">
+        <h2 id="close-heading">Close account</h2>
+        <p class="panel-intro">Closing removes your invoices and client records after 30 days. Download an export first if you need them.</p>
+        <div class="actions">
+          <button class="button button--secondary" type="button">Download export</button>
+          <button class="button button--danger" type="button">Close account</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Demo only: simulates a save round trip so the page shows its states.
+    for (const form of document.querySelectorAll("form[data-demo-save]")) {
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const button = form.querySelector("button[type='submit']");
+        const status = form.querySelector(".form-status");
+        if (button.getAttribute("aria-disabled") === "true") return;
+
+        const minLength = Number(form.dataset.minLength || 0);
+        const newPassword = form.querySelector("#new-password");
+        const error = form.querySelector(".field-error");
+        if (minLength && newPassword) {
+          const tooShort = newPassword.value.length < minLength;
+          newPassword.setAttribute("aria-invalid", String(tooShort));
+          error.hidden = !tooShort;
+          if (tooShort) {
+            status.dataset.state = "error";
+            status.textContent = "Password not changed.";
+            newPassword.focus();
+            return;
+          }
+        }
+
+        button.setAttribute("aria-disabled", "true");
+        status.dataset.state = "pending";
+        status.textContent = "Saving changes";
+        window.setTimeout(() => {
+          button.removeAttribute("aria-disabled");
+          const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          status.dataset.state = "saved";
+          status.textContent = "Saved at " + time;
+        }, 700);
+      });
+    }
+  </script>
+</body>
+</html>

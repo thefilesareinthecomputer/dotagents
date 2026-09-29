@@ -1,0 +1,27 @@
+/* Fixture: every rule below draws one --craft warning. Used by tests/test_craft.py. */
+
+.card {
+  transition: all 200ms ease;
+}
+
+.panel {
+  transition: 200ms ease-out;
+}
+
+.drawer {
+  transition:
+    opacity 200ms cubic-bezier(0.2, 0, 0, 1),
+    transform 800ms ease;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+.button:focus {
+  outline: none;
+}
+
+@keyframes spin {
+  to { transform: rotate(1turn); }
+}

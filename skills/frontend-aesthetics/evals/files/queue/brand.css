@@ -1,0 +1,73 @@
+/*
+  Pellwick Desk - design tokens for the internal support console.
+  Pellwick Fiber and Pellwick Desk are fictional; this file is an evaluation fixture.
+
+  These are the console's established tokens. Every existing screen uses them.
+  New screens reuse these roles; they do not add brand colors or fonts.
+*/
+
+:root {
+  /* Color roles */
+  --color-canvas: #f3f4f6;
+  --color-surface: #fdfdfe;
+  --color-surface-sunken: #eef0f3;
+  --color-text: #1c2430;
+  --color-text-secondary: #4a5563;
+  --color-text-muted: #5f6b7a;
+  --color-border: #d5d9e0;
+  --color-border-strong: #7c8594;
+  --color-accent: #2b5f8a;
+  --color-accent-hover: #214b6e;
+  --color-on-accent: #fdfdfe;
+  --color-selected: #e6eef6;
+  --color-focus: #1d6fd1;
+
+  /* Status roles: pair each foreground with its background */
+  --color-danger: #a1261b;
+  --color-danger-bg: #fbeaea;
+  --color-warning: #8a5300;
+  --color-warning-bg: #fdf3e1;
+  --color-success: #1f6b3a;
+  --color-success-bg: #e8f4ec;
+  --color-info: #2b5f8a;
+  --color-info-bg: #e8eff6;
+  --color-neutral: #4a5563;
+  --color-neutral-bg: #eef0f3;
+
+  /* Type */
+  --font-ui: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.25rem;
+  --leading-tight: 1.25;
+  --leading-normal: 1.45;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Radius */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-raised: 0 1px 2px rgb(28 36 48 / 0.08);
+  --shadow-overlay: 0 1px 2px rgb(28 36 48 / 0.08), 0 8px 24px rgb(28 36 48 / 0.14);
+
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-medium: 180ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}

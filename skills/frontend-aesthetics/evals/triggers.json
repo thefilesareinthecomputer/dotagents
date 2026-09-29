@@ -21,5 +21,77 @@
 
   {"name": "pure-css-bug", "should_trigger": false,
    "query": "The nav overlaps the hero on Safari but not Chrome.",
-   "why": "A layout BUG, not an aesthetic-quality question. Debugging is a different skill; this one is about taste, not correctness."}
+   "why": "A layout BUG, not an aesthetic-quality question. Debugging is a different skill; this one is about taste, not correctness."},
+
+  {"name": "premium-within-brand", "should_trigger": true,
+   "query": "Make this existing account page feel premium while keeping our current brand colors and system font.",
+   "why": "Visual refinement must honor a design system."},
+
+  {"name": "refine-type-and-spacing", "should_trigger": true,
+   "query": "The page is already clean, but the type and spacing feel unfinished. Refine them.",
+   "why": "Positive craft must trigger without an AI-slop complaint."},
+
+  {"name": "plain-html-editorial", "should_trigger": true,
+   "query": "Build a high-end editorial page in plain HTML and CSS without dependencies.",
+   "why": "Craft is independent of framework and dependency choices."},
+
+  {"name": "immersive-walkthrough", "should_trigger": true,
+   "query": "Make this product walkthrough immersive, including a reduced-motion version.",
+   "why": "An experiential request needs motion judgment and equivalent access."},
+
+  {"name": "snappier-save-states", "should_trigger": true,
+   "query": "Make the save interaction feel snappier and polish its loading and error states.",
+   "why": "Perceived responsiveness and visual state treatment are in scope."},
+
+  {"name": "read-only-visual-audit", "should_trigger": true,
+   "query": "Audit this screen's visual hierarchy and focus treatment; do not edit it.",
+   "why": "Read-only aesthetic review is supported."},
+
+  {"name": "dashboard-chrome-keeps-charts", "should_trigger": true,
+   "query": "Polish the dashboard navigation and spacing, but keep the chart encodings and palette unchanged.",
+   "why": "Page craft is separate from chart design."},
+
+  {"name": "implement-approved-artboard", "should_trigger": true,
+   "query": "Implement the approved artboard as a responsive web page using our existing tokens.",
+   "why": "Frontend implementation of a design is in scope."},
+
+  {"name": "reducer-refactor", "should_trigger": false,
+   "query": "Move this form's state into a reducer without changing its appearance.",
+   "why": "This is engineering with no visual design decision."},
+
+  {"name": "focus-trap-repair", "should_trigger": false,
+   "query": "Fix the dialog's focus trap and accessible name without redesigning it.",
+   "why": "This is an accessibility implementation repair."},
+
+  {"name": "inp-long-task", "should_trigger": false,
+   "query": "Find the long task causing poor INP in the existing search box.",
+   "why": "This is performance debugging."},
+
+  {"name": "chart-encoding", "should_trigger": false,
+   "query": "Choose the color encoding and axes for a revenue chart.",
+   "why": "Dataviz owns chart semantics."},
+
+  {"name": "sequence-diagram", "should_trigger": false,
+   "query": "Draw a sequence diagram of the authentication flow.",
+   "why": "Diagramming owns this output."},
+
+  {"name": "canvas-artboard-arrangement", "should_trigger": false,
+   "query": "Arrange the existing artboards on the design canvas without changing the designs.",
+   "why": "Canvas operations belong to design."},
+
+  {"name": "artifact-publish", "should_trigger": false,
+   "query": "Publish the finished HTML artifact and enable its supported runtime downloads.",
+   "why": "This is artifact publication and runtime configuration."},
+
+  {"name": "prose-rewrite", "should_trigger": false,
+   "query": "Rewrite this premium-plan announcement so it sounds less like AI.",
+   "why": "This is prose editing."},
+
+  {"name": "premium-schema-design", "should_trigger": false,
+   "query": "Design the database schema for the premium plan tier",
+   "why": "Design and premium words do not imply a UI surface."},
+
+  {"name": "settings-page-no-adjective", "should_trigger": true,
+   "query": "Add a settings page to the app",
+   "why": "A new user-facing surface needs the skill before its first markup, even without aesthetic adjectives."}
 ]

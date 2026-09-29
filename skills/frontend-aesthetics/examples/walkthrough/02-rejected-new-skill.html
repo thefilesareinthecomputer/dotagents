@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tamber: See what light knows</title>
+<meta name="description" content="A five-step walkthrough of one reading with the Tamber pocket spectrometer, from aiming the device to logging the result.">
+<style>
+  /* ---------- Reset ---------- */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; }
+  img, svg { display: block; max-width: 100%; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; }
+
+  /* ---------- Tokens ---------- */
+  :root {
+    color-scheme: dark;
+    --color-canvas: #12161c;
+    --color-canvas-deep: #0a0c10;
+    --color-surface: #1a212b;
+    --color-surface-raised: #212a37;
+    --color-text: #f4f2ec;
+    --color-text-muted: #b7bfcc;
+    --color-border-decorative: #2b3444;
+    --color-border-control: #5b6577;
+    --color-accent: #ffb066;
+    --color-accent-strong: #ffcf8f;
+    --color-on-accent: #14181f;
+    --color-focus: #8fe3ff;
+
+    --color-status-strong: #58c07d;
+    --color-status-possible: #d9a441;
+    --color-status-weak: #d97b63;
+    --pill-strong-bg: #1c3324;
+    --pill-possible-bg: #332a18;
+    --pill-weak-bg: #33201a;
+
+    --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+    --space-5: 1.5rem; --space-6: 2rem; --space-7: 3rem; --space-8: 4rem;
+
+    --font-text: -apple-system, system-ui, "Segoe UI", sans-serif;
+    --text-label: 0.8rem;
+    --text-body: 1.0625rem;
+    --text-h3: 1.375rem;
+    --text-h2: 1.75rem;
+    --text-h1: clamp(2.75rem, 1.8rem + 3.6vw, 5.25rem);
+
+    --ease-feedback: cubic-bezier(0.2, 0, 0, 1);
+    --ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+    --duration-feedback: 120ms;
+    --duration-state: 180ms;
+    --duration-narrative: 420ms;
+
+    --nav-height: 4.25rem;
+    scroll-padding-block-start: var(--nav-height);
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-text);
+    font-family: var(--font-text);
+    font-size: var(--text-body);
+    line-height: 1.6;
+  }
+
+  h1, h2, h3 { margin: 0; font-weight: 650; }
+  h2 { font-size: var(--text-h2); line-height: 1.15; }
+  h3 { font-size: var(--text-h3); line-height: 1.25; }
+  p { margin: 0; }
+  .prose { max-inline-size: 60ch; }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* ---------- Skip link ---------- */
+  .skip-link {
+    position: absolute;
+    left: var(--space-3);
+    top: var(--space-3);
+    background: var(--color-surface-raised);
+    color: var(--color-text);
+    padding: var(--space-2) var(--space-4);
+    border-radius: 0.5rem;
+    z-index: 100;
+    transform: translateY(-4rem);
+    transition: transform var(--duration-state) var(--ease-feedback);
+  }
+  .skip-link:focus-visible { transform: none; }
+  @media (prefers-reduced-motion: reduce) { .skip-link { transition: none; } }
+
+  /* ---------- Visually hidden ---------- */
+  .visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* ---------- Step navigation ---------- */
+  .stepnav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--color-canvas-deep);
+    border-bottom: 1px solid var(--color-border-decorative);
+    block-size: var(--nav-height);
+  }
+  .stepnav ol {
+    list-style: none;
+    margin: 0;
+    padding-inline: var(--space-4);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    max-inline-size: 72rem;
+    margin-inline: auto;
+  }
+  .stepnav a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-decoration: none;
+    padding: var(--space-2) var(--space-3);
+    border-radius: 999px;
+    color: var(--color-text-muted);
+    transition: color var(--duration-feedback) var(--ease-feedback),
+                background-color var(--duration-feedback) var(--ease-feedback);
+  }
+  .stepnav a:hover { color: var(--color-text); background: var(--color-surface); }
+  .stepnav-index {
+    display: inline-grid;
+    place-items: center;
+    inline-size: 1.75rem;
+    block-size: 1.75rem;
+    border-radius: 50%;
+    border: 1px solid var(--color-border-control);
+    font-size: var(--text-label);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .stepnav a[aria-current="step"] .stepnav-index {
+    border-color: var(--color-accent);
+    color: var(--color-accent-strong);
+  }
+  .stepnav a[aria-current="step"] { color: var(--color-text); }
+  .stepnav-label { display: none; }
+
+  @media (min-width: 40rem) {
+    .stepnav-label { display: inline; font-size: var(--text-label); letter-spacing: 0.01em; }
+  }
+
+  /* ---------- Layout shell ---------- */
+  main { display: block; }
+  .wrap { max-inline-size: 72rem; margin-inline: auto; padding-inline: var(--space-5); }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    padding-block: clamp(3rem, 6vw + 1rem, 6rem) clamp(2.5rem, 4vw, 4rem);
+    border-bottom: 1px solid var(--color-border-decorative);
+  }
+  .hero .wrap {
+    display: grid;
+    gap: var(--space-6);
+  }
+  .hero-eyebrow {
+    font-size: var(--text-label);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-4);
+  }
+  .hero h1 {
+    letter-spacing: -0.02em;
+    max-inline-size: 16ch;
+  }
+  .hero-sub {
+    margin-block-start: var(--space-4);
+    max-inline-size: 46ch;
+    color: var(--color-text-muted);
+    font-size: 1.125rem;
+  }
+  .hero-actions {
+    margin-block-start: var(--space-6);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-inner { animation: hero-arrive 320ms var(--ease-feedback) both; }
+  }
+  @keyframes hero-arrive {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .hero-line {
+    margin-block-start: var(--space-7);
+    max-inline-size: 30rem;
+  }
+  .hero-line svg { width: 100%; height: auto; }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    font-weight: 600;
+    border: 1px solid transparent;
+    min-block-size: 2.75rem;
+    transition: transform var(--duration-feedback) var(--ease-feedback),
+                background-color var(--duration-feedback) var(--ease-feedback),
+                border-color var(--duration-feedback) var(--ease-feedback);
+  }
+  .btn:active { transform: translateY(1px); }
+  @media (prefers-reduced-motion: reduce) {
+    .btn { transition: none; }
+    .btn:active { transform: none; }
+  }
+  .btn-primary {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+  .btn-primary:hover { background: var(--color-accent-strong); }
+  .btn-primary:focus-visible { outline-color: var(--color-canvas); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-text);
+    border-color: var(--color-border-control);
+  }
+  .btn-ghost:hover { border-color: var(--color-text); background: var(--color-surface); }
+
+  /* ---------- Steps ---------- */
+  .steps { }
+  .step {
+    padding-block: var(--space-8);
+    border-bottom: 1px solid var(--color-border-decorative);
+    scroll-margin-block-start: var(--nav-height);
+  }
+  .step-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+  @media (min-width: 48rem) {
+    .step-inner {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      align-items: center;
+    }
+    .step-media { order: -1; }
+  }
+  .step-index {
+    font-size: var(--text-label);
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .step-copy h2 { margin-block-end: var(--space-3); }
+  .step-copy p { color: var(--color-text-muted); }
+  .step-media {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-decorative);
+    border-radius: 1rem;
+    padding: var(--space-5);
+  }
+  .step-media svg { width: 100%; height: auto; }
+  .step-nav-inline {
+    margin-block-start: var(--space-5);
+    display: flex;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+  }
+  .step-link {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-2) var(--space-3);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    color: var(--color-text);
+    border: 1px solid var(--color-border-decorative);
+    min-block-size: 2.25rem;
+    transition: border-color var(--duration-feedback) var(--ease-feedback),
+                background-color var(--duration-feedback) var(--ease-feedback);
+  }
+  .step-link:hover { border-color: var(--color-border-control); background: var(--color-surface-raised); }
+  @media (prefers-reduced-motion: reduce) { .step-link { transition: none; } }
+
+  /* ---------- Device art shared ---------- */
+  .device-fill { fill: #232b38; }
+  .device-fill-raised { fill: #2c3546; }
+  .device-highlight { stroke: var(--color-accent); }
+
+  /* Step 1: ring wake */
+  .step1-art .ring,
+  .step1-art .glow {
+    transition: opacity 320ms var(--ease-feedback), transform 320ms var(--ease-feedback);
+    transform-origin: 200px 213px;
+  }
+  .step1-art.is-armed .ring { opacity: 0.35; transform: scale(0.8); }
+  .step1-art.is-armed .glow { opacity: 0; transform: scale(0.7); }
+  @media (prefers-reduced-motion: reduce) {
+    .step1-art .ring, .step1-art .glow { transition: none; }
+  }
+
+  /* Step 2: pulse arcs */
+  .step2-art .pulse {
+    transition: opacity 380ms var(--ease-feedback), transform 380ms var(--ease-feedback);
+    transform-origin: 200px 236px;
+  }
+  .step2-art .pulse-1 { transition-delay: 0ms; }
+  .step2-art .pulse-2 { transition-delay: 90ms; }
+  .step2-art .pulse-3 { transition-delay: 180ms; }
+  .step2-art.is-armed .pulse { opacity: 0; transform: scale(0.5); }
+  @media (prefers-reduced-motion: reduce) {
+    .step2-art .pulse { transition: none; }
+  }
+
+  /* ---------- Step 3: the moment ---------- */
+  .step-moment {
+    background: radial-gradient(120% 140% at 50% 0%, #171d26 0%, var(--color-canvas-deep) 70%);
+  }
+  .moment-inner { max-inline-size: 52rem; margin-inline: auto; text-align: left; }
+  .moment-inner h2 { margin-block-end: var(--space-3); }
+  .moment-inner .step-copy-lead { color: var(--color-text-muted); max-inline-size: 62ch; }
+  .spectrum-stage-wrap {
+    margin-block-start: var(--space-7);
+    max-inline-size: 60rem;
+  }
+  .spectrum-stage-wrap svg { width: 100%; height: auto; }
+
+  .spectrum-band {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    transition: transform var(--duration-narrative) var(--ease-feedback);
+  }
+  .spectrum-edge {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 360ms var(--ease-feedback) 120ms;
+  }
+  .spectrum-chrome {
+    transition: opacity 300ms var(--ease-feedback) 200ms;
+  }
+  .spectrum-lead-line {
+    transition: opacity 260ms var(--ease-feedback) 260ms;
+  }
+  .spectrum-stage.is-armed .spectrum-band { transform: scaleY(0.035); }
+  .spectrum-stage.is-armed .spectrum-edge { stroke-dashoffset: 1; transition-delay: 0ms; }
+  .spectrum-stage.is-armed .spectrum-chrome { opacity: 0; transition-delay: 0ms; }
+  .spectrum-stage.is-armed .spectrum-lead-line { opacity: 1; transition-delay: 0ms; }
+  @media (prefers-reduced-motion: reduce) {
+    .spectrum-band, .spectrum-edge, .spectrum-chrome, .spectrum-lead-line { transition: none; }
+  }
+
+  .spectrum-caption {
+    margin-block-start: var(--space-4);
+    color: var(--color-text-muted);
+    font-size: var(--text-label);
+  }
+
+  /* ---------- Match rows (step 4) ---------- */
+  .match-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); width: 100%; }
+  .match-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--color-surface-raised);
+    border-radius: 0.75rem;
+  }
+  .match-swatch {
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    border-radius: 0.4rem;
+    flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.25);
+  }
+  .match-name { flex: 1 1 auto; min-inline-size: 0; }
+  .match-name-text { display: block; font-size: 0.95rem; }
+  .match-pill {
+    font-size: var(--text-label);
+    font-weight: 600;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .match-pill-strong { background: var(--pill-strong-bg); border-color: var(--color-status-strong); color: var(--color-text); }
+  .match-pill-possible { background: var(--pill-possible-bg); border-color: var(--color-status-possible); color: var(--color-text); }
+  .match-pill-weak { background: var(--pill-weak-bg); border-color: var(--color-status-weak); color: var(--color-text); }
+
+  /* ---------- Notebook (step 5) ---------- */
+  .notebook {
+    width: 100%;
+    background:
+      repeating-linear-gradient(var(--color-surface) 0 2.5rem, var(--color-border-decorative) 2.5rem calc(2.5rem + 1px));
+    border-radius: 0.75rem;
+    padding: var(--space-4) var(--space-4) var(--space-2);
+    border: 1px solid var(--color-border-decorative);
+  }
+  .notebook-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    block-size: 2.5rem;
+  }
+  .notebook-time {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-muted);
+    font-size: var(--text-label);
+    flex-shrink: 0;
+    padding-block-start: 0.15rem;
+  }
+  .notebook-curve { flex-shrink: 0; color: var(--color-accent); }
+  .notebook-note {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    font-style: italic;
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ---------- Specs strip ---------- */
+  .specs {
+    padding-block: var(--space-6);
+    border-bottom: 1px solid var(--color-border-decorative);
+  }
+  .specs h2 {
+    font-size: var(--text-label);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-block-end: var(--space-4);
+  }
+  .specs-grid {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+    gap: var(--space-4) var(--space-5);
+  }
+  .specs-grid dt {
+    font-size: var(--text-label);
+    color: var(--color-text-muted);
+    margin: 0 0 0.2rem;
+  }
+  .specs-grid dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Field guide ---------- */
+  .field-guide { padding-block: var(--space-8); border-bottom: 1px solid var(--color-border-decorative); }
+  .field-guide h2 { margin-block-end: var(--space-4); }
+  .field-guide p { color: var(--color-text-muted); max-inline-size: 60ch; }
+
+  /* ---------- Closing ---------- */
+  .closing { padding-block: var(--space-8); }
+  .closing h2 { max-inline-size: 30ch; margin-block-end: var(--space-5); }
+  .signup-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: flex-end;
+    max-inline-size: 32rem;
+  }
+  .signup-field { display: grid; gap: var(--space-2); flex: 1 1 14rem; }
+  .signup-field label { font-size: var(--text-label); color: var(--color-text-muted); }
+  .signup-field input {
+    font: inherit;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-control);
+    border-radius: 0.5rem;
+    padding: 0.65rem 0.85rem;
+    min-block-size: 2.75rem;
+  }
+  .signup-field input::placeholder { color: var(--color-text-muted); }
+  .signup-note {
+    margin-block-start: var(--space-3);
+    color: var(--color-text-muted);
+    font-size: var(--text-label);
+  }
+  .form-status {
+    margin-block-start: var(--space-4);
+    color: var(--color-status-strong);
+  }
+
+  /* ---------- Footer ---------- */
+  footer {
+    padding-block: var(--space-6);
+    color: var(--color-text-muted);
+    font-size: var(--text-label);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  footer a { color: var(--color-text-muted); }
+  footer a:hover { color: var(--color-text); }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="stepnav" aria-label="Reading steps">
+  <ol>
+    <li><a href="#step-1" aria-label="Step 1: Aim"><span class="stepnav-index" aria-hidden="true">1</span><span class="stepnav-label">Aim</span></a></li>
+    <li><a href="#step-2" aria-label="Step 2: Capture"><span class="stepnav-index" aria-hidden="true">2</span><span class="stepnav-label">Capture</span></a></li>
+    <li><a href="#step-3" aria-label="Step 3: Watch the light split"><span class="stepnav-index" aria-hidden="true">3</span><span class="stepnav-label">Split</span></a></li>
+    <li><a href="#step-4" aria-label="Step 4: Match"><span class="stepnav-index" aria-hidden="true">4</span><span class="stepnav-label">Match</span></a></li>
+    <li><a href="#step-5" aria-label="Step 5: Log"><span class="stepnav-index" aria-hidden="true">5</span><span class="stepnav-label">Log</span></a></li>
+  </ol>
+</nav>
+
+<main id="main">
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-inner">
+        <p class="hero-eyebrow">Tamber pocket spectrometer</p>
+        <h1 class="prose">See what light knows.</h1>
+        <p class="hero-sub">Tamber is a pocket spectrometer that reads the color of anything you point it at, down to the wavelength, and tells you what that color means.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#step-1">Follow a reading</a>
+          <a class="btn btn-ghost" href="#field-guide">Read the field guide</a>
+        </div>
+        <div class="hero-line" aria-hidden="true">
+          <svg viewBox="0 0 480 40">
+            <line x1="20" y1="20" x2="460" y2="20" stroke="#f7f6f2" stroke-width="2" opacity="0.85"></line>
+            <circle cx="460" cy="20" r="5" fill="none" stroke="var(--color-accent)" stroke-width="2"></circle>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="steps">
+
+    <article class="step" id="step-1" aria-labelledby="step-1-title">
+      <div class="wrap step-inner">
+        <div class="step-media" data-reveal>
+          <svg class="step1-art" viewBox="0 0 400 320" role="img" aria-label="Tamber, a small dark oval device, held above a single leaf. A thin ring of warm light circles its aperture and casts a soft bright spot on the leaf below.">
+            <ellipse class="glow" cx="200" cy="245" rx="46" ry="20" fill="url(#leafGlow)"></ellipse>
+            <path d="M90,258 C90,196 138,150 200,150 C262,150 310,196 310,258 C310,292 258,304 200,304 C142,304 90,292 90,258 Z" fill="#3f7a4a"></path>
+            <path d="M200,156 L200,298" stroke="#2c5a37" stroke-width="3"></path>
+            <g transform="rotate(-8 200 125)">
+              <rect class="device-fill" x="140" y="30" width="120" height="176" rx="60"></rect>
+              <rect class="device-fill-raised" x="180" y="46" width="40" height="14" rx="7"></rect>
+            </g>
+            <circle class="ring" cx="200" cy="213" r="24" fill="none" stroke="var(--color-accent)" stroke-width="4"></circle>
+            <circle cx="200" cy="213" r="10" fill="#0c0f13"></circle>
+            <defs>
+              <radialGradient id="leafGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ffcf8f" stop-opacity="0.55"></stop>
+                <stop offset="100%" stop-color="#ffcf8f" stop-opacity="0"></stop>
+              </radialGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="step-copy">
+          <p class="step-index">Step 1</p>
+          <h2 id="step-1-title">Aim</h2>
+          <p>Hold Tamber two to three centimeters from the sample. The ring light around the aperture wakes when it senses something close, so you never press a button just to see where you are pointing.</p>
+          <div class="step-nav-inline">
+            <a class="step-link" href="#step-2">Next: Capture</a>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="step" id="step-2" aria-labelledby="step-2-title">
+      <div class="wrap step-inner">
+        <div class="step-media" data-reveal>
+          <svg class="step2-art" viewBox="0 0 400 320" role="img" aria-label="Tamber seen from the side, showing its single raised side button, with three pulses of light leaving the aperture as concentric rings.">
+            <circle class="pulse pulse-3" cx="200" cy="236" r="66" fill="none" stroke="var(--color-accent)" stroke-width="3" opacity="0.28"></circle>
+            <circle class="pulse pulse-2" cx="200" cy="236" r="46" fill="none" stroke="var(--color-accent)" stroke-width="3" opacity="0.5"></circle>
+            <circle class="pulse pulse-1" cx="200" cy="236" r="28" fill="none" stroke="var(--color-accent)" stroke-width="3" opacity="0.85"></circle>
+            <rect class="device-fill" x="150" y="36" width="100" height="200" rx="50"></rect>
+            <rect class="device-fill-raised" x="128" y="104" width="24" height="36" rx="9"></rect>
+            <circle cx="200" cy="212" r="13" fill="#0c0f13" stroke="var(--color-accent)" stroke-width="2"></circle>
+          </svg>
+        </div>
+        <div class="step-copy">
+          <p class="step-index">Step 2</p>
+          <h2 id="step-2-title">Capture</h2>
+          <p>Press the side button once. Tamber takes a 0.4 second scan across 340 to 1000 nanometers, from near ultraviolet to near infrared, and repeats it three times to average out a shaky hand.</p>
+          <div class="step-nav-inline">
+            <a class="step-link" href="#step-1">Back: Aim</a>
+            <a class="step-link" href="#step-3">Next: Watch the light split</a>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="step step-moment" id="step-3" aria-labelledby="step-3-title">
+      <div class="wrap moment-inner">
+        <p class="step-index">Step 3</p>
+        <h2 id="step-3-title">Watch the light split</h2>
+        <p class="step-copy-lead">The reading arrives on your phone as a thin white line. The line fans out into its colors, violet on one side and deep red on the other, and then the top edge of that band settles into a curve: how much light the sample reflected at every wavelength.</p>
+
+        <div class="spectrum-stage-wrap">
+          <div class="spectrum-stage" data-reveal>
+            <svg viewBox="0 0 960 300" role="img" aria-label="A band of color running from violet through blue, green, yellow, and orange to deep red. The top edge of the band forms a curve that dips low in the blue and rises steeply past the red, showing how much light the sample reflected at each wavelength.">
+              <defs>
+                <linearGradient id="spectrumGradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#6f42c9"></stop>
+                  <stop offset="20%" stop-color="#3b6fe0"></stop>
+                  <stop offset="40%" stop-color="#33ad63"></stop>
+                  <stop offset="60%" stop-color="#e8cf3d"></stop>
+                  <stop offset="80%" stop-color="#e8912f"></stop>
+                  <stop offset="100%" stop-color="#c23b2e"></stop>
+                </linearGradient>
+              </defs>
+
+              <rect class="spectrum-lead-line" x="60" y="257" width="840" height="3" rx="1.5" fill="#f7f6f2"></rect>
+
+              <g class="spectrum-band">
+                <path fill="url(#spectrumGradient)" d="M60,260 L60,170 C140,190 180,225 220,225 C280,225 320,195 380,185 C440,175 480,170 520,165 C560,160 610,158 650,150 C690,142 720,130 760,120 C800,108 850,70 900,40 L900,260 Z"></path>
+                <path class="spectrum-edge" pathLength="1" fill="none" stroke="#f7f6f2" stroke-width="3" d="M60,170 C140,190 180,225 220,225 C280,225 320,195 380,185 C440,175 480,170 520,165 C560,160 610,158 650,150 C690,142 720,130 760,120 C800,108 850,70 900,40"></path>
+              </g>
+
+              <g class="spectrum-chrome">
+                <line x1="60" y1="260" x2="900" y2="260" stroke="var(--color-border-control)" stroke-width="1"></line>
+                <text x="60" y="284" fill="var(--color-text-muted)" font-size="15">Violet</text>
+                <text x="900" y="284" fill="var(--color-text-muted)" font-size="15" text-anchor="end">Deep red</text>
+              </g>
+            </svg>
+          </div>
+          <p class="spectrum-caption">Reflectance across 340 to 1000 nanometers. Band height is how much light came back; color is the wavelength it came back at.</p>
+        </div>
+
+        <div class="step-nav-inline">
+          <a class="step-link" href="#step-2">Back: Capture</a>
+          <a class="step-link" href="#step-4">Next: Match</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="step" id="step-4" aria-labelledby="step-4-title">
+      <div class="wrap step-inner">
+        <div class="step-media">
+          <ul class="match-list">
+            <li class="match-row">
+              <span class="match-swatch" style="background:#4f8a52" aria-hidden="true"></span>
+              <span class="match-name"><span class="match-name-text">Healthy oak leaf</span></span>
+              <span class="match-pill match-pill-strong">Strong</span>
+            </li>
+            <li class="match-row">
+              <span class="match-swatch" style="background:#a68a4a" aria-hidden="true"></span>
+              <span class="match-name"><span class="match-name-text">Drought-stressed oak leaf</span></span>
+              <span class="match-pill match-pill-possible">Possible</span>
+            </li>
+            <li class="match-row">
+              <span class="match-swatch" style="background:#a5502f" aria-hidden="true"></span>
+              <span class="match-name"><span class="match-name-text">Iron oxide pigment</span></span>
+              <span class="match-pill match-pill-weak">Weak</span>
+            </li>
+          </ul>
+        </div>
+        <div class="step-copy">
+          <p class="step-index">Step 4</p>
+          <h2 id="step-4-title">Match</h2>
+          <p>Tamber compares the curve against a library of 2,400 reference samples and shows the three closest matches. Each match is labeled Strong, Possible, or Weak, never as a percentage, because a percentage suggests more certainty than a field reading has.</p>
+          <div class="step-nav-inline">
+            <a class="step-link" href="#step-3">Back: Watch the light split</a>
+            <a class="step-link" href="#step-5">Next: Log</a>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="step" id="step-5" aria-labelledby="step-5-title">
+      <div class="wrap step-inner">
+        <div class="step-media">
+          <div class="notebook">
+            <div class="notebook-entry">
+              <span class="notebook-time">07:14</span>
+              <svg class="notebook-curve" width="44" height="18" viewBox="0 0 44 18" aria-hidden="true"><path d="M2,14 C8,15 10,17 14,17 C19,17 21,13 25,11 C29,9 33,7 38,2" fill="none" stroke="currentColor" stroke-width="2"></path></svg>
+              <span class="notebook-note">White tile calibration, looks clean</span>
+            </div>
+            <div class="notebook-entry">
+              <span class="notebook-time">07:22</span>
+              <svg class="notebook-curve" width="44" height="18" viewBox="0 0 44 18" aria-hidden="true"><path d="M2,13 C8,15 11,16 14,15 C19,13 22,8 26,7 C30,6 34,5 38,3" fill="none" stroke="currentColor" stroke-width="2"></path></svg>
+              <span class="notebook-note">North branch leaf, healthy match</span>
+            </div>
+            <div class="notebook-entry">
+              <span class="notebook-time">07:31</span>
+              <svg class="notebook-curve" width="44" height="18" viewBox="0 0 44 18" aria-hidden="true"><path d="M2,12 C7,14 10,16 14,16 C18,16 21,11 25,9 C29,7 34,4 38,2" fill="none" stroke="currentColor" stroke-width="2"></path></svg>
+              <span class="notebook-note">Bare patch near trail marker 4</span>
+            </div>
+          </div>
+        </div>
+        <div class="step-copy">
+          <p class="step-index">Step 5</p>
+          <h2 id="step-5-title">Log</h2>
+          <p>Save the reading to your field notebook with the time, your note, and your phone's location if you allow it. Export any day's readings as a CSV file for your own analysis.</p>
+          <div class="step-nav-inline">
+            <a class="step-link" href="#step-4">Back: Match</a>
+            <a class="step-link" href="#field-guide">Read the field guide</a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="specs wrap" aria-labelledby="specs-title">
+    <h2 id="specs-title">By the numbers</h2>
+    <dl class="specs-grid">
+      <div><dt>Range</dt><dd>340 to 1000 nm</dd></div>
+      <div><dt>Scan time</dt><dd>0.4 s, averaged over 3 scans</dd></div>
+      <div><dt>Reference library</dt><dd>2,400 samples</dd></div>
+      <div><dt>Battery</dt><dd>About 900 readings per charge</dd></div>
+      <div><dt>Weight</dt><dd>68 g</dd></div>
+      <div><dt>Connection</dt><dd>Bluetooth to the companion app</dd></div>
+    </dl>
+  </section>
+
+  <section class="field-guide wrap" id="field-guide" aria-labelledby="field-guide-title">
+    <h2 id="field-guide-title">Before your first reading</h2>
+    <p>Calibrate once a day against the white tile in the case lid. Keep the aperture clean: a fingerprint shows up as a dip near 450 nm. Readings through glass or plastic are not reliable.</p>
+  </section>
+
+  <section class="closing wrap" aria-labelledby="closing-title">
+    <h2 id="closing-title">Tamber ships in small batches to field teams first.</h2>
+    <form class="signup-form" id="signup-form" novalidate>
+      <div class="signup-field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required placeholder="you@fieldsite.org" autocomplete="email">
+      </div>
+      <button type="submit" class="btn btn-primary" id="signup-submit">Join the field team list</button>
+    </form>
+    <p class="signup-note">This is a demo. Submitting this form sends nothing anywhere.</p>
+    <p class="form-status" id="form-status" role="status" hidden>Thanks for your interest. Nothing was sent: this is a demo.</p>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span>Tamber Instruments</span>
+  <a href="#top" id="top">Back to top</a>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  // Highlight the current step in the sticky nav as the visitor scrolls.
+  var steps = Array.prototype.slice.call(document.querySelectorAll(".step[id]"));
+  var navLinks = {};
+  Array.prototype.forEach.call(document.querySelectorAll(".stepnav a[href^='#']"), function (link) {
+    navLinks[link.getAttribute("href").slice(1)] = link;
+  });
+
+  if (steps.length && "IntersectionObserver" in window) {
+    var current = null;
+    var setCurrent = function (id) {
+      if (current === id) return;
+      if (current && navLinks[current]) navLinks[current].removeAttribute("aria-current");
+      if (id && navLinks[id]) navLinks[id].setAttribute("aria-current", "step");
+      current = id;
+    };
+    var stepObserver = new IntersectionObserver(function (entries) {
+      var best = null;
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting && (!best || entry.intersectionRatio > best.intersectionRatio)) {
+          best = entry;
+        }
+      });
+      if (best) setCurrent(best.target.id);
+    }, { rootMargin: "-40% 0px -40% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] });
+    steps.forEach(function (step) { stepObserver.observe(step); });
+  }
+
+  // Reveal-on-scroll for the illustrated moments. Motion is opt-in: this
+  // never runs for a visitor who prefers reduced motion, so the base CSS
+  // (the finished, labeled illustration) is what they see immediately,
+  // with no script step required to reach it.
+  var allowMotion = window.matchMedia("(prefers-reduced-motion: no-preference)");
+
+  function armForReveal(el) {
+    if (!el || !allowMotion.matches || !("IntersectionObserver" in window)) return;
+    el.classList.add("is-armed");
+
+    var settle = function () {
+      el.classList.remove("is-armed");
+      cleanup();
+    };
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) settle();
+      });
+    }, { threshold: 0.4 });
+    observer.observe(el);
+
+    var onPreferenceChange = function (event) {
+      if (!event.matches) settle();
+    };
+    allowMotion.addEventListener("change", onPreferenceChange);
+
+    function cleanup() {
+      observer.disconnect();
+      allowMotion.removeEventListener("change", onPreferenceChange);
+    }
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-reveal]"), armForReveal);
+
+  // Demo signup: no network request, confirms locally, never resubmits.
+  var form = document.getElementById("signup-form");
+  var status = document.getElementById("form-status");
+  var submitButton = document.getElementById("signup-submit");
+  if (form && status && submitButton) {
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      status.hidden = false;
+      submitButton.disabled = true;
+      submitButton.textContent = "Submitted (demo)";
+    });
+  }
+})();
+</script>
+</body>
+</html>

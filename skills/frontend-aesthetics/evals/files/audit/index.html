@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autumn guided walks - Merrowdale Walking Society</title>
+  <!-- Evaluation fixture. The society, the village, and the routes are fictional. -->
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 17px;
+      line-height: 1.55;
+      color: #000000;
+      background: #ffffff;
+    }
+
+    a { color: #1b5e3b; }
+
+    a:focus, button:focus, input:focus { outline: none; }
+
+    .site-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 24px;
+      border-bottom: 1px solid #dddddd;
+    }
+    .site-name { font-weight: 500; }
+    .site-nav { display: flex; flex-wrap: wrap; gap: 18px; }
+    .site-nav a { text-decoration: none; }
+
+    .hero {
+      position: relative;
+      min-height: 420px;
+      overflow: hidden;
+    }
+    .hero-art {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .hero-text {
+      position: relative;
+      max-width: 640px;
+      padding: 56px 24px 0;
+      color: #ffffff;
+    }
+    .hero-text h1 {
+      font-size: 22px;
+      font-weight: 500;
+      margin: 0 0 8px;
+    }
+    .hero-text p { margin: 0; }
+
+    main { max-width: 1120px; margin: 0 auto; padding: 0 24px 48px; }
+
+    h2 {
+      font-size: 19px;
+      font-weight: 500;
+      margin: 40px 0 8px;
+    }
+
+    .intro { max-width: 68ch; margin: 0; }
+
+    .map {
+      margin: 24px 0 0;
+    }
+    .map svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 16px;
+      background: #eef3ea;
+    }
+    .caption {
+      font-size: 13px;
+      color: #a8a8a8;
+      margin-top: 6px;
+    }
+
+    .walks {
+      list-style: none;
+      margin: 24px 0 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      border: 1px solid #dddddd;
+      border-radius: 4px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .card h3 {
+      font-size: 17px;
+      font-weight: 400;
+      margin: 0;
+    }
+    .share {
+      width: 16px;
+      height: 16px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: #1b5e3b;
+      cursor: pointer;
+      flex: none;
+    }
+    .share svg { display: block; width: 12px; height: 12px; margin: 2px; }
+    .badge {
+      align-self: flex-start;
+      font-size: 14px;
+      padding: 2px 8px;
+      border: 1px solid #1b5e3b;
+      border-radius: 7px;
+    }
+    .facts { margin: 0; padding: 0; list-style: none; }
+    .card .btn { margin-top: auto; align-self: flex-start; }
+
+    .btn {
+      display: inline-block;
+      font: inherit;
+      background: #1b5e3b;
+      color: #ffffff;
+      border: 0;
+      border-radius: 22px;
+      padding: 6px 14px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .membership { margin-top: 8px; }
+    .membership-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+
+    .signup { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+    .signup label { display: block; width: 100%; }
+    .signup input {
+      font: inherit;
+      padding: 6px 10px;
+      border: 1px solid #767676;
+      border-radius: 10px;
+      min-width: 0;
+      flex: 1 1 220px;
+    }
+
+    .site-footer {
+      border-top: 1px solid #dddddd;
+      padding: 20px 24px;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <span class="site-name">Merrowdale Walking Society</span>
+    <nav class="site-nav" aria-label="Main">
+      <a href="#walks">Walks</a>
+      <a href="#membership">Membership</a>
+      <a href="#newsletter">Newsletter</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <svg class="hero-art" viewBox="0 0 1440 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#b9cdd8"/>
+          <stop offset="0.55" stop-color="#f3e3c3"/>
+          <stop offset="1" stop-color="#fdf6e3"/>
+        </linearGradient>
+        <radialGradient id="sun" cx="0.28" cy="0.3" r="0.35">
+          <stop offset="0" stop-color="#fffdf5"/>
+          <stop offset="1" stop-color="#fffdf5" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="1440" height="420" fill="url(#sky)"/>
+      <rect width="1440" height="420" fill="url(#sun)"/>
+      <path d="M0 300 C 240 250 420 280 640 240 S 1040 210 1440 260 L 1440 420 L 0 420 Z" fill="#9aae86"/>
+      <path d="M0 350 C 300 320 560 360 820 330 S 1200 310 1440 340 L 1440 420 L 0 420 Z" fill="#7a8f6a"/>
+    </svg>
+    <div class="hero-text">
+      <h1>Walk the Merrow ridgeline this autumn</h1>
+      <p>Six guided walks from the village hall, every Saturday from October 4 to November 8. Every walk is led by two volunteers and costs nothing for members.</p>
+    </div>
+  </section>
+
+  <main>
+    <h2 id="walks">Guided walks</h2>
+    <p class="intro">Each walk starts from the village hall parking lot at 9:30 am and returns by early afternoon. Book a place so the leaders know how many to expect; walks go ahead in light rain and are canceled by 8 am if the forecast turns severe.</p>
+
+    <figure class="map">
+      <svg viewBox="0 0 1000 320" role="img" aria-label="Map of the six walking routes, all starting at the village hall">
+        <rect width="1000" height="320" fill="#eef3ea"/>
+        <path d="M120 250 C 220 180 320 200 420 120 S 620 60 760 90" fill="none" stroke="#1b5e3b" stroke-width="4"/>
+        <path d="M120 250 C 260 260 380 230 520 250 S 760 280 900 230" fill="none" stroke="#5a7f95" stroke-width="4"/>
+        <path d="M120 250 C 160 160 240 90 360 70" fill="none" stroke="#8a5a2b" stroke-width="4"/>
+        <circle cx="120" cy="250" r="10" fill="#000000"/>
+      </svg>
+      <figcaption class="caption">All six routes start at the village hall parking lot. Printed maps are handed out at the start of each walk.</figcaption>
+    </figure>
+
+    <ul class="walks">
+      <li class="card">
+        <div class="card-top">
+          <h3>Ridge path and Hollow Beck</h3>
+          <button class="share" type="button" aria-label="Share Ridge path and Hollow Beck">
+            <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9 1 L11 3 L9 5 M11 3 H6 C3.5 3 2 4.5 2 7 V11" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+        </div>
+        <span class="badge">Moderate</span>
+        <ul class="facts">
+          <li>Saturday, October 4</li>
+          <li>11 km, 320 m of climbing</li>
+          <li>About 4 hours</li>
+        </ul>
+        <a class="btn" href="#book">Book a place</a>
+      </li>
+      <li class="card">
+        <div class="card-top">
+          <h3>Low Merrow meadows</h3>
+          <button class="share" type="button" aria-label="Share Low Merrow meadows">
+            <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9 1 L11 3 L9 5 M11 3 H6 C3.5 3 2 4.5 2 7 V11" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+        </div>
+        <span class="badge">Easy</span>
+        <ul class="facts">
+          <li>Saturday, October 11</li>
+          <li>6 km, 60 m of climbing</li>
+          <li>About 2 hours</li>
+        </ul>
+        <a class="btn" href="#book">Book a place</a>
+      </li>
+      <li class="card">
+        <div class="card-top">
+          <h3>Old quarry loop</h3>
+          <button class="share" type="button" aria-label="Share Old quarry loop">
+            <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9 1 L11 3 L9 5 M11 3 H6 C3.5 3 2 4.5 2 7 V11" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+        </div>
+        <span class="badge">Moderate</span>
+        <ul class="facts">
+          <li>Saturday, October 18</li>
+          <li>9 km, 210 m of climbing</li>
+          <li>About 3 hours</li>
+        </ul>
+        <a class="btn" href="#book">Book a place</a>
+      </li>
+      <li class="card">
+        <div class="card-top">
+          <h3>Cairn Top and back</h3>
+          <button class="share" type="button" aria-label="Share Cairn Top and back">
+            <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9 1 L11 3 L9 5 M11 3 H6 C3.5 3 2 4.5 2 7 V11" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+        </div>
+        <span class="badge">Hard</span>
+        <ul class="facts">
+          <li>Saturday, October 25</li>
+          <li>15 km, 610 m of climbing</li>
+          <li>About 5 and a half hours</li>
+        </ul>
+        <a class="btn" href="#book">Book a place</a>
+      </li>
+      <li class="card">
+        <div class="card-top">
+          <h3>Beck side and the mill race</h3>
+          <button class="share" type="button" aria-label="Share Beck side and the mill race">
+            <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9 1 L11 3 L9 5 M11 3 H6 C3.5 3 2 4.5 2 7 V11" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+        </div>
+        <span class="badge">Easy</span>
+        <ul class="facts">
+          <li>Saturday, November 1</li>
+          <li>7 km, 90 m of climbing</li>
+          <li>About 2 and a half hours</li>
+        </ul>
+        <a class="btn" href="#book">Book a place</a>
+      </li>
+      <li class="card">
+        <div class="card-top">
+          <h3>Lantern walk to Merrow Edge</h3>
+          <button class="share" type="button" aria-label="Share Lantern walk to Merrow Edge">
+            <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9 1 L11 3 L9 5 M11 3 H6 C3.5 3 2 4.5 2 7 V11" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+        </div>
+        <span class="badge">Moderate</span>
+        <ul class="facts">
+          <li>Saturday, November 8, starts 3:30 pm</li>
+          <li>8 km, 180 m of climbing</li>
+          <li>About 3 hours, back after dark</li>
+        </ul>
+        <a class="btn" href="#book">Book a place</a>
+      </li>
+    </ul>
+
+    <section class="membership" aria-labelledby="membership">
+      <h2 id="membership">Membership</h2>
+      <p class="intro">Adult membership is renewed once a year, and anyone under 18 joins free. Members walk for free, get the printed route cards, and vote at the spring meeting. Non-members are welcome on any walk for a small donation on the day.</p>
+      <div class="membership-actions">
+        <a class="btn" href="#join">Join the society</a>
+        <a class="btn" href="#donate">Make a donation</a>
+        <a class="btn" href="#volunteer">Volunteer as a leader</a>
+        <a class="btn" href="#calendar">Download the calendar</a>
+      </div>
+    </section>
+
+    <section aria-labelledby="newsletter">
+      <h2 id="newsletter">Newsletter</h2>
+      <p class="intro">One email before each walk with the weather call and any route changes.</p>
+      <form class="signup" action="#" method="post">
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" autocomplete="email">
+        <button class="btn" type="submit">Sign up</button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer" id="contact">
+    <p>Merrowdale Walking Society, Village Hall, Church Lane, Merrowdale. Walk leaders can be reached on the morning of a walk at the hall.</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,72 @@
+/*
+  Tallyhouse - application design tokens.
+  Tallyhouse is a fictional invoicing app; this file is an evaluation fixture.
+
+  Every page in the app reads these custom properties. Page styles use the
+  roles below and do not introduce raw color values.
+*/
+
+:root {
+  /* Color roles */
+  --color-canvas: #f6f7f7;
+  --color-surface: #fcfdfd;
+  --color-surface-muted: #eef1f0;
+  --color-text: #17201f;
+  --color-text-secondary: #4b5857;
+  --color-border: #d8dddc;
+  --color-border-control: #7d8786;
+  --color-accent: #0f6e6a;
+  --color-accent-hover: #0b5956;
+  --color-on-accent: #fcfdfd;
+  --color-focus: #0f6e6a;
+  --color-danger: #b3261e;
+  --color-danger-bg: #fdecea;
+  --color-success: #1e6b43;
+  --color-success-bg: #e7f3ec;
+  --color-warning: #8a5a00;
+  --color-warning-bg: #fdf4e0;
+
+  /* Type */
+  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-numeric: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.875rem;
+  --leading-body: 1.5;
+  --leading-heading: 1.2;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-bold: 650;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Radius */
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgb(23 32 31 / 0.06), 0 4px 12px rgb(23 32 31 / 0.06);
+  --shadow-overlay: 0 1px 2px rgb(23 32 31 / 0.08), 0 12px 32px rgb(23 32 31 / 0.16);
+
+  /* Focus */
+  --focus-ring: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-focus);
+
+  /* Motion */
+  --duration-feedback: 120ms;
+  --duration-state: 180ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Layout */
+  --sidebar-width: 15rem;
+  --content-max: 46rem;
+}

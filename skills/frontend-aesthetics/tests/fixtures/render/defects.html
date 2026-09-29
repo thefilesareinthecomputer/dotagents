@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Render probe canary: seeded defects</title>
+<link rel="icon" href="data:,">
+<style>
+  /* Canary page for render_probe.js. Every seeded defect has an id starting with seed-;
+     expected.json lists what the probe must report at 320 and 1440 CSS px. */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { background: #ffffff; color: #1a1a1a; font: 16px/1.5 system-ui, sans-serif; }
+  body { margin: 0; padding: 16px; background: #ffffff; }
+  button, input { font: inherit; }
+  h1 { font-size: 28px; line-height: 1.2; margin: 16px 0; }
+  section { margin: 0 0 16px; }
+
+  /* First focusable element: the focus ring is removed with no replacement. */
+  #seed-focus-button { min-width: 44px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 4px;
+    background: #1d4f91; color: #ffffff; }
+  #seed-focus-button:focus, #seed-focus-button:focus-visible { outline: none; box-shadow: none; }
+
+  /* 600 px wide: overflows at 320, fits at 1440. */
+  #seed-wide { width: 600px; padding: 8px; background: #e8e8e8; }
+
+  /* #999999 on #ffffff is 2.85:1, below 4.5:1 for 16 px text. */
+  #seed-low-contrast { color: #999999; background: #ffffff; }
+
+  /* Text over a gradient: the probe must call this unmeasurable, not guess a ratio. */
+  #seed-gradient-text { padding: 8px; color: #ffffff; background-image: linear-gradient(90deg, #1b3a5c, #4a7a9c); }
+
+  /* 16 by 16 px icon button: a target-size candidate. */
+  #seed-icon-button { width: 16px; height: 16px; min-width: 0; min-height: 0; padding: 0; border: 0;
+    border-radius: 2px; background: #1a1a1a; }
+
+  #seed-inline-link { color: #1d4f91; }
+
+  #seed-small-text { font-size: 10px; }
+
+  #seed-img-noalt, #seed-img-upscaled { display: block; margin: 8px 0; }
+
+  /* Running infinite animation, deliberately not gated on prefers-reduced-motion. */
+  #seed-spinner { width: 32px; height: 32px; border-radius: 4px; background: #1d4f91;
+    animation: seed-spin 1.2s linear infinite; }
+  @keyframes seed-spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <header>
+    <button id="seed-focus-button" type="button">Start review</button>
+    <h1>Seeded defects for the render probe</h1>
+  </header>
+  <main>
+    <section>
+      <div id="seed-wide">Fixed strip, 600 px wide</div>
+    </section>
+    <section>
+      <p id="seed-low-contrast">Muted caption that fails contrast</p>
+      <p id="seed-gradient-text">Label over a gradient band</p>
+    </section>
+    <section>
+      <button id="seed-icon-button" type="button" aria-label="Dismiss notice"><svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10"><path d="M1 1l8 8M9 1l-8 8" stroke="#ffffff" stroke-width="2"/></svg></button>
+      <p>Check the <a id="seed-inline-link" href="#seed-small-text">shelf notes</a> before the next shift.</p>
+      <p id="seed-small-text">Fine print set at ten pixels</p>
+    </section>
+    <section>
+      <img id="seed-img-noalt" width="32" height="32" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAAAtUlEQVR42u3ZsQ0AEBCGUYuYyWz20ypsYYTTXIGXqC/xui9/WXOEr7YevlfvFECAAAECBAgQIECAAAFKAPr58yd3AAECBAgQIECAAAECBCgDSKyqeUCAAAECBAgQIECAANnF1DwgQIAAAQIECBAgQIDsYmIVECBAgAABAgQIECBAgOxiah4QIECAAAECBAgQIEB2MTUPCBAgQIAAAQIECBAgQHYxNQ8IECBAgAABAgQIEKBL7myWP8HQzKGldwAAAABJRU5ErkJggg==">
+      <img id="seed-img-upscaled" width="160" height="160" alt="Checkered swatch" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAIElEQVR42mN4+fQOEMn6TwQiZDYDTglMIQgbtwQd7AAAngt04TJL2/sAAAAASUVORK5CYII=">
+    </section>
+    <section>
+      <div id="seed-spinner" role="img" aria-label="Loading"></div>
+    </section>
+  </main>
+</body>
+</html>

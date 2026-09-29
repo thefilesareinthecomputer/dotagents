@@ -67,6 +67,19 @@ sentence: verified flat, real uncertainty marked, a call the reader owns offered
 as options with a lean. If the person whose name is on the document would have
 to re-word paragraphs rather than fact-check them, the pass failed.
 
+**Documentation works for a newcomer and a senior engineer at once.** The colleague
+may be new to the tools or the platform. Every term specific to that platform,
+its tools or the team's conventions, and every placeholder and object name, is
+explained in plain words where the reader first meets it, with a concrete example
+where one helps, and no step is assumed that the document hasn't shown. General
+vocabulary a competent engineer knows from any other job (ETL, JDBC, YAML, cron, a
+surrogate key, idempotent) is never defined: over-explaining is condescension too.
+The opener is a plain briefing for a sharp new colleague, never an explanation
+pitched at a child, and never uses analogy or reassurance. The explanation is a plain fact, never framed with "simply", "just",
+"obviously", "of course" or "as you know", which tell a newcomer they should
+already know. A senior reader skims a one-clause definition at no cost; a newcomer
+who hits an undefined term stops reading.
+
 Terse is a register for chat replies, and applying it to a shipped document is
 the most common route into this failure. The full catalog is
 `references/tells.md` section "Over-corrected register", which covers register by

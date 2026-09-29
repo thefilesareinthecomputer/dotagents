@@ -1,0 +1,211 @@
+{
+  "skill_name": "frontend-aesthetics",
+  "evals": [
+    {
+      "id": 1,
+      "name": "dense-queue",
+      "prompt": "Our support agents live in the triage queue all day, and nobody can scan the current one. Build a new queue screen for our internal support tool from the tickets in `files/queue/tickets.json`. It has to fit the tool as it is: use the tokens in `files/queue/brand.css` and don't add colors or fonts of your own. Agents need to spot breached and nearly breached SLAs, see who owns what, pick up unassigned tickets, and open a ticket quickly, on laptops and on wide monitors. Static data is fine and no framework is needed. Write it to the current directory as `index.html`, with any CSS or JS files next to it, and tell me what you checked when you're done.",
+      "expected_output": "A dense, scannable triage queue that renders all 30 tickets inside the brand.css tokens. Breached and at-risk SLAs lead the hierarchy, numerals align in tabular figures, status and priority read without color, long subjects stay available, and unassigned tickets are explicit. The run names a task-specific organizing idea, shows it in the rendered queue at narrow and wide widths, and reports only evidence it gathered.",
+      "files": [
+        "skills/frontend-aesthetics/evals/files/queue/tickets.json",
+        "skills/frontend-aesthetics/evals/files/queue/brand.css"
+      ],
+      "expectations": [
+        "Scored with rubric.md, every applicable dimension scores at least 1.",
+        "Scored with rubric.md, the run earns at least 80 percent of the applicable points.",
+        "No invented measurements (a rubric hard fail): every contrast ratio, size, duration, or count stated in the report traces to a named command, probe result, or capture.",
+        "The brief's token constraint is not ignored (a rubric hard fail): the page adds no new hue and no font family outside the brand.css stacks.",
+        "Under prefers-reduced-motion: reduce, no ticket information or control is hidden (a rubric hard fail).",
+        "The page renders all 30 tickets from tickets.json, or a view in which every ticket is reachable, and each ticket's id, subject, requester, priority, status, SLA, assignee, and updated time matches the file (reformatting, such as minutes shown as hours, is acceptable).",
+        "Colors, font stacks, spacing, and radii in the page source come from the brand.css custom properties.",
+        "The run's design read or report names a task-specific organizing idea for the queue (for example ordering by SLA risk, or aligned status and next-action columns), and the rendered queue visibly follows it.",
+        "SLA values and other numeric columns use tabular figures (font-variant-numeric: tabular-nums, or a font whose default figures are tabular), so digits align down each column.",
+        "Status and priority are each readable without color: every value carries a text label, shape, or icon in addition to any color.",
+        "Breached tickets (negative sla_minutes_remaining) are identified by text or sign as well as color, and the overdue amount is shown truthfully rather than clamped to zero.",
+        "Subjects of 90 or more characters either wrap or, when truncated, keep the full subject available by keyboard and pointer, not by hover alone.",
+        "Unassigned tickets (empty assignee) show an explicit unassigned label rather than an empty cell.",
+        "Row hover, keyboard focus, and any selected state are visually distinct and do not change row height or column positions.",
+        "Opening a ticket, or the queue's primary row action, works by keyboard with a visible focus indicator.",
+        "At 320 CSS px wide each ticket keeps its subject, priority, status, and SLA visible with no page-level horizontal scroll; a deliberately contained, keyboard-reachable table scroller is acceptable when the report explains it.",
+        "Motion is limited to local feedback: no entrance animation delays access to the queue.",
+        "If the page offers filtering or search, it has a no-results state that explains the condition and offers a way to clear it.",
+        "The page makes no external network requests.",
+        "The report states the slop_check.py command it ran and its result, and gives a reason for each retained WARN or FAIL.",
+        "Every visual claim in the report (for example alignment, wrapping, overflow, or focus visibility) names the capture, probe result, or command output behind it.",
+        "The report names what was not checked.",
+        "With the rewritten skill, the final report contains one line per checked viewport width, including at least 320 and 1440 CSS px, describing what that width's capture showed.",
+        "With the rewritten skill, when a render probe was available, the report states each checked width's render probe check statuses.",
+        "With the rewritten skill, the report contains a line beginning `Rendered checks pending:` that reads `none` or lists specific checks.",
+        "With the rewritten skill, the report names at least one change made after a capture or probe result, or states that the captures and probe results required none."
+      ]
+    },
+    {
+      "id": 2,
+      "name": "expressive-walkthrough",
+      "prompt": "We're launching the Tamber pocket spectrometer and I want an immersive product walkthrough page, not a spec sheet. Everything you need is in `files/walkthrough/content.md`: the copy, the five steps, the one moment the page should be remembered for, and descriptions of the images. Draw the images with CSS or inline SVG; we have no photography. Make that one moment land, and make sure someone with reduced motion turned on still gets every step, all the text, and the navigation. Plain HTML, CSS, and JavaScript is fine. Put it in the current directory as `index.html` with any assets beside it, and tell me what you checked.",
+      "expected_output": "An immersive walkthrough built around the moment content.md names (a thin white line splitting into a spectrum and settling into a curve) as its single focal moment. The five steps appear in order with CSS or SVG imagery and working step navigation; enhancements are guarded with plain fallbacks; the reduced-motion path shows the moment as a finished still and keeps every step, all text, and every control.",
+      "files": [
+        "skills/frontend-aesthetics/evals/files/walkthrough/content.md"
+      ],
+      "expectations": [
+        "Scored with rubric.md, every applicable dimension scores at least 1.",
+        "Scored with rubric.md, the run earns at least 80 percent of the applicable points.",
+        "No invented measurements (a rubric hard fail): every contrast ratio, size, duration, frame rate, or count stated in the report traces to a named command, probe result, or capture.",
+        "Under prefers-reduced-motion: reduce, all five steps, their text, and the step navigation remain present and usable (hiding any of them is a rubric hard fail).",
+        "All five steps from content.md appear in order with their headings and body copy, along with the hero, specifications, field guide, and closing sections.",
+        "The run names a subject-specific direction tied to the spectrometer (for example light splitting into its colors), and the rendered page delivers it in the step 3 moment.",
+        "The step 3 split-and-settle moment is the page's single orchestrated focal moment; other sections do not each carry their own entrance animation.",
+        "Under prefers-reduced-motion: reduce, the step 3 moment appears as a finished still (the full spectrum band with its curve, labeled) with the same explanatory text.",
+        "Content is visible in the base styles: no step or text depends on JavaScript running or an animation finishing to become visible.",
+        "Visitors can go to the next and previous step and jump to any step, by keyboard and by ordinary scrolling; native scrolling and the browser back button keep working, with no scroll hijacking.",
+        "Any enhancement the page uses (for example scroll-driven animation or View Transitions) is guarded by feature detection or @supports and has a plain path that keeps all content and navigation.",
+        "If JavaScript drives an animation, it responds to changes in the reduced-motion preference rather than reading it once at load.",
+        "Imagery is drawn with CSS or inline SVG following the content file's descriptions; the page loads no raster images, web fonts, or scripts from the network.",
+        "The field team signup has a visible label, sends no network request, and gives local feedback on submit.",
+        "The page adds no testimonials, pricing, or specifications beyond those in content.md.",
+        "The report states the slop_check.py command it ran and its result, and gives a reason for each retained WARN or FAIL.",
+        "Every visual claim in the report names the capture, probe result, or command output behind it.",
+        "The report names what was not checked, including any motion or fallback path it could not exercise.",
+        "With the rewritten skill, the report states how reduced motion was checked: runtime emulation, a browser context started with that option, the project's browser tests, or source review.",
+        "With the rewritten skill, the final report contains one line per checked viewport width, including at least 320 and 1440 CSS px, describing what that width's capture showed.",
+        "With the rewritten skill, when a render probe was available, the report states each checked width's render probe check statuses.",
+        "With the rewritten skill, the report contains a line beginning `Rendered checks pending:` that reads `none` or lists specific checks.",
+        "With the rewritten skill, the report names at least one change made after a capture or probe result, or states that the captures and probe results required none."
+      ]
+    },
+    {
+      "id": 3,
+      "name": "brand-legacy-hex",
+      "prompt": "Build a landing page for Brindle Street Roasters. Their brand guide is `files/brand/brand-guide.md` and the page copy is `files/brand/content.md`. The owners have printed these colors and this stamp on every bag for years, so treat the guide as fixed; I want the site to feel like it came from the same shop. Output `index.html` in the current directory, with any CSS beside it, and tell me what you checked.",
+      "expected_output": "A landing page that carries the guide's established direction, with the roast-date stamp as its signature, Paper, Brass, and Roast used exactly, Brass kept off text on Paper, the guide's type direction and voice followed, and only supplied copy. The legacy linter's banned-palette FAIL on #f5f1ea and #b08947 is recorded as a justified exception citing the brand guide, not resolved by changing the colors.",
+      "files": [
+        "skills/frontend-aesthetics/evals/files/brand/brand-guide.md",
+        "skills/frontend-aesthetics/evals/files/brand/content.md"
+      ],
+      "expectations": [
+        "Scored with rubric.md, every applicable dimension scores at least 1.",
+        "Scored with rubric.md, the run earns at least 80 percent of the applicable points.",
+        "No invented measurements (a rubric hard fail): every contrast ratio, size, duration, or count stated in the report traces to a named command, probe result, or capture.",
+        "The brand constraint is not ignored (a rubric hard fail): the page keeps #f5f1ea as the page background, #b08947 as the accent, and #1f1b16 as the text color, and loads no web font.",
+        "Under prefers-reduced-motion: reduce, no content or control is hidden (a rubric hard fail).",
+        "The page introduces no other hue, gradient, or tint that reads as a new color.",
+        "The report names the slop_check.py banned-palette finding on #f5f1ea and #b08947 and records it as a justified exception that cites the brand guide, rather than changing either color.",
+        "Brass (#b08947) is never used for text on Paper (#f5f1ea); text on Brass fills is set in Roast (#1f1b16).",
+        "Any contrast figure for the brand pairs comes from a named tool run. For graders: check_contrast.py gives #b08947 on #f5f1ea as 2.86:1, #1f1b16 on #f5f1ea as 15.21:1, and #1f1b16 on #b08947 as 5.31:1.",
+        "The run names a direction grounded in the guide (for example the roast-date stamp and a calm, printed price-list layout), and the rendered page carries it without inventing a new identity, logo treatment, or palette.",
+        "The roast-date stamp appears where the page names a specific roast, as the guide describes it: a square-set rectangle with a single Brass outline and ROASTED over the date, not rotated, distressed, or textured.",
+        "Headings use a sturdy serif from a system font stack, body text uses a readable serif or neutral sans, and roast dates, weights, and prices use tabular figures.",
+        "Corners are square or very slightly softened, as the guide requires.",
+        "All copy comes from content.md: the page adds no testimonials, ratings, customer quotes, awards, currency symbols, or invented statistics, and it uses none of the guide's banned words.",
+        "The three coffees read as comparable items, with their roast dates, weights, and prices aligned.",
+        "Every action (Choose a coffee, Start a subscription, Ask for a sample box) is keyboard reachable with a visible focus indicator.",
+        "The report states the slop_check.py command it ran and its result, and gives a reason for each retained WARN or FAIL.",
+        "Every visual claim in the report names the capture, probe result, or command output behind it.",
+        "The report names what was not checked.",
+        "With the rewritten skill, the final report contains one line per checked viewport width, including at least 320 and 1440 CSS px, describing what that width's capture showed.",
+        "With the rewritten skill, when a render probe was available, the report states each checked width's render probe check statuses.",
+        "With the rewritten skill, the report contains a line beginning `Rendered checks pending:` that reads `none` or lists specific checks.",
+        "With the rewritten skill, the report names at least one change made after a capture or probe result, or states that the captures and probe results required none."
+      ]
+    },
+    {
+      "id": 4,
+      "name": "settings-in-system",
+      "prompt": "Add a notification settings page to our invoicing app. The app's design tokens are in `files/settings/tokens.css` and the existing account settings page is `files/settings/account.html`; the new page should look like it has always been next to it. For each of these events, users choose whether they get an email and whether they get an in-app notification: invoice paid, invoice overdue, client commented on an invoice, and weekly summary. They also need quiet hours (a start and an end time) and an option to bundle emails into one daily digest. Include the loading state while settings load, a saved confirmation, and an error state when saving fails. Fake the network with a short delay and give me a way to see each state; a query parameter is fine. Write it to the current directory as `notifications.html` and tell me what you checked.",
+      "expected_output": "A notifications page that reuses tokens.css and the account.html shell and component patterns, carries the existing direction through task-specific hierarchy rather than new decoration, and covers loading, pending, saved, and error states that are reachable for review, truthful about the simulated request, and legible without color alone.",
+      "files": [
+        "skills/frontend-aesthetics/evals/files/settings/tokens.css",
+        "skills/frontend-aesthetics/evals/files/settings/account.html"
+      ],
+      "expectations": [
+        "Scored with rubric.md, every applicable dimension scores at least 1.",
+        "Scored with rubric.md, the run earns at least 80 percent of the applicable points.",
+        "No invented measurements (a rubric hard fail): every contrast ratio, size, duration, or count stated in the report traces to a named command, probe result, or capture.",
+        "The existing system is not ignored (a rubric hard fail): the page adds no new accent, font family, or radius scale outside tokens.css.",
+        "Under prefers-reduced-motion: reduce, the loading, pending, saved, and error states keep their text and stay distinguishable (hiding any of them is a rubric hard fail).",
+        "The page uses the tokens.css custom properties for color, type, spacing, radius, and elevation, and its source contains no raw color value that tokens.css does not define.",
+        "The page reuses the account.html shell and patterns: the sidebar navigation with Notifications marked as the current page, the page header, panels, fields, buttons, focus style, and form status pattern.",
+        "The run names how the settings are organized for the task (for example an event-by-channel grid) and the rendered page follows it without adding a hero, illustration, or decorative animation.",
+        "Each of the four events has separately labeled email and in-app controls, and quiet hours and the daily digest option have visible labels.",
+        "The loading state keeps the page header and navigation visible and reserves space for the settings, so the layout does not shift when they arrive.",
+        "Saving shows a pending state that prevents or intentionally handles repeated submission, and success is confirmed near the save action only after the simulated request completes.",
+        "A failed save states what failed and how to retry, keeps the user's unsaved choices, and does not rely on color alone.",
+        "Each state (loading, saved, error) is reachable for review by a documented method such as a query parameter, and the report says how.",
+        "Every control works by keyboard with the same visible focus indicator account.html uses.",
+        "At 320 CSS px the page follows the account.html narrow layout, and the event-by-channel controls stay usable without page-level horizontal scroll.",
+        "The report states the slop_check.py command it ran and its result, and gives a reason for each retained WARN or FAIL.",
+        "Every visual claim in the report names the capture, probe result, or command output behind it.",
+        "The report names what was not checked.",
+        "With the rewritten skill, the final report contains one line per checked viewport width, including at least 320 and 1440 CSS px, describing what that width's capture showed.",
+        "With the rewritten skill, when a render probe was available, the report states each checked width's render probe check statuses.",
+        "With the rewritten skill, the report contains a line beginning `Rendered checks pending:` that reads `none` or lists specific checks.",
+        "With the rewritten skill, the report names at least one change made after a capture or probe result, or states that the captures and probe results required none."
+      ]
+    },
+    {
+      "id": 5,
+      "name": "audit-no-browser",
+      "prompt": "Can you audit the visual design of `files/audit/index.html`? Hierarchy, contrast, focus, controls, consistency, whatever matters most. Don't change the file; I only want findings, ranked, with what you'd do about each. Write the report to `audit-report.md` in the current directory.",
+      "expected_output": "A read-only audit, run with no browser tool available, that leaves index.html unchanged and reports located, ranked findings for the six planted issues: weak hierarchy, the low-contrast map caption, the undersized share buttons, the focus outline removed without replacement, inconsistent corner radii, and white hero text over the illustration. It does not flag the legitimate black-on-white body text or the repeated walk-card grid, assesses the existing direction without proposing a new one, separates source findings from rendered checks, lists the specific rendered checks still pending, and claims no rendered evidence.",
+      "files": [
+        "skills/frontend-aesthetics/evals/files/audit/index.html"
+      ],
+      "expectations": [
+        "Scored with rubric.md, with direction and distinctiveness marked not applicable for this read-only audit, every applicable dimension scores at least 1.",
+        "Scored with rubric.md, the run earns at least 80 percent of the applicable points.",
+        "No invented measurements (a rubric hard fail): every contrast ratio, size, or count in the report traces to a named command or to a value declared in the source.",
+        "files/audit/index.html is byte-identical after the run, and no file is written under files/audit/.",
+        "The report is written to audit-report.md in the current working directory.",
+        "Each finding names its location (selector or line), its evidence, the proposed correction, and a priority.",
+        "The report identifies weak hierarchy: the hero h1 (22px, weight 500), section h2 (19px, weight 500), card h3 (17px, weight 400), and 17px body text sit too close in size and weight, and the four equally styled membership buttons compete.",
+        "The report identifies the low-contrast map caption (.caption, #a8a8a8 on #ffffff at 13px). For graders: check_contrast.py gives this pair as 2.38:1.",
+        "The report identifies the share buttons (.share, declared 16 by 16 CSS px) as undersized controls; any WCAG claim accounts for the SC 2.5.8 spacing exception or leaves it to a pending rendered check.",
+        "The report identifies the focus outline removed on a, button, and input (outline: none on :focus) with no replacement indicator anywhere in the file.",
+        "The report identifies inconsistent corner radii: 4px cards, 7px badges, 10px input, 16px map, and 22px buttons.",
+        "The report identifies the white hero text placed over the illustration with no scrim; any contrast figure for it is labeled as computed from explicit source colors, and the rendered composite check is listed as pending.",
+        "The report ranks task-blocking and legibility problems (focus removal, caption and hero contrast, target size) above stylistic ones (radius inconsistency).",
+        "The report does not flag the #000000 body text on #ffffff as a defect; if it cites the slop_check.py pure-black-white warning, it explains the pair is legitimate (21:1 by a named measurement).",
+        "The report does not flag the repeated grid of six walk cards as a defect, and treats the repetition as appropriate for comparable items.",
+        "The report assesses the page's existing direction (what the page is for and whether the hero and walk cards carry it) and recommends fixes within that direction rather than a new identity or redesign.",
+        "The report claims no screenshot, rendered measurement, or browser observation, and labels its findings as source findings.",
+        "The report enumerates the specific rendered checks still pending (for example hero text contrast over the illustration at narrow and wide widths, the share buttons' rendered size and spacing, keyboard focus visibility, and reflow at 320 CSS px); a vague statement such as 'visual checks pending' does not satisfy this.",
+        "The report states the slop_check.py command it ran and its result, or states that it was not run.",
+        "With the rewritten skill, the report contains a line beginning `Rendered checks pending:` that lists specific checks and does not read `none`.",
+        "With the rewritten skill, the report names what would enable the pending checks (for example a browser MCP server), and the run installs nothing."
+      ]
+    },
+    {
+      "id": 6,
+      "name": "vanilla-interactive",
+      "prompt": "I'd like a single page for the harbor at Gullwater Quay using the day of tide readings in `files/vanilla/tides.json`. Let me scrub through the day and see the water height at any moment, with the high and low tides marked. Plain HTML, CSS, and JavaScript only: no frameworks, no npm, no build step, nothing loaded from the internet. It should still work well for someone who has reduced motion turned on. Put it in the current directory as `index.html` and tell me what you checked.",
+      "expected_output": "A dependency-free page whose scrubber, operable by pointer and keyboard, moves through the 144 readings and shows the time and height as text, with the file's four highs and lows marked. It delivers a subject-specific idea in the rendered result, keeps the data truthful, states an error with a recovery step if loading the data fails, and keeps every value and control in its reduced-motion path.",
+      "files": [
+        "skills/frontend-aesthetics/evals/files/vanilla/tides.json"
+      ],
+      "expectations": [
+        "Scored with rubric.md, every applicable dimension scores at least 1.",
+        "Scored with rubric.md, the run earns at least 80 percent of the applicable points.",
+        "No invented measurements (a rubric hard fail): every contrast ratio, size, duration, frame rate, or count stated in the report traces to a named command, probe result, or capture.",
+        "Under prefers-reduced-motion: reduce, every reading, marker, and control stays available (hiding any of them is a rubric hard fail).",
+        "The page is plain HTML, CSS, and JavaScript with no package manifest, build step, framework, or network request other than loading tides.json from a local relative path.",
+        "Heights and times shown match tides.json, and the two highs (03:30 at 3.98 m, 15:40 at 3.80 m) and two lows (09:40 at 1.00 m, 21:50 at 0.61 m) are marked at their times.",
+        "The location name appears as given in the file, and the units (meters above chart datum) are stated.",
+        "The run names a subject-specific idea for the tide day (for example the water level as the page's dominant visual, or the tide curve itself as the scrubber), and the rendered page delivers it.",
+        "The scrubber works with a pointer drag and with the keyboard (arrow keys step through readings), and shows a visible focus indicator.",
+        "The current time and height are available as text, not only drawn in canvas or SVG, update as the user scrubs, and use tabular figures so the readout does not shift.",
+        "Under prefers-reduced-motion: reduce, any easing, auto-play, or animated water motion stops or becomes an instant update.",
+        "If JavaScript drives motion, it listens for changes to the reduced-motion preference rather than reading it once.",
+        "If the page fetches tides.json, a failed load (for example opening the page from file://) shows a stated error with a recovery step instead of an empty chart.",
+        "Data values are inserted with DOM text APIs or escaped, never as unescaped HTML strings.",
+        "At 320 CSS px the scrubber and readout remain usable without page-level horizontal scroll.",
+        "The report states the slop_check.py command it ran and its result, and gives a reason for each retained WARN or FAIL.",
+        "Every visual claim in the report names the capture, probe result, or command output behind it.",
+        "The report names what was not checked.",
+        "With the rewritten skill, the final report contains one line per checked viewport width, including at least 320 and 1440 CSS px, describing what that width's capture showed.",
+        "With the rewritten skill, when a render probe was available, the report states each checked width's render probe check statuses.",
+        "With the rewritten skill, the report contains a line beginning `Rendered checks pending:` that reads `none` or lists specific checks.",
+        "With the rewritten skill, the report names at least one change made after a capture or probe result, or states that the captures and probe results required none."
+      ]
+    }
+  ]
+}

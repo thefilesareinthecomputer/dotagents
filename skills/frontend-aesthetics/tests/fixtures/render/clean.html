@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alder Row Tool Library</title>
+<link rel="icon" href="data:,">
+<style>
+  /* Canary page for render_probe.js: no check may report findings at 320 or 1440 CSS px.
+     Every text pair passes 4.5:1, controls are at least 44 by 44 px, and body text is 17 px. */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { background: #fbfaf7; color: #1f2328; font: 17px/1.6 system-ui, sans-serif; }
+  body { margin: 0; background: #fbfaf7; }
+  button, input { font: inherit; }
+  a { color: #1d4f91; text-underline-offset: 2px; }
+  :focus-visible { outline: 2px solid #1d4f91; outline-offset: 2px; }
+  h1, h2 { line-height: 1.2; margin: 0 0 16px; }
+  h1 { font-size: 34px; }
+  h2 { font-size: 24px; }
+  p { margin: 0 0 16px; }
+
+  .masthead { background: #13294b; color: #fcfcfa; }
+  .masthead-inner { max-width: 72rem; margin: 0 auto; padding: 8px 16px; display: flex; flex-wrap: wrap;
+    align-items: center; justify-content: space-between; gap: 8px 24px; }
+  .masthead a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; padding: 0 8px;
+    color: #fcfcfa; text-decoration: none; }
+  .masthead a:focus-visible { outline-color: #fcfcfa; }
+  #seed-first-focus { font-weight: 700; }
+  .nav { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 0; list-style: none; }
+
+  .page { max-width: 72rem; margin: 0 auto; padding: 32px 16px; display: grid; gap: 32px; }
+  .prose { max-width: 40rem; }
+  figure { display: flex; align-items: center; gap: 16px; margin: 0 0 24px; }
+  figure img { flex: none; }
+  figcaption { color: #4d5560; font-size: 16px; }
+
+  .panel { align-self: start; padding: 24px; border-radius: 8px; background: #eef1f5; }
+  .panel label { display: block; margin: 0 0 8px; font-size: 16px; }
+  .panel input { display: block; width: 100%; min-height: 44px; margin: 0 0 16px; padding: 8px 12px;
+    border: 1px solid #5b6470; border-radius: 6px; background: #fcfcfa; color: #1f2328; }
+  .panel button { min-width: 44px; min-height: 44px; padding: 8px 20px; border: 0; border-radius: 6px;
+    background: #1d4f91; color: #fcfcfa; }
+  .panel button:focus-visible { outline: 2px solid #1d4f91; outline-offset: 2px; }
+
+  .footer { background: #e9e5dc; color: #3b3f45; font-size: 16px; }
+  .footer-inner { max-width: 72rem; margin: 0 auto; padding: 24px 16px; }
+  .footer p { margin: 0; }
+
+  @media (min-width: 900px) {
+    .page { grid-template-columns: minmax(0, 1fr) 20rem; gap: 48px; }
+  }
+</style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <a id="seed-first-focus" href="#top">Alder Row Tool Library</a>
+      <nav aria-label="Main">
+        <ul class="nav">
+          <li><a href="#catalog">Catalog</a></li>
+          <li><a href="#hours">Hours</a></li>
+          <li><a href="#reserve">Reserve</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <main class="page" id="top">
+    <article class="prose">
+      <h1>Borrow the tool, skip the purchase</h1>
+      <p>Most drills in a household run for thirteen minutes in their whole working life. The library keeps
+        one good drill on the shelf for the whole street instead, and the <a href="#catalog">catalog</a>
+        lists every tool with its condition notes and the last date it was serviced.</p>
+      <figure>
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAAAtUlEQVR42u3ZsQ0AEBCGUYuYyWz20ypsYYTTXIGXqC/xui9/WXOEr7YevlfvFECAAAECBAgQIECAAAFKAPr58yd3AAECBAgQIECAAAECBCgDSKyqeUCAAAECBAgQIECAANnF1DwgQIAAAQIECBAgQIDsYmIVECBAgAABAgQIECBAgOxiah4QIECAAAECBAgQIEB2MTUPCBAgQIAAAQIECBAgQHYxNQ8IECBAgAABAgQIEKBL7myWP8HQzKGldwAAAABJRU5ErkJggg==" alt="Checkered pattern printed on every loan tag" width="48" height="48">
+        <figcaption>Each loan tag carries the same checkered mark, so a returned tool is easy to spot.</figcaption>
+      </figure>
+      <h2 id="catalog">How lending works</h2>
+      <p>Pick a tool from the shelf list, bring it back within seven days, and note anything that wore out.
+        Members who return late simply skip one turn; the <a href="#hours">opening hours</a> are the only
+        schedule anyone has to remember.</p>
+      <h2 id="hours">Opening hours</h2>
+      <p>Tuesday and Thursday evenings from six to eight, and Saturday mornings from nine until noon.</p>
+    </article>
+    <aside class="panel" id="reserve">
+      <h2>Reserve a tool</h2>
+      <label for="tool-name">Tool name</label>
+      <input id="tool-name" type="text" autocomplete="off">
+      <button type="button">Reserve</button>
+    </aside>
+  </main>
+  <footer class="footer">
+    <div class="footer-inner">
+      <p>Run by volunteers on Alder Row. Questions go to the <a href="#reserve">front desk</a> during
+        opening hours.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -285,3 +285,4 @@ agentclientprotocol/registry	harnesses
 agentclientprotocol/python-sdk	frameworks
 agentclientprotocol/typescript-sdk	frameworks
 agentclientprotocol/rust-sdk	frameworks
+coldteadotai/abide	security

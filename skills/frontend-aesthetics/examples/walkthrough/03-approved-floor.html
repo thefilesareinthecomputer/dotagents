@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tamber - See what light knows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+  /* Motion is an enhancement: without this class every element renders in its finished state. */
+  document.documentElement.classList.toggle('js-motion', matchMedia('(prefers-reduced-motion: no-preference)').matches);
+</script>
+<style>
+:root {
+  --paper: #eeebe3;
+  --paper-2: #e5e1d6;
+  --ink: #16140f;
+  --ink-2: #4f4b42;
+  --rule: rgb(22 20 15 / 0.16);
+  --night: #0a0a0b;
+  --night-ink: #f3f1ea;
+  --night-ink-2: #a9a69d;
+  --serif: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --gutter: clamp(1.25rem, 4vw, 4rem);
+  --max: 1360px;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-expo: cubic-bezier(0.19, 1, 0.22, 1);
+  --bar-h: 3.75rem;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: var(--bar-h); }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: var(--serif); font-optical-sizing: auto;
+  font-size: 1.1875rem; line-height: 1.5; -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.37 0 0 0 0 0.3 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+a { color: inherit; }
+.wrap { max-width: var(--max); margin: 0 auto; padding-inline: var(--gutter); width: 100%; }
+.label { font-family: var(--mono); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+.skip { position: absolute; left: 1rem; top: -4rem; z-index: 10; background: var(--ink); color: var(--paper); padding: 0.75rem 1rem; font-family: var(--mono); font-size: 0.8125rem; text-decoration: none; }
+.skip:focus { transform: translateY(5rem); }
+:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+/* Bar */
+.bar { position: fixed; top: 0; left: 0; right: 0; z-index: 20; background: rgb(8 8 9 / 0.88); color: #f5f3ec; backdrop-filter: saturate(1.4) blur(14px); border-bottom: 1px solid rgb(245 243 236 / 0.1); }
+.bar .wrap { display: flex; align-items: center; gap: 2rem; min-height: var(--bar-h); }
+.mark { font-family: var(--serif); font-style: italic; font-size: 1.5rem; letter-spacing: -0.02em; text-decoration: none; }
+.steps-nav { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.steps-nav ol { position: relative; list-style: none; display: flex; gap: 0.25rem; margin: 0 auto; padding: 0; width: max-content; }
+.steps-nav ol::after {
+  content: ""; position: absolute; left: 0; bottom: 0; height: 2px; background: #f5f3ec;
+  width: var(--ind-w, 0px); transform: translateX(var(--ind-x, 0px));
+  transition: transform 450ms var(--ease-expo), width 450ms var(--ease-expo);
+}
+.steps-nav a {
+  display: inline-flex; align-items: baseline; gap: 0.5rem; padding: 0.75rem; min-height: 44px;
+  font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase;
+  text-decoration: none; color: #a9a69d; white-space: nowrap; transition: color 200ms var(--ease-out);
+}
+.steps-nav a span { color: #f5f3ec; font-weight: 500; }
+.steps-nav a:hover, .steps-nav a[aria-current="step"] { color: #f5f3ec; }
+.bar-guide { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; text-underline-offset: 4px; }
+
+/* Buttons and links */
+.btn {
+  position: relative; display: inline-flex; align-items: center; gap: 0.75rem; overflow: hidden;
+  background: var(--ink); color: var(--paper); padding: 1rem 1.5rem; border-radius: 999px; border: 0;
+  font-family: var(--mono); font-size: 0.8125rem; letter-spacing: 0.06em; text-transform: uppercase;
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: transform 180ms var(--ease-out), background-color 180ms var(--ease-out);
+}
+.btn .arr { display: inline-block; transition: transform 350ms var(--ease-expo); }
+.btn:hover .arr { transform: translateY(3px); }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(1px); }
+.link { font-family: var(--mono); font-size: 0.8125rem; letter-spacing: 0.06em; text-transform: uppercase; text-underline-offset: 6px; text-decoration-thickness: 1px; padding-block: 0.75rem; transition: text-underline-offset 250ms var(--ease-out); }
+.link:hover { text-underline-offset: 9px; }
+
+/* Cinema hero */
+.cine { position: relative; overflow: hidden; isolation: isolate; min-height: 100svh; background: #050506; color: #f5f3ec; display: flex; flex-direction: column; }
+.cine::after {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0.55; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+.cine-copy { position: relative; z-index: 3; padding-top: clamp(4.5rem, 12svh, 9rem); }
+.cine .label { color: #b9b6ac; }
+.cine h1 { font-weight: 300; font-size: clamp(3rem, min(0.5rem + 11vw, 16svh), 13rem); line-height: 0.86; letter-spacing: -0.045em; margin: 1.25rem 0 0; }
+.cine h1 em { font-style: italic; }
+.cine h1 .ln { display: block; overflow: hidden; padding: 0.12em 0.14em 0.2em; margin: -0.12em -0.14em -0.2em; }
+.cine h1 .ln > span { display: inline-block; }
+.cine-beam { position: relative; z-index: 1; flex: 1 0 clamp(4rem, 14svh, 10rem); }
+.cine-fx { position: absolute; left: 0; top: 50%; width: 100%; height: 200svh; transform: translateY(-50%); z-index: 0; pointer-events: none; }
+.fan-tilt { transform-box: view-box; transform-origin: 46% 50%; transform: rotate(var(--tilt, 0deg)); }
+.beam-line {
+  position: absolute; left: 0; top: 50%; width: 46%; height: 2px; margin-top: -1px; transform-origin: left center;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.15), #fff 35%);
+  box-shadow: 0 0 8px 1px rgb(255 255 255 / 0.55), 0 0 24px 2px rgb(255 255 255 / 0.2);
+}
+.cine-ring {
+  position: absolute; z-index: 1; left: 46%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px;
+  border-radius: 50%; border: 3px solid #fff7e3;
+  box-shadow: 0 0 18px 4px rgb(255 246 222 / 0.85), 0 0 80px 24px rgb(255 240 205 / 0.35);
+}
+.cine-foot { position: relative; z-index: 3; padding-bottom: clamp(1.5rem, 6svh, 5rem); display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: 2rem; align-items: end; }
+.cine .lede { color: #e9e6dd; margin: 0; max-width: 34ch; font-size: clamp(1.125rem, min(1rem + 0.7vw, 3svh), 1.625rem); line-height: 1.35; }
+.cine .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 2rem; margin-top: clamp(1rem, 3svh, 2rem); }
+.cine .btn { background: #f5f3ec; color: #0b0b0c; }
+.cine .btn:hover { background: #ffffff; }
+.cine-meta { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; justify-content: flex-end; }
+.cine-meta .label { color: #d9d6cc; }
+
+.js-motion .cine .label { animation: arrive 900ms var(--ease-out) both 100ms; }
+.js-motion .cine h1 .ln > span { animation: lineUp 1300ms var(--ease-expo) both 180ms; }
+.js-motion .cine h1 .ln:nth-child(2) > span { animation-delay: 300ms; }
+.js-motion .beam-line { animation: beam 950ms cubic-bezier(0.65, 0, 0.35, 1) both 700ms; }
+.js-motion .cine-ring { animation: ignite 1000ms var(--ease-out) both 1500ms, halo 4.5s ease-in-out 2.6s infinite alternate; }
+.js-motion .cine-fx .fan { transform-box: view-box; transform-origin: 46% 50%; animation: fan 1900ms var(--ease-expo) both 1560ms; }
+.js-motion .cine-fx .bloom { animation: breathe 6s ease-in-out 3.5s infinite alternate; }
+.js-motion .cine-fx .sweep { transform-box: view-box; transform-origin: 46% 50%; animation: sweep 8s cubic-bezier(0.45, 0, 0.55, 1) 3.8s infinite; }
+.js-motion .cine-foot { animation: arrive 1100ms var(--ease-out) both 1150ms; }
+.cine-fx .sweep { opacity: 0; }
+@keyframes arrive { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes lineUp { from { transform: translateY(112%) rotate(3deg); } to { transform: none; } }
+@keyframes beam { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes ignite {
+  0% { opacity: 0; transform: scale(0.2); }
+  45% { opacity: 1; transform: scale(1.6); box-shadow: 0 0 34px 12px rgb(255 248 230 / 0.95), 0 0 160px 70px rgb(255 240 205 / 0.55); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes halo {
+  from { box-shadow: 0 0 18px 4px rgb(255 246 222 / 0.8), 0 0 80px 24px rgb(255 240 205 / 0.3); }
+  to { box-shadow: 0 0 26px 7px rgb(255 246 222 / 0.95), 0 0 120px 40px rgb(255 240 205 / 0.45); }
+}
+@keyframes fan { 0% { transform: scale(0.001, 0.004); opacity: 0; } 30% { transform: scale(1, 0.02); opacity: 1; } 100% { transform: none; opacity: 1; } }
+@keyframes breathe { from { opacity: 0.9; } to { opacity: 0.66; } }
+@keyframes sweep { 0% { transform: rotate(-24deg); opacity: 0; } 12% { opacity: 0.6; } 48% { transform: rotate(24deg); opacity: 0.6; } 60% { opacity: 0; } 100% { transform: rotate(24deg); opacity: 0; } }
+
+/* The instrument */
+.instrument { padding-block: clamp(5rem, 10vw, 9rem) 0; }
+.instrument-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(1.5rem, 4vw, 4rem); align-items: center; padding-bottom: clamp(3rem, 7vw, 6rem); }
+.device-h { font-weight: 350; font-size: clamp(2.75rem, 1rem + 4.5vw, 5.5rem); line-height: 0.95; letter-spacing: -0.035em; margin: 1.25rem 0 0; text-wrap: balance; }
+.instrument .lede { max-width: 30ch; font-size: clamp(1.25rem, 1rem + 0.7vw, 1.625rem); line-height: 1.35; margin: 2rem 0 0; }
+.device { margin: 0; perspective: 1100px; }
+.device .float { will-change: transform; }
+.device svg { display: block; width: 100%; height: auto; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transform-style: preserve-3d; }
+.js-motion .device .float { animation: float 6s ease-in-out infinite alternate; }
+.js-motion .device .pulse { animation: pulse 3.2s ease-in-out infinite alternate; }
+@keyframes float { from { transform: translateY(-8px); } to { transform: translateY(8px); } }
+@keyframes pulse { from { opacity: 0.65; } to { opacity: 1; } }
+.spectrum-rule { height: 3px; background: linear-gradient(90deg, #5a1fe0, #2d45ff 18%, #00a6ff 30%, #18c96a 42%, #d9e02a 55%, #ff9a1a 68%, #f0331c 82%, #7a0010); transform-origin: left; }
+
+/* Steps */
+.step { padding-block: clamp(4.5rem, 10vw, 9rem); border-bottom: 1px solid var(--rule); }
+.step-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+.step.flip .step-grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+.step.flip .step-copy { order: 2; }
+.num { font-family: var(--mono); font-size: 0.8125rem; letter-spacing: 0.08em; color: var(--ink-2); display: flex; align-items: center; gap: 1rem; margin: 0; }
+.num::after { content: ""; height: 1px; width: 4rem; background: currentColor; opacity: 0.5; }
+.step h2 { font-weight: 350; font-size: clamp(3rem, 1rem + 5vw, 6.25rem); line-height: 0.95; letter-spacing: -0.035em; margin: 1.5rem 0; text-wrap: balance; }
+.step p { max-width: 34ch; margin: 0; }
+.fact-row { margin-top: 2rem; display: flex; gap: 2rem; flex-wrap: wrap; }
+.fact { border-top: 1px solid var(--ink); padding-top: 0.75rem; min-width: 7rem; }
+.fact strong { display: block; font-weight: 400; font-size: 2rem; letter-spacing: -0.02em; line-height: 1; margin-bottom: 0.4rem; font-variant-numeric: tabular-nums; }
+.art { margin: 0; }
+.art svg { width: 100%; height: auto; display: block; }
+.js-motion .arcs path { animation: arc 2.4s ease-out infinite; }
+.js-motion .arcs path:nth-child(2) { animation-delay: 0.25s; }
+.js-motion .arcs path:nth-child(3) { animation-delay: 0.5s; }
+@keyframes arc { 0% { opacity: 0; transform: translateX(14px); } 25% { opacity: 1; } 70%, 100% { opacity: 0; transform: translateX(-10px); } }
+
+/* Stage (step 3): base state is the finished figure; with motion, scroll position drives the split. */
+.stage { background: var(--night); color: var(--night-ink); position: relative; overflow: clip; }
+.stage-pin { padding-block: clamp(4.5rem, 10vw, 8.5rem); }
+.stage .num { color: var(--night-ink-2); }
+.stage-head { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(2rem, 5vw, 5rem); align-items: end; }
+.stage h2 { font-weight: 300; font-size: clamp(3.25rem, min(1rem + 6.5vw, 13svh), 8rem); line-height: 0.9; letter-spacing: -0.04em; margin: 1.5rem 0 0; }
+.stage h2 em { font-style: italic; }
+.stage-copy p { margin: 0; color: var(--night-ink); max-width: 36ch; }
+.stage .label { color: var(--night-ink-2); }
+.plot { margin: clamp(2rem, 5svh, 4.5rem) 0 0; --p: 1; }
+.plot svg { width: 100%; height: auto; display: block; overflow: visible; }
+.plot-foot { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 1.25rem; min-height: 2rem; }
+.readout { display: none; font-family: var(--mono); font-size: 0.8125rem; letter-spacing: 0.06em; color: var(--night-ink); font-variant-numeric: tabular-nums; margin: 0; }
+.readout b { font-weight: 500; }
+.axis text, .region text, .note text { font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--night-ink-2); }
+.note text.strong { fill: var(--night-ink); }
+.plot .line { transform-box: fill-box; transform-origin: left center; }
+.plot .band { transform-box: fill-box; transform-origin: center bottom; }
+.plot .cursor { opacity: 0; }
+
+/* Pinned reading: one bounded grid, still frame, only the band, curve, and cursor move. */
+.plot { --open: 1; --done: 1; }
+.plot .glowband { opacity: calc(var(--open) * 0.55); }
+.js-motion .stage.scrub { height: 240svh; }
+.js-motion .stage.scrub .stage-pin { position: sticky; top: 0; height: 100svh; padding-block: calc(var(--bar-h) + clamp(1.25rem, 3svh, 2.5rem)) clamp(1.25rem, 3svh, 2.5rem); }
+.js-motion .stage.scrub .stage-pin > .wrap { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; row-gap: clamp(1rem, 3svh, 2rem); }
+.js-motion .stage.scrub .stage-head { align-items: end; }
+.js-motion .stage.scrub h2 { font-size: clamp(2.25rem, min(4.5vw, 7svh), 4.5rem); line-height: 1.05; margin-top: 0.75rem; }
+.js-motion .stage.scrub .stage-copy p { font-size: 1.0625rem; line-height: 1.5; max-width: 38ch; }
+.js-motion .stage.scrub .plot { margin: 0; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.js-motion .stage.scrub .plot svg { width: 100%; height: 100%; max-height: 100%; }
+.js-motion .stage.scrub .plot-foot { margin-top: 0; }
+.js-motion .stage.scrub .readout { display: block; min-width: 24ch; text-align: right; }
+.js-motion .stage.scrub .plot .band { transform: scaleY(max(0.004, var(--open))); opacity: min(1, calc(var(--open) * 8)); }
+.js-motion .stage.scrub .plot .note { opacity: var(--done); }
+
+/* Match */
+.matches { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
+.matches li { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) auto; gap: 1.25rem; align-items: center; padding: 1.25rem 0; border-bottom: 1px solid var(--rule); }
+.swatch { width: 3.5rem; aspect-ratio: 1; border-radius: 2px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08); }
+.match-name { font-size: 1.5rem; letter-spacing: -0.01em; line-height: 1.15; }
+.match-name small { display: block; font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); margin-top: 0.3rem; }
+.grade { display: flex; align-items: center; gap: 0.75rem; font-family: var(--mono); font-size: 0.8125rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.pips { display: inline-flex; gap: 4px; }
+.pips i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--ink); }
+.pips i.on { background: var(--ink); }
+
+/* Log */
+.sheet { background: #f7f5ef; border: 1px solid var(--rule); border-radius: 3px; box-shadow: 0 1px 2px rgb(22 20 15 / 0.06), 0 30px 60px -28px rgb(22 20 15 / 0.3); padding: 1.5rem clamp(1.25rem, 3vw, 2.25rem) 1.25rem; transform: rotate(-1.2deg); }
+.sheet-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--ink); }
+.entry { display: grid; grid-template-columns: 4.5rem 5.5rem minmax(0, 1fr); gap: 1rem; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--rule); }
+.entry time { font-family: var(--mono); font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.entry svg { width: 5.5rem; height: 2.25rem; }
+.entry path { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.entry p { margin: 0; font-style: italic; font-size: 1.125rem; line-height: 1.3; max-width: none; }
+.sheet-foot { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding-top: 1rem; }
+
+/* Specs */
+.specs { padding-block: clamp(4rem, 9vw, 8rem); }
+.specs h2 { font-weight: 350; font-size: clamp(2.25rem, 1rem + 3vw, 3.75rem); letter-spacing: -0.03em; margin: 1rem 0 3rem; line-height: 1; }
+.spec-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--ink); }
+.spec { padding: 1.5rem 1.5rem 1.75rem 0; border-bottom: 1px solid var(--rule); }
+.spec strong { display: block; white-space: nowrap; font-weight: 350; font-size: clamp(2rem, 1.2rem + 1.6vw, 3rem); letter-spacing: -0.03em; line-height: 1; margin-bottom: 0.75rem; font-variant-numeric: tabular-nums lining-nums; }
+.spec strong span { font-size: 0.45em; letter-spacing: 0; margin-left: 0.2em; }
+.spec .label { display: block; line-height: 1.5; }
+
+/* Field guide and close */
+.guide { background: var(--paper-2); padding-block: clamp(4rem, 9vw, 7rem); border-block: 1px solid var(--rule); }
+.guide-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(2rem, 5vw, 5rem); }
+.guide h2 { font-weight: 350; font-size: clamp(2.25rem, 1rem + 3vw, 3.75rem); letter-spacing: -0.03em; line-height: 1; margin: 1rem 0 0; }
+.guide ol { list-style: none; margin: 0; padding: 0; counter-reset: g; }
+.guide li { counter-increment: g; display: grid; grid-template-columns: 3rem minmax(0, 1fr); padding: 1.25rem 0; border-top: 1px solid var(--rule); }
+.guide li::before { content: counter(g, decimal-leading-zero); font-family: var(--mono); font-size: 0.8125rem; color: var(--ink-2); padding-top: 0.35rem; }
+.guide li p { margin: 0; }
+.close { padding-block: clamp(5rem, 11vw, 10rem) clamp(3rem, 6vw, 5rem); }
+.close h2 { font-weight: 300; font-size: clamp(2.75rem, 1rem + 5vw, 6.5rem); letter-spacing: -0.04em; line-height: 0.95; max-width: 14ch; margin: 1rem 0 3rem; text-wrap: balance; }
+.close h2 em { font-style: italic; }
+form { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; max-width: 40rem; }
+form .btn { height: 52px; padding-block: 0; }
+.field { flex: 1 1 16rem; display: grid; gap: 0.5rem; }
+input[type="email"] { font: inherit; font-size: 1.125rem; padding: 0 1.25rem; height: 52px; background: transparent; color: var(--ink); border: 1px solid var(--ink); border-radius: 999px; }
+input[type="email"]:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.status { font-family: var(--mono); font-size: 0.8125rem; letter-spacing: 0.04em; margin-top: 1.25rem; min-height: 1.5em; }
+footer { border-top: 1px solid var(--rule); padding-block: 2rem; }
+footer .wrap { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+
+/* Scroll-linked reveals: native scroll timelines where supported, finished state everywhere else. */
+@supports (animation-timeline: view()) {
+  .js-motion .reveal { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% cover 30%; }
+  .js-motion .art .drift { animation: drift linear both; animation-timeline: view(); animation-range: cover; }
+  .js-motion .sheet { animation: settle linear both; animation-timeline: view(); animation-range: entry 10% cover 45%; }
+  .js-motion .entry path { animation: draw linear both; animation-timeline: view(); animation-range: entry 40% cover 55%; }
+  .js-motion .pips i.on { animation: pip linear both; animation-timeline: view(); animation-range: entry 60% cover 50%; }
+  .js-motion .wake { animation: wake linear both; animation-timeline: view(); animation-range: entry 55% cover 50%; }
+  .js-motion .spectrum-rule { animation: rule linear both; animation-timeline: view(); animation-range: entry 0% exit 0%; }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(56px); } to { opacity: 1; transform: none; } }
+@keyframes drift { from { transform: translateY(7%); } to { transform: translateY(-7%); } }
+@keyframes settle { from { opacity: 0; transform: translateY(80px) rotate(-6deg); } to { opacity: 1; transform: rotate(-1.2deg); } }
+@keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes pip { from { background-color: transparent; } to { background-color: var(--ink); } }
+@keyframes wake { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (max-width: 56rem) {
+  .cine-foot { grid-template-columns: minmax(0, 1fr); }
+  .cine-meta { justify-content: flex-start; }
+  .steps-nav { -webkit-mask-image: linear-gradient(90deg, #000 80%, transparent); mask-image: linear-gradient(90deg, #000 80%, transparent); }
+  .steps-nav ol { margin: 0; }
+  .instrument-grid, .step-grid, .step.flip .step-grid, .stage-head, .guide-grid { grid-template-columns: minmax(0, 1fr); }
+  .step.flip .step-copy { order: 0; }
+  .device { max-width: 26rem; }
+  .bar-guide { display: none; }
+  .axis text, .region text, .note text { font-size: 22px; }
+  .entry { grid-template-columns: 3.5rem minmax(0, 1fr); }
+  .entry svg { display: none; }
+  .spec-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 30rem) { .spec-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0ms !important; animation: none !important; }
+  .btn:hover, .btn:active, .btn:hover .arr { transform: none; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#step-1">Skip to the walkthrough</a>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="mark" href="#top">Tamber</a>
+    <nav class="steps-nav" aria-label="Walkthrough steps">
+      <ol>
+        <li><a href="#step-1"><span>01</span>Aim</a></li>
+        <li><a href="#step-2"><span>02</span>Capture</a></li>
+        <li><a href="#step-3"><span>03</span>Split</a></li>
+        <li><a href="#step-4"><span>04</span>Match</a></li>
+        <li><a href="#step-5"><span>05</span>Log</a></li>
+      </ol>
+    </nav>
+    <a class="bar-guide" href="#field-guide">Field guide</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="cine" aria-labelledby="hero-title">
+    <div class="wrap cine-copy">
+      <p class="label">Tamber pocket field spectrometer</p>
+      <h1 id="hero-title"><span class="ln"><span>See what <em>light</em></span></span><span class="ln"><span>knows.</span></span></h1>
+    </div>
+    <div class="cine-beam" aria-hidden="true">
+      <svg class="cine-fx" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="disp" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ff2a1a"/>
+            <stop offset="0.16" stop-color="#ff7a18"/>
+            <stop offset="0.31" stop-color="#ffd92b"/>
+            <stop offset="0.46" stop-color="#48e07a"/>
+            <stop offset="0.6" stop-color="#16b8ff"/>
+            <stop offset="0.76" stop-color="#3a48ff"/>
+            <stop offset="1" stop-color="#7b22ff"/>
+          </linearGradient>
+          <linearGradient id="fanfade" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+            <stop offset="0.55" stop-color="#fff" stop-opacity="0.8"/>
+            <stop offset="1" stop-color="#fff" stop-opacity="0.25"/>
+          </linearGradient>
+          <mask id="fanmask" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1000"><rect x="380" y="0" width="620" height="1000" fill="url(#fanfade)"/></mask>
+          <filter id="bloom" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="22"/></filter>
+          <filter id="sweepblur" x="-10%" y="-400%" width="120%" height="900%"><feGaussianBlur stdDeviation="5"/></filter>
+        </defs>
+        <g class="fan-tilt">
+          <g class="fan" mask="url(#fanmask)">
+            <polygon class="bloom" points="460,500 1000,190 1000,810" fill="url(#disp)" opacity="0.9" filter="url(#bloom)"/>
+            <polygon points="460,500 1000,225 1000,775" fill="url(#disp)" opacity="0.55"/>
+            <g stroke="#ffffff" stroke-opacity="0.18">
+              <line x1="460" y1="500" x2="1000" y2="290" vector-effect="non-scaling-stroke"/>
+              <line x1="460" y1="500" x2="1000" y2="410" vector-effect="non-scaling-stroke"/>
+              <line x1="460" y1="500" x2="1000" y2="500" vector-effect="non-scaling-stroke"/>
+              <line x1="460" y1="500" x2="1000" y2="620" vector-effect="non-scaling-stroke"/>
+            </g>
+            <polygon class="sweep" points="460,500 1000,493 1000,507" fill="#ffffff" filter="url(#sweepblur)"/>
+          </g>
+        </g>
+      </svg>
+      <span class="beam-line"></span>
+      <span class="cine-ring"></span>
+    </div>
+    <div class="wrap cine-foot">
+      <div>
+        <p class="lede">Tamber is a pocket spectrometer that reads the color of anything you point it at, down to the wavelength, and tells you what that color means.</p>
+        <div class="actions">
+          <a class="btn" href="#step-1">Follow a reading <span class="arr" aria-hidden="true">&darr;</span></a>
+          <a class="link" href="#field-guide">Read the field guide</a>
+        </div>
+      </div>
+      <div class="cine-meta">
+        <span class="label">340 to 1000 nm</span>
+        <span class="label">0.4 s scan</span>
+        <span class="label">68 g</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="instrument" aria-labelledby="device-title">
+    <div class="wrap instrument-grid">
+      <div>
+        <p class="label reveal">The instrument</p>
+        <h2 id="device-title" class="device-h reveal">A lab spectrometer, cut down to the size of a stone.</h2>
+        <p class="lede reveal">Slate body, one side button, and a ring light around the aperture. Everything else happens on your phone.</p>
+      </div>
+      <figure class="device" id="device">
+        <div class="float">
+          <svg viewBox="0 0 520 600" role="img" aria-labelledby="device-t">
+            <title id="device-t">The Tamber device, a palm-sized dark slate oval with a glowing ring around its aperture</title>
+            <defs>
+              <linearGradient id="slate" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#4a4f55"/>
+                <stop offset="0.55" stop-color="#2c3035"/>
+                <stop offset="1" stop-color="#1b1e22"/>
+              </linearGradient>
+              <radialGradient id="sheen" cx="0.35" cy="0.25" r="0.6">
+                <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+                <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+              </radialGradient>
+              <radialGradient id="sheen-live" cx="0.35" cy="0.25" r="0.55">
+                <stop offset="0" stop-color="#ffffff" stop-opacity="0.26"/>
+                <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+              </radialGradient>
+              <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0" stop-color="#fff6df" stop-opacity="0.95"/>
+                <stop offset="0.45" stop-color="#ffe7b0" stop-opacity="0.45"/>
+                <stop offset="1" stop-color="#ffe7b0" stop-opacity="0"/>
+              </radialGradient>
+              <radialGradient id="floor" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#16140f" stop-opacity="0.28"/><stop offset="1" stop-color="#16140f" stop-opacity="0"/></radialGradient>
+              <filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="14"/></filter>
+            </defs>
+            <ellipse cx="270" cy="566" rx="190" ry="26" fill="url(#floor)"/>
+            <g transform="rotate(-14 260 300)">
+              <rect x="120" y="40" width="280" height="480" rx="140" fill="url(#slate)"/>
+              <rect x="120" y="40" width="280" height="480" rx="140" fill="url(#sheen-live)" id="sheen-rect"/>
+              <rect x="121.5" y="41.5" width="277" height="477" rx="138.5" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="3"/>
+              <circle class="pulse" cx="260" cy="380" r="100" fill="url(#glow)" filter="url(#soft)"/>
+              <circle cx="260" cy="380" r="62" fill="#101214"/>
+              <circle cx="260" cy="380" r="62" fill="none" stroke="#fff3d6" stroke-width="6"/>
+              <circle cx="260" cy="380" r="40" fill="#07080a"/>
+              <circle cx="248" cy="368" r="9" fill="#ffffff" opacity="0.18"/>
+              <text x="260" y="150" text-anchor="middle" font-family="Newsreader, Georgia, serif" font-style="italic" font-size="34" fill="#d9d6cc" opacity="0.8">Tamber</text>
+              <rect x="397" y="190" width="10" height="70" rx="5" fill="#3a3f45"/>
+            </g>
+          </svg>
+        </div>
+      </figure>
+    </div>
+    <div class="spectrum-rule" aria-hidden="true"></div>
+  </section>
+
+  <section class="step" id="step-1" aria-labelledby="s1">
+    <div class="wrap step-grid">
+      <div class="step-copy">
+        <p class="num reveal">01 Aim</p>
+        <h2 id="s1" class="reveal">Hold it close. It wakes on its own.</h2>
+        <p class="reveal">Hold Tamber two to three centimeters from the sample. The ring light around the aperture wakes when it senses something close, so you never press a button just to see where you are pointing.</p>
+        <div class="fact-row reveal"><div class="fact"><strong>2-3 cm</strong><span class="label">Working distance</span></div></div>
+      </div>
+      <figure class="art">
+        <svg class="drift" viewBox="0 0 720 520" role="img" aria-labelledby="a1t">
+          <title id="a1t">Tamber held over a single leaf, its ring light casting a small bright circle on the leaf</title>
+          <defs>
+            <linearGradient id="leaf" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#4d6a2f"/><stop offset="1" stop-color="#8aa35a"/></linearGradient>
+            <radialGradient id="spot" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fffbe9" stop-opacity="0.95"/><stop offset="0.5" stop-color="#fff1c4" stop-opacity="0.5"/><stop offset="1" stop-color="#fff1c4" stop-opacity="0"/></radialGradient>
+            <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6dc" stop-opacity="0.55"/><stop offset="1" stop-color="#fff6dc" stop-opacity="0"/></linearGradient>
+            <filter id="blur6" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
+          </defs>
+          <path d="M60 470 C 150 300, 330 200, 650 180 C 590 360, 400 470, 60 470 Z" fill="url(#leaf)"/>
+          <path d="M60 470 C 250 380, 450 280, 650 180" fill="none" stroke="#dfe8c6" stroke-opacity="0.55" stroke-width="3"/>
+          <g stroke="#dfe8c6" stroke-opacity="0.3" stroke-width="2" fill="none">
+            <path d="M200 402 C 210 350, 250 300, 300 282"/><path d="M300 352 C 320 300, 370 260, 420 250"/><path d="M420 290 C 450 250, 500 220, 540 214"/>
+            <path d="M220 395 C 270 410, 330 410, 360 400"/><path d="M340 338 C 390 350, 450 345, 480 330"/>
+          </g>
+          <g class="wake">
+            <ellipse cx="400" cy="318" rx="62" ry="34" fill="url(#spot)"/>
+            <path d="M374 238 L 426 238 L 462 318 L 338 318 Z" fill="url(#beam)" opacity="0.6" filter="url(#blur6)"/>
+          </g>
+          <ellipse cx="400" cy="262" rx="120" ry="16" fill="#16140f" opacity="0.12" filter="url(#blur6)"/>
+          <rect x="325" y="40" width="150" height="200" rx="75" fill="url(#slate)"/>
+          <rect x="325" y="40" width="150" height="200" rx="75" fill="url(#sheen)"/>
+          <rect x="326" y="41" width="148" height="198" rx="74" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="2"/>
+          <ellipse cx="400" cy="236" rx="34" ry="8" fill="#101214"/>
+          <ellipse class="wake" cx="400" cy="236" rx="34" ry="8" fill="none" stroke="#fff3d6" stroke-width="4"/>
+          <g font-family="IBM Plex Mono, monospace" font-size="15" letter-spacing="1.2" fill="#4f4b42">
+            <line x1="520" y1="238" x2="520" y2="318" stroke="#16140f" stroke-width="1"/>
+            <line x1="512" y1="238" x2="528" y2="238" stroke="#16140f" stroke-width="1"/>
+            <line x1="512" y1="318" x2="528" y2="318" stroke="#16140f" stroke-width="1"/>
+            <text x="540" y="284">2-3 CM</text>
+          </g>
+        </svg>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step flip" id="step-2" aria-labelledby="s2">
+    <div class="wrap step-grid">
+      <div class="step-copy">
+        <p class="num reveal">02 Capture</p>
+        <h2 id="s2" class="reveal">One press. Three scans.</h2>
+        <p class="reveal">Press the side button once. Tamber takes a 0.4 second scan across 340 to 1000 nanometers, from near ultraviolet to near infrared, and repeats it three times to average out a shaky hand.</p>
+        <div class="fact-row reveal">
+          <div class="fact"><strong>0.4 s</strong><span class="label">Per scan</span></div>
+          <div class="fact"><strong>x3</strong><span class="label">Averaged</span></div>
+        </div>
+      </div>
+      <figure class="art">
+        <svg class="drift" viewBox="0 0 720 420" role="img" aria-labelledby="a2t">
+          <title id="a2t">Tamber seen from the side, with its single raised button and three pulses of light leaving the aperture</title>
+          <g class="arcs" fill="none" stroke="#16140f" stroke-width="2">
+            <path d="M188 150 A 86 86 0 0 0 188 270" opacity="0.9"/>
+            <path d="M150 118 A 130 130 0 0 0 150 302" opacity="0.55"/>
+            <path d="M112 86 A 175 175 0 0 0 112 334" opacity="0.28"/>
+          </g>
+          <rect x="220" y="150" width="440" height="120" rx="60" fill="url(#slate)"/>
+          <rect x="220" y="150" width="440" height="120" rx="60" fill="url(#sheen)"/>
+          <rect x="440" y="136" width="84" height="18" rx="9" fill="#16140f"/>
+          <rect x="212" y="186" width="16" height="48" rx="6" fill="#fff3d6"/>
+          <g font-family="IBM Plex Mono, monospace" font-size="15" letter-spacing="1.2" fill="#4f4b42">
+            <line x1="482" y1="130" x2="482" y2="80" stroke="#16140f"/>
+            <text x="494" y="86">SIDE BUTTON</text>
+            <text x="40" y="392">340 NM</text>
+            <text x="600" y="392" text-anchor="end">1000 NM</text>
+            <line x1="120" y1="372" x2="600" y2="372" stroke="#16140f" stroke-dasharray="2 6"/>
+          </g>
+        </svg>
+      </figure>
+    </div>
+  </section>
+
+  <section class="stage" id="step-3" aria-labelledby="s3">
+    <div class="stage-pin">
+      <div class="wrap">
+        <div class="stage-head">
+          <div>
+            <p class="num">03 Split</p>
+            <h2 id="s3">Watch the <em>light</em> split.</h2>
+          </div>
+          <div class="stage-copy">
+            <p>The reading arrives on your phone as a thin white line. The line fans out into its colors, violet on one side and deep red on the other, and then the top edge of that band settles into a curve: how much light the sample reflected at every wavelength.</p>
+          </div>
+        </div>
+        <figure class="plot" id="plot">
+          <svg viewBox="0 0 1200 470" role="img" aria-labelledby="plot-t plot-d">
+            <title id="plot-t">Reflectance of a healthy oak leaf from 340 to 1000 nanometers</title>
+            <desc id="plot-d">A spectrum band runs violet to deep red, left to right. Its top edge is a curve that stays low through the blue, bumps up in the green, dips in the red, then rises steeply past the red into the near infrared.</desc>
+            <defs>
+              <linearGradient id="spec" x1="0" y1="0" x2="1200" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#1b0c33"/><stop offset="0.06" stop-color="#3f0f86"/><stop offset="0.09" stop-color="#6a22ff"/>
+                <stop offset="0.155" stop-color="#2f43ff"/><stop offset="0.227" stop-color="#00a3ff"/><stop offset="0.27" stop-color="#00cf8a"/>
+                <stop offset="0.32" stop-color="#6ee22c"/><stop offset="0.36" stop-color="#f3e22b"/><stop offset="0.41" stop-color="#ff9a1a"/>
+                <stop offset="0.465" stop-color="#ff3a1c"/><stop offset="0.52" stop-color="#d2001c"/><stop offset="0.59" stop-color="#720012"/>
+                <stop offset="0.66" stop-color="#2d0712"/><stop offset="1" stop-color="#1a0b10"/>
+              </linearGradient>
+              <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset="1" stop-color="#fff" stop-opacity="0.55"/></linearGradient>
+              <mask id="fadeMask"><rect width="1200" height="470" fill="url(#fade)"/></mask>
+              <filter id="bandglow" x="-5%" y="-30%" width="110%" height="160%"><feGaussianBlur stdDeviation="18"/></filter>
+              <clipPath id="reveal" clipPathUnits="userSpaceOnUse"><rect id="reveal-rect" x="-10" y="0" width="1220" height="470"/></clipPath>
+            </defs>
+            <g class="region">
+              <text x="36" y="24" text-anchor="middle">UV</text>
+              <text x="410" y="24" text-anchor="middle">Visible</text>
+              <text x="970" y="24" text-anchor="middle">Near infrared</text>
+              <line x1="73" y1="36" x2="73" y2="400" stroke="#f3f1ea" stroke-opacity="0.18"/>
+              <line x1="745" y1="36" x2="745" y2="400" stroke="#f3f1ea" stroke-opacity="0.18"/>
+            </g>
+            <g class="band">
+              <path class="glowband" d="M0 378 C 60 378, 150 382, 200 381 C 250 380, 270 376, 291 373 C 330 366, 350 318, 382 318 C 415 318, 440 350, 473 356 C 510 362, 540 372, 564 374 C 590 376, 605 382, 618 381 C 635 380, 642 362, 655 342 C 668 318, 678 262, 691 230 C 705 196, 725 146, 745 128 C 775 110, 800 104, 836 103 C 900 101, 960 98, 1018 98 C 1080 99, 1140 107, 1200 114 L 1200 400 L 0 400 Z" fill="url(#spec)" filter="url(#bandglow)"/>
+              <path mask="url(#fadeMask)" d="M0 378 C 60 378, 150 382, 200 381 C 250 380, 270 376, 291 373 C 330 366, 350 318, 382 318 C 415 318, 440 350, 473 356 C 510 362, 540 372, 564 374 C 590 376, 605 382, 618 381 C 635 380, 642 362, 655 342 C 668 318, 678 262, 691 230 C 705 196, 725 146, 745 128 C 775 110, 800 104, 836 103 C 900 101, 960 98, 1018 98 C 1080 99, 1140 107, 1200 114 L 1200 400 L 0 400 Z" fill="url(#spec)"/>
+            </g>
+            <path class="curve" clip-path="url(#reveal)" d="M0 378 C 60 378, 150 382, 200 381 C 250 380, 270 376, 291 373 C 330 366, 350 318, 382 318 C 415 318, 440 350, 473 356 C 510 362, 540 372, 564 374 C 590 376, 605 382, 618 381 C 635 380, 642 362, 655 342 C 668 318, 678 262, 691 230 C 705 196, 725 146, 745 128 C 775 110, 800 104, 836 103 C 900 101, 960 98, 1018 98 C 1080 99, 1140 107, 1200 114" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+            <rect class="line" x="0" y="399" width="1200" height="2" fill="#ffffff"/>
+            <g class="cursor" id="cursor">
+              <line x1="0" y1="40" x2="0" y2="400" stroke="#ffffff" stroke-opacity="0.45" stroke-dasharray="2 4"/>
+              <circle id="cursor-dot" cx="0" cy="380" r="6" fill="#ffffff"/>
+              <circle id="cursor-halo" cx="0" cy="380" r="16" fill="#ffffff" opacity="0.18"/>
+            </g>
+            <g class="axis">
+              <g stroke="#f3f1ea" stroke-opacity="0.45">
+                <line x1="109" y1="404" x2="109" y2="414"/><line x1="291" y1="404" x2="291" y2="414"/><line x1="473" y1="404" x2="473" y2="414"/>
+                <line x1="655" y1="404" x2="655" y2="414"/><line x1="836" y1="404" x2="836" y2="414"/><line x1="1018" y1="404" x2="1018" y2="414"/>
+              </g>
+              <text x="109" y="440" text-anchor="middle">400</text><text x="291" y="440" text-anchor="middle">500</text><text x="473" y="440" text-anchor="middle">600</text>
+              <text x="655" y="440" text-anchor="middle">700</text><text x="836" y="440" text-anchor="middle">800</text><text x="1018" y="440" text-anchor="middle">900 nm</text>
+            </g>
+            <g class="note">
+              <line x1="200" y1="370" x2="200" y2="226" stroke="#f3f1ea" stroke-opacity="0.6" stroke-dasharray="3 5"/>
+              <circle cx="200" cy="381" r="5" fill="#ffffff"/>
+              <text x="212" y="222" class="strong">Low in the blue</text>
+              <line x1="700" y1="212" x2="600" y2="150" stroke="#f3f1ea" stroke-opacity="0.6" stroke-dasharray="3 5"/>
+              <circle cx="700" cy="208" r="5" fill="#ffffff"/>
+              <text x="590" y="140" text-anchor="end" class="strong">Steep rise past the red</text>
+            </g>
+          </svg>
+        </figure>
+        <div class="plot-foot">
+          <span class="label">Sample: healthy oak leaf. Reflectance, 340 to 1000 nm.</span>
+          <p class="readout" aria-hidden="true"><b id="ro-nm">340</b> nm / <b id="ro-r">4</b>% reflected</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step-4" aria-labelledby="s4">
+    <div class="wrap step-grid">
+      <div class="step-copy">
+        <p class="num reveal">04 Match</p>
+        <h2 id="s4" class="reveal">Three answers, honestly graded.</h2>
+        <p class="reveal">Tamber compares the curve against a library of 2,400 reference samples and shows the three closest matches. Each match is labeled Strong, Possible, or Weak, never as a percentage, because a percentage suggests more certainty than a field reading has.</p>
+      </div>
+      <div>
+        <ol class="matches" aria-label="Closest matches for this reading">
+          <li class="reveal"><span class="swatch" style="background:#4d7a2c" aria-hidden="true"></span><span class="match-name">Healthy oak leaf<small>Plant tissue</small></span><span class="grade"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></span>Strong</span></li>
+          <li class="reveal"><span class="swatch" style="background:#9c8b3b" aria-hidden="true"></span><span class="match-name">Drought-stressed oak leaf<small>Plant tissue</small></span><span class="grade"><span class="pips" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span>Possible</span></li>
+          <li class="reveal"><span class="swatch" style="background:#9a4526" aria-hidden="true"></span><span class="match-name">Iron oxide pigment<small>Mineral</small></span><span class="grade"><span class="pips" aria-hidden="true"><i class="on"></i><i></i><i></i></span>Weak</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="step flip" id="step-5" aria-labelledby="s5">
+    <div class="wrap step-grid">
+      <div class="step-copy">
+        <p class="num reveal">05 Log</p>
+        <h2 id="s5" class="reveal">Keep the day in one notebook.</h2>
+        <p class="reveal">Save the reading to your field notebook with the time, your note, and your phone's location if you allow it. Export any day's readings as a CSV file for your own analysis.</p>
+      </div>
+      <div class="sheet" role="group" aria-label="Example field notebook page">
+        <div class="sheet-head"><span class="label">Field notebook</span><span class="label">Example day</span></div>
+        <div class="entry"><time>09:12</time><svg viewBox="0 0 88 36" aria-hidden="true"><path pathLength="1" d="M2 32 C 20 32, 28 26, 34 24 C 40 22, 46 31, 52 31 C 58 31, 60 10, 70 6 L 86 5" fill="none" stroke="#16140f" stroke-width="1.5"/></svg><p>North transect, oak 14. Looks healthy.</p></div>
+        <div class="entry"><time>10:47</time><svg viewBox="0 0 88 36" aria-hidden="true"><path pathLength="1" d="M2 30 C 18 29, 26 22, 34 19 C 42 17, 48 24, 54 25 C 60 26, 64 16, 72 12 L 86 11" fill="none" stroke="#16140f" stroke-width="1.5"/></svg><p>Same tree, lower branch. Yellowing at the edges.</p></div>
+        <div class="entry"><time>14:05</time><svg viewBox="0 0 88 36" aria-hidden="true"><path pathLength="1" d="M2 33 C 16 32, 26 30, 36 27 C 46 23, 56 14, 66 11 C 74 9, 80 9, 86 9" fill="none" stroke="#16140f" stroke-width="1.5"/></svg><p>Red earth by the creek bed. Pigment?</p></div>
+        <div class="sheet-foot"><span class="label">3 readings, location on</span><span class="label">Export CSV</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="specs" aria-labelledby="specs-t">
+    <div class="wrap">
+      <p class="label reveal">Specifications</p>
+      <h2 id="specs-t" class="reveal">Small enough for a shirt pocket.</h2>
+      <div class="spec-grid" id="specs">
+        <div class="spec reveal"><strong>340-<b class="count" data-to="1000">1000</b><span>nm</span></strong><span class="label">Spectral range</span></div>
+        <div class="spec reveal"><strong><b class="count" data-to="0.4" data-dec="1">0.4</b><span>s</span></strong><span class="label">Scan, averaged over three</span></div>
+        <div class="spec reveal"><strong><b class="count" data-to="2400" data-comma="1">2,400</b></strong><span class="label">Reference samples, updated in the app</span></div>
+        <div class="spec reveal"><strong><b class="count" data-to="900">900</b></strong><span class="label">Readings per charge, about</span></div>
+        <div class="spec reveal"><strong><b class="count" data-to="68">68</b><span>g</span></strong><span class="label">Weight</span></div>
+        <div class="spec reveal"><strong>BT</strong><span class="label">Bluetooth to the companion app</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide" id="field-guide" aria-labelledby="guide-t">
+    <div class="wrap guide-grid">
+      <div>
+        <p class="label reveal">Field guide</p>
+        <h2 id="guide-t" class="reveal">Before your first reading</h2>
+      </div>
+      <ol>
+        <li class="reveal"><p>Calibrate once a day against the white tile in the case lid.</p></li>
+        <li class="reveal"><p>Keep the aperture clean; a fingerprint shows up as a dip near 450 nm.</p></li>
+        <li class="reveal"><p>Readings through glass or plastic are not reliable.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="close" aria-labelledby="close-t">
+    <div class="wrap">
+      <p class="label reveal">Availability</p>
+      <h2 id="close-t" class="reveal">Tamber ships in small batches to <em>field teams</em> first.</h2>
+      <form id="join" class="reveal" novalidate>
+        <div class="field">
+          <label class="label" for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required>
+        </div>
+        <button class="btn" type="submit">Join the field team list</button>
+      </form>
+      <p class="status" id="status" role="status"></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="label">Tamber Instruments. A fictional product for a design exercise.</span>
+    <a class="label" href="#top">Back to top</a>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const motion = matchMedia('(prefers-reduced-motion: no-preference)');
+  const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  /* Step 3: scroll position drives the split while the stage is on screen. */
+  const stage = document.getElementById('step-3');
+  const plot = document.getElementById('plot');
+  const curve = plot.querySelector('.curve');
+  const cursor = document.getElementById('cursor');
+  const dot = document.getElementById('cursor-dot');
+  const halo = document.getElementById('cursor-halo');
+  const roNm = document.getElementById('ro-nm');
+  const roR = document.getElementById('ro-r');
+  const revealRect = document.getElementById('reveal-rect');
+  const samples = [];
+  const total = curve.getTotalLength();
+  for (let i = 0; i <= 400; i++) { const pt = curve.getPointAtLength(total * i / 400); samples.push([pt.x, pt.y]); }
+  const yAt = (x) => {
+    for (let i = 1; i < samples.length; i++) {
+      if (samples[i][0] >= x) {
+        const [x0, y0] = samples[i - 1], [x1, y1] = samples[i];
+        return y0 + (y1 - y0) * ((x - x0) / Math.max(x1 - x0, 1e-6));
+      }
+    }
+    return samples[samples.length - 1][1];
+  };
+  /* Phases: 0-10% white line at rest, 10-35% the spectrum opens (smoothstep),
+     35-75% a linear wavelength sweep, 75-100% the finished reading holds. */
+  const smooth = (t) => t * t * (3 - 2 * t);
+  const applyReading = (p) => {
+    const open = smooth(clamp((p - 0.10) / 0.25, 0, 1));
+    const sweep = clamp((p - 0.35) / 0.40, 0, 1);
+    const done = clamp((p - 0.75) / 0.10, 0, 1);
+    plot.style.setProperty('--open', open.toFixed(4));
+    plot.style.setProperty('--done', done.toFixed(4));
+    const x = sweep * 1200;
+    const y = yAt(x);
+    revealRect.setAttribute('width', (x + 10).toFixed(1));
+    cursor.setAttribute('transform', 'translate(' + x.toFixed(1) + ' 0)');
+    cursor.style.opacity = sweep > 0 ? (1 - done).toFixed(3) : '0';
+    dot.setAttribute('cy', y.toFixed(1));
+    halo.setAttribute('cy', y.toFixed(1));
+    roNm.textContent = Math.round(340 + sweep * 660);
+    roR.textContent = Math.max(0, Math.round((400 - y) / 5.33));
+  };
+  const finishReading = () => {
+    ['--open', '--done'].forEach((v) => plot.style.setProperty(v, '1'));
+    revealRect.setAttribute('width', '1220');
+    cursor.style.opacity = '0';
+  };
+  let stageLoop = 0, shown = 0, lastT = 0;
+  const targetProgress = () => {
+    const r = stage.getBoundingClientRect();
+    return clamp(-r.top / Math.max(r.height - innerHeight, 1), 0, 1);
+  };
+  const scrubFrame = (now) => {
+    const target = targetProgress();
+    const dt = lastT ? Math.min(now - lastT, 64) : 16;
+    lastT = now;
+    /* Elapsed-time smoothing (90 ms time constant); large jumps such as anchor links snap. */
+    if (Math.abs(target - shown) > 0.35) shown = target;
+    else shown += (target - shown) * (1 - Math.exp(-dt / 90));
+    if (Math.abs(target - shown) < 0.0004) shown = target;
+    applyReading(shown);
+    stageLoop = requestAnimationFrame(scrubFrame);
+  };
+  const stageIO = new IntersectionObserver((entries) => {
+    const on = entries.some((e) => e.isIntersecting);
+    cancelAnimationFrame(stageLoop);
+    lastT = 0;
+    shown = targetProgress();
+    if (stage.classList.contains('scrub')) applyReading(shown);
+    if (on && stage.classList.contains('scrub')) stageLoop = requestAnimationFrame(scrubFrame);
+  });
+  const pinRoom = matchMedia('(min-width: 48rem) and (min-height: 700px)');
+  const setScrub = () => {
+    const on = root.classList.contains('js-motion') && pinRoom.matches;
+    stage.classList.toggle('scrub', on);
+    cancelAnimationFrame(stageLoop);
+    if (on) { stageIO.observe(stage); } else { stageIO.disconnect(); finishReading(); }
+  };
+  pinRoom.addEventListener('change', setScrub);
+
+  /* Hero: the fan leans toward the pointer. */
+  const cine = document.querySelector('.cine');
+  const tilt = document.querySelector('.fan-tilt');
+  let tiltTarget = 0, tiltNow = 0, tiltLoop = 0;
+  const tiltFrame = () => {
+    tiltNow = lerp(tiltNow, tiltTarget, 0.06);
+    tilt.style.setProperty('--tilt', tiltNow.toFixed(3) + 'deg');
+    tiltLoop = Math.abs(tiltNow - tiltTarget) > 0.01 ? requestAnimationFrame(tiltFrame) : 0;
+  };
+  const onCineMove = (e) => {
+    const r = cine.getBoundingClientRect();
+    tiltTarget = ((e.clientY - r.top) / r.height - 0.5) * 7;
+    if (!tiltLoop) tiltLoop = requestAnimationFrame(tiltFrame);
+  };
+  const onCineLeave = () => { tiltTarget = 0; if (!tiltLoop) tiltLoop = requestAnimationFrame(tiltFrame); };
+
+  /* Instrument: the device tilts and its highlight follows the pointer. */
+  const device = document.getElementById('device');
+  const deviceSvg = device.querySelector('svg');
+  const sheen = document.getElementById('sheen-live');
+  let dev = { rx: 0, ry: 0, tx: 0, ty: 0 }, devLoop = 0;
+  const devFrame = () => {
+    dev.rx = lerp(dev.rx, dev.tx, 0.08); dev.ry = lerp(dev.ry, dev.ty, 0.08);
+    deviceSvg.style.setProperty('--rx', dev.rx.toFixed(2) + 'deg');
+    deviceSvg.style.setProperty('--ry', dev.ry.toFixed(2) + 'deg');
+    sheen.setAttribute('cx', (0.35 + dev.ry / 40).toFixed(3));
+    sheen.setAttribute('cy', (0.25 - dev.rx / 40).toFixed(3));
+    devLoop = Math.abs(dev.rx - dev.tx) + Math.abs(dev.ry - dev.ty) > 0.02 ? requestAnimationFrame(devFrame) : 0;
+  };
+  const onDevMove = (e) => {
+    const r = device.getBoundingClientRect();
+    dev.ty = ((e.clientX - r.left) / r.width - 0.5) * 16;
+    dev.tx = -((e.clientY - r.top) / r.height - 0.5) * 12;
+    if (!devLoop) devLoop = requestAnimationFrame(devFrame);
+  };
+  const onDevLeave = () => { dev.tx = 0; dev.ty = 0; if (!devLoop) devLoop = requestAnimationFrame(devFrame); };
+
+  /* Specs count up once when they come into view. */
+  const counts = [...document.querySelectorAll('.count')];
+  const fmt = (el, v) => {
+    const dec = Number(el.dataset.dec || 0);
+    let s = v.toFixed(dec);
+    if (el.dataset.comma) s = Math.round(v).toLocaleString('en-US');
+    el.textContent = s;
+  };
+  const countIO = new IntersectionObserver((entries) => {
+    if (!entries.some((e) => e.isIntersecting)) return;
+    countIO.disconnect();
+    if (!root.classList.contains('js-motion')) return;
+    const start = performance.now();
+    const step = (now) => {
+      const k = clamp((now - start) / 1400, 0, 1);
+      const e = 1 - Math.pow(2, -10 * k);
+      counts.forEach((el) => fmt(el, Number(el.dataset.to) * (k === 1 ? 1 : e)));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, { threshold: 0.35 });
+
+  const enable = () => {
+    root.classList.add('js-motion');
+    setScrub();
+    countIO.observe(document.getElementById('specs'));
+    if (finePointer.matches) {
+      cine.addEventListener('pointermove', onCineMove);
+      cine.addEventListener('pointerleave', onCineLeave);
+      device.addEventListener('pointermove', onDevMove);
+      device.addEventListener('pointerleave', onDevLeave);
+    }
+  };
+  const disable = () => {
+    root.classList.remove('js-motion');
+    setScrub();
+    countIO.disconnect(); counts.forEach((el) => fmt(el, Number(el.dataset.to)));
+    cine.removeEventListener('pointermove', onCineMove); cine.removeEventListener('pointerleave', onCineLeave);
+    device.removeEventListener('pointermove', onDevMove); device.removeEventListener('pointerleave', onDevLeave);
+    tilt.style.setProperty('--tilt', '0deg');
+    deviceSvg.style.setProperty('--rx', '0deg'); deviceSvg.style.setProperty('--ry', '0deg');
+  };
+  if (motion.matches) enable();
+  motion.addEventListener('change', () => (motion.matches ? enable() : disable()));
+
+  /* Nav: current step and a sliding indicator. */
+  const ol = document.querySelector('.steps-nav ol');
+  const links = [...ol.querySelectorAll('a')];
+  const byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]));
+  const place = (a) => {
+    if (!a) { ol.style.setProperty('--ind-w', '0px'); return; }
+    ol.style.setProperty('--ind-x', a.offsetLeft + 'px');
+    ol.style.setProperty('--ind-w', a.offsetWidth + 'px');
+  };
+  let current = null;
+  const navIO = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) current = byId.get(e.target.id);
+      else if (current === byId.get(e.target.id) && e.boundingClientRect.top > 0) current = null;
+    });
+    links.forEach((a) => a.toggleAttribute('aria-current', a === current));
+    if (current) current.setAttribute('aria-current', 'step');
+    place(current);
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  byId.forEach((_, id) => { const el = document.getElementById(id); if (el) navIO.observe(el); });
+  addEventListener('resize', () => place(current));
+
+  /* Join form: local confirmation only. */
+  const form = document.getElementById('join');
+  const status = document.getElementById('status');
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!form.email.checkValidity()) { status.textContent = 'Enter an email address, like name@example.org.'; form.email.focus(); return; }
+    status.textContent = 'You are on the list. This demo sent nothing.';
+    form.reset();
+  });
+})();
+</script>
+</body>
+</html>
