@@ -40,6 +40,9 @@
       "WebSearch",
       "Read(/plugins/**)"
     ],
+    "ask": [
+      "Bash(*codex_task.py run*)"
+    ],
     "deny": [
       "Read(**/.env)",
       "Read(**/.env.*)",
@@ -84,7 +87,7 @@
         ]
       },
       {
-        "matcher": "Read|Edit|Write|Update|Create|Bash|Grep|Glob",
+        "matcher": "Read|Edit|Write|MultiEdit|NotebookEdit|Update|Create|Bash|Grep|Glob",
         "hooks": [
           { "type": "command", "command": "bash ~/.claude/hooks/block-env-files.sh" }
         ]
@@ -111,6 +114,12 @@
         "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
         "hooks": [
           { "type": "command", "command": "bash ~/.claude/hooks/no-meta-commentary.sh", "timeout": 5 }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
+        "hooks": [
+          { "type": "command", "command": "python3 ~/.claude/hooks/reject_words.py", "timeout": 5 }
         ]
       },
       {

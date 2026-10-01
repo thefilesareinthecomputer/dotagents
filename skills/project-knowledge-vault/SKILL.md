@@ -34,7 +34,7 @@ The linter is the anti-drift mechanism. Every check fires on positive evidence, 
 | `flat` | any subdirectory other than `vault-kg/` or a dot-folder |
 | `frontmatter` | a note without parseable YAML carrying a non-empty `type` |
 | `family` | a `type` outside the family table for that prefix, or a prefix in no family |
-| `reserved` | `index.md` or `log.md` missing, or frontmatter beyond `okf_version` on the root index |
+| `reserved` | `index.md` or `log.md` missing, or any frontmatter on either |
 | `filename` | anything not lowercase-kebab |
 | `wikilink` | a `[[target]]` with no note in the vault |
 | `anchor` | a `[[note#Heading]]` whose heading does not exist |

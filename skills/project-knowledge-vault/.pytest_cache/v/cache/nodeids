@@ -14,6 +14,7 @@
   "tests/test_lint.py::test_frontmatter_fires_on_a_note_without_type",
   "tests/test_lint.py::test_placeholder_fires_only_beside_real_dates",
   "tests/test_lint.py::test_reserved_fires_on_missing_log_and_frontmatter_on_index",
+  "tests/test_lint.py::test_seeded_reserved_files_carry_no_frontmatter",
   "tests/test_lint.py::test_unreadable_file_fails_rather_than_passing_silently",
   "tests/test_lint.py::test_wikilink_fires_on_a_dangling_target",
   "tests/test_lint.py::test_wikilink_ignores_code_spans_fences_and_comments",

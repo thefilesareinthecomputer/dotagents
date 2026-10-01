@@ -5,7 +5,8 @@ Run: python3 tests/station-hooks/test-cmon-nudge.py   (or via unittest discover)
 
 Contract: advisory only, exit 0 on every path. SessionStart always injects the
 heads-up. UserPromptSubmit injects a nudge only when the previous main-thread
-reply exceeds the threshold, counting words outside fenced code. Fails open.
+reply (the final text block of the turn) exceeds the threshold, counting words
+outside fenced code. Fails open.
 """
 
 import json
@@ -98,10 +99,17 @@ class TestUserPromptSubmit(NudgeCase):
         _code, out = self.run_hook("UserPromptSubmit")
         self.assertIsNone(out)
 
-    def test_a_turn_split_by_tool_calls_is_summed(self) -> None:
-        self.write(user("hi"), assistant(words(90)), tool_result(), assistant(words(90)))
+    def test_progress_lines_before_the_final_block_are_not_counted(self) -> None:
+        # The harness asks for progress updates between tool calls; only the
+        # final block is the reply the user reads.
+        self.write(user("hi"), assistant(words(200)), tool_result(), assistant(words(90)))
         _code, out = self.run_hook("UserPromptSubmit")
-        self.assertIn("180 words", self.context(out))
+        self.assertIsNone(out)
+
+    def test_the_final_block_of_a_split_turn_is_measured(self) -> None:
+        self.write(user("hi"), assistant(words(20)), tool_result(), assistant(words(200)))
+        _code, out = self.run_hook("UserPromptSubmit")
+        self.assertIn("200 words", self.context(out))
 
     def test_only_the_last_turn_counts(self) -> None:
         self.write(user("a"), assistant(words(400)), user("b"), assistant(words(20)))

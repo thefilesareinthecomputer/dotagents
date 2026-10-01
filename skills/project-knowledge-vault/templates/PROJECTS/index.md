@@ -1,7 +1,3 @@
----
-okf_version: "0.2"
----
-
 # <PROJECT> Knowledge Vault
 
 The shared operational source of truth for the <PROJECT> project. One line on what this project delivers and for whom.

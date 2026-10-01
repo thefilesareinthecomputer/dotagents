@@ -8,8 +8,13 @@ file-level scan or later edit reaches it.
 
 This blocks the `git commit` before it lands. Two classes:
 
-  DISCLOSURE  the message describes the sensitivity rather than the change - "scrub",
-              "sanitize", "redact", "leaked", "private aliases", "identifiers removed"
+  DISCLOSURE  the message describes the sensitivity rather than the change - "private
+              aliases", "identifiers removed", "anonymize" refuse on their own; "scrub",
+              "sanitize", "redact", "leak", "expose", "mask" are also ordinary
+              engineering words and refuse unless the message uses them in a listed
+              harmless collocation (a memory leak, sanitize user input, an exposed
+              port, scrub build artifacts, a bitmask) - an unlisted subject fails
+              closed
   IDENTIFIER  the message contains the thing itself - an alias, a work-item id, a
               person's initials with a role code, an environment-prefixed catalog
 
@@ -39,15 +44,40 @@ _spec.loader.exec_module(shared)
 # Every other Bash call exits 0 immediately. The tool matcher can only key on tool name,
 # so the narrowing to commits happens here in `_is_git_commit`.
 
+# Phrases that only ever describe sensitivity: refused on their own.
 DISCLOSURE = re.compile(
     r"\b("
-    r"scrub(bed|bing|s)?|saniti[sz](e|ed|ing|ation)|redact(ed|ing|ion)?|"
-    r"leak(ed|ing|s|age)?|expos(ed|ure|ing)|de-?identif\w*|anonymi[sz]\w*|"
+    r"de-?identif\w*|anonymi[sz]\w*|pseudonymi[sz]\w*|"
     r"identifiers?\s+(removed|stripped|cleared|out)|"
     r"(private|client|project)\s+(alias|aliases|identifiers?|names?|data)|"
     r"real\s+(incident|incidents|names?|people|dates?)|"
     r"person(al)?\s+(initials|identifiers?)|work-?item\s+identifiers?"
     r")\b",
+    re.I,
+)
+# Verbs that are also ordinary engineering vocabulary. They refuse on their own
+# unless the message uses them in one of the listed harmless collocations (a
+# memory leak, an input sanitizer, an exposed port, scrubbed build artifacts),
+# so an unlisted subject fails closed rather than open. Paths, urls, filenames,
+# output and markdown are what this repo scrubs, so "sanitize paths" is not
+# harmless unless it is the user's or untrusted ones.
+DISCLOSURE_VERB = re.compile(
+    r"\b(scrub(bed|bing|s)?|saniti[sz](e|es|ed|er|ers|ing|ation)|redact(s|ed|ing|ion)?|"
+    r"leak(ed|ing|s|age)?|expos(e|es|ed|ure|ing)|mask(ed|ing|s)?)\b",
+    re.I,
+)
+HARMLESS_USE = re.compile(
+    r"\b(memory|connection|resource|handle|fd|file[- ]descriptor|goroutine|thread|socket)"
+    r"\s+leak(s|ed|age)?\b|"
+    r"\bsaniti[sz]\w*\s+(the\s+)?((user|untrusted)\s+)?(input|inputs|html|sql|args|arguments|"
+    r"query|queries)\b|"
+    r"\bsaniti[sz]\w*\s+(the\s+)?(user|untrusted)\s+(output|markdown|filename|filenames|"
+    r"url|urls|path|paths)\b|"
+    r"\bexpos\w*\s+(a\s+|the\s+)?(port|ports|endpoint|endpoints|api|metric|metrics|method|"
+    r"methods|function|functions|prop|props|option|options|flag|flags|hook|hooks|"
+    r"type|types|interface|interfaces)\b|"
+    r"\bscrub\w*\s+(stale\s+)?(the\s+)?(cache|caches|build|builds|artifact|artifacts|tmp|temp)\b|"
+    r"\b(bit|subnet|net|affinity|signal)\s*mask(s|ed|ing)?\b|\bmask\s+(bits?|the\s+cursor)\b",
     re.I,
 )
 PLACEHOLDER = {
@@ -126,6 +156,10 @@ def message_of(command):
     except ValueError:
         tokens = []
     for i, tok in enumerate(tokens):
+        # Glued form first: git reads every -mX as the message X, whatever X ends in.
+        if tok.startswith("-m") and len(tok) > 2:
+            chunks.append(tok[2:])
+            continue
         # -m, --message, and a short-flag cluster ending in m such as -am or -qm.
         cluster = tok.startswith("-") and not tok.startswith("--") and len(tok) > 2 and tok.endswith("m")
         if (tok in ("-m", "--message") or cluster) and i + 1 < len(tokens):
@@ -154,9 +188,15 @@ def main():
         if not text.strip():
             return 0
         hits = []
+        why = "describes the sensitivity, not the change"
         for match in DISCLOSURE.finditer(text):
-            hits.append((match.group(0), "describes the sensitivity, not the change",
-                         match.start()))
+            hits.append((match.group(0), why, match.start()))
+        # A harmless collocation exempts only the verb inside it, so a second
+        # subject elsewhere in the same message still refuses.
+        safe = [m.span() for m in HARMLESS_USE.finditer(text)]
+        for match in DISCLOSURE_VERB.finditer(text):
+            if not any(a <= match.start() < b for a, b in safe):
+                hits.append((match.group(0), why, match.start()))
         for regex, why in IDENTIFIER:
             for match in regex.finditer(text):
                 hits.append((match.group(0), why, match.start()))

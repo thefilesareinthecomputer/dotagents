@@ -128,7 +128,7 @@ Everywhere else, a question is a **closed record of what was asked on a date**, 
 
 ## `index.md` and `log.md` follow OKF
 
-Both are reserved filenames under [Google's Open Knowledge Format v0.2](https://github.com/GoogleCloudPlatform/open-knowledge-format). Neither is a concept document and neither takes frontmatter, with one exception: the bundle-root `index.md` may declare `okf_version`.
+Both are reserved filenames under [Google's Open Knowledge Format v0.2](https://github.com/GoogleCloudPlatform/open-knowledge-format). Neither is a concept document and neither takes frontmatter, version fields included.
 
 `index.md` lists the bundle's contents with a description each, grouped for progressive disclosure, using markdown links.
 

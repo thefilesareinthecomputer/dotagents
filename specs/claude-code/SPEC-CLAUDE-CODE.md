@@ -82,10 +82,10 @@ which are per-machine state rather than seeded config.
 | Skills/agents/commands symlinks | `~/.claude/skills`, `~/.claude/agents`, `~/.claude/commands` | `bash ~/.agents/sync-skills.sh` |
 | Global instructions | `~/.claude/CLAUDE.md` | pointer template in §5; rules body in `~/.agents/AGENTS.md` |
 | Global settings | `~/.claude/settings.json` | template in §7 |
-| Hook scripts | `~/.claude/hooks/*.sh` | embedded in §8 |
-| Status line | `~/.claude/statusline.sh` | embedded in §9 |
-| Subagent status line | `~/.claude/subagent-statusline.sh` | embedded in §9 |
-| Keybindings | `~/.claude/keybindings.json` | embedded in §10 |
+| Hook scripts | `~/.claude/hooks/` | [`hooks/`](hooks), §8 |
+| Status line | `~/.claude/statusline.sh` | [`statusline.sh`](statusline.sh), §9 |
+| Subagent status line | `~/.claude/subagent-statusline.sh` | [`subagent-statusline.sh`](subagent-statusline.sh), §9 |
+| Keybindings | `~/.claude/keybindings.json` | [`keybindings.json`](keybindings.json), §10 |
 | Plugins (4) | installed + enabled in Claude Code | §3 |
 | rtk | `/opt/homebrew/bin/rtk` (or PATH) | `brew install rtk-ai/tap/rtk` |
 | claude-mem daemon | `localhost:37701` | comes with the claude-mem plugin |
@@ -94,7 +94,7 @@ which are per-machine state rather than seeded config.
 
 - **Claude Code** - the harness itself.
 - **git** + **gh** - repo sync and GitHub operations.
-- **jq** - **required**: both hook scripts in §8 parse tool-call JSON with it.
+- **jq** - **required**: the shell hooks in §8 parse tool-call JSON with it.
   Hooks fail silently without it. `brew install jq`.
 - **rtk** (Rust Token Killer) - token-optimizing CLI proxy, wired in as a
   PreToolUse hook on Bash (§7). `brew install rtk-ai/tap/rtk`
@@ -258,10 +258,12 @@ The principles each block enforces:
 2. **No AI attribution** - empty `attribution` strings keep commits and PRs
    free of generated-by lines.
 3. **Secrets are unreachable** - `permissions.deny` blocks every file tool
-   from `.env` files; the `block-env-files.sh` hook (§8) extends the same
-   guarantee to arbitrary Bash commands and tells the model to stop and ask
-   rather than work around it. Conventional non-secret variants
-   (`.env.example` etc.) stay allowed.
+   from `.env` files, and the `block-env-files.sh` hook (§8) doubles that
+   deny with a reason that tells the model to stop and ask rather than work
+   around it. A Bash command that mentions a `.env` path raises a permission
+   prompt instead, because the text may be a commit message or a pattern
+   rather than an access: the user approves a mention and denies a read.
+   Conventional non-secret variants (`.env.example` etc.) stay allowed.
 4. **Token efficiency at the tool boundary** - `rtk hook claude` on every
    Bash call transparently rewrites commands through rtk.
 5. **The shell is not a file editor** - `deny-bash-file-writes.sh` denies
@@ -304,8 +306,10 @@ rule + §7.6's own hook both apply).
 **Delegation to Codex** goes only through
 `~/.agents/skills/codex-task/scripts/codex_task.py`, which runs Codex headless
 in an isolated worktree and `CODEX_HOME` with writes confined to a file
-allowlist. No `permissions.allow` entry for it is seeded, so each run prompts
-once; adding one is a privilege change and the user's call. Any other `codex`
+allowlist. The user approves every Codex run, so the seed includes the ask rule
+`Bash(*codex_task.py run*)`, which matches any interpreter spelling. A headless
+probe showed it overrides a matching allow entry, so a stray "don't ask again"
+cannot silence it. Any other `codex`
 invocation from a session keeps prompting too. Facts and boundaries in
 [`../codex/SPEC-CODEX.md`](../codex/SPEC-CODEX.md).
 
@@ -329,7 +333,7 @@ Per-tool reality (which control is real vs theater), verified 2026-07:
 
 | Control | Tool | Enforcement |
 |---|---|---|
-| `permissions.deny` in `.claude/settings.json` (+ `block-env-files.sh`) | Claude Code | **HARD - use this** |
+| `permissions.deny` in `.claude/settings.json` (+ `block-env-files.sh`: deny on file tools, ask on Bash) | Claude Code | **HARD - use this** |
 | `deny` in `~/.codex/config.toml` | Codex CLI | **HARD - use this** |
 | `.cursorignore` | Cursor | official, best-effort |
 | `.aiexclude` | Gemini Code Assist / Firebase / Android Studio | official, overrides `.gitignore` |
@@ -344,7 +348,8 @@ Per-tool reality (which control is real vs theater), verified 2026-07:
 (verified 2026-07; The Register 2026-01-28 reproduced Claude Code reading a
 `.env` despite a `.claudeignore` entry). Ship it only as forward-compat with
 an honest header; the hard control on this station is the §7 `.env` deny set
-plus `block-env-files.sh` (§8).
+plus `block-env-files.sh` (§8), which denies the file tools and raises a
+prompt on a Bash mention.
 
 ### Deny-rule path forms and the probe method (extends §7 principle 3)
 
@@ -386,7 +391,7 @@ use. The canonical list and the honest per-tool header conventions live in
 
 ## 8. Hook scripts (`~/.claude/hooks/`)
 
-Nineteen wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
+Twenty wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
 `guard-rm.sh`, `block-env-files.sh`), the `~/.claude`-edit prompt
 (`ask-before-claude-folder-edits.sh`), the SessionStart inbox check
 (`agent-mail-check.sh`), the reply-length nudge (`cmon_nudge.py`), the
@@ -396,25 +401,22 @@ large-file read advisory
 the skill-description lint (`skill_description_lint.py`, post-write),
 the chat-register pair (`no-meta-commentary.sh` pre-write +
 `no-meta-commentary-check.sh` post-write, sharing
-`no-meta-commentary.patterns`), the invisible-character guard
+`no-meta-commentary.patterns`), the word-list guard
+(`reject_words.py`, reading `reject-words.toml`), the invisible-character guard
 (`reject_invisibles.py`), the private-folder guard
 (`guard-private.sh`, closing the shell path to `~/.claude/private` and
 `~/.claude/state`; the file tools are denied on both in settings.json
 instead), the two identifier guards (`reject_identifiers.py` pre-write,
 `reject_bad_commit_message.py` pre-commit), the published-copy guard
-(`reject_published_copy_edits.py`, reading
-`published-copy-paths.example.txt`), and the two resource gates
-(`memory_pressure_gate.py`, `daemon_restart_storm.py`).
+(`reject_published_copy_edits.py`, reading a station
+`published-copy-paths.txt` seeded from the `.example.txt`), and the two
+resource gates (`memory_pressure_gate.py`, `daemon_restart_storm.py`).
 Seven are advisory/non-blocking (`read-size-advisory`,
 `cmon_nudge`, `memory-routing`, both `no-meta-commentary` sides,
 `memory_lint`'s judgment checks, and `reject_identifiers`);
 the rest can block.
-Two more scripts ship here unwired: `cover-me-nudge.sh` (the
-checkpoint-review nudge, retired from settings because it injected context
-on every tool stream for a review path that was almost never taken) and
-`scan_identifiers_on_stop.sh` (the end-of-session identifier sweep, whose
-`prepublish_scan.py` scanner was never built - re-wire it as a Stop hook if
-that tool lands). Their per-hook sections below are kept for both.
+Every script here is wired; retired hooks live under the repo's `__archive/`
+with their tests, not here.
 All shell hooks require
 `jq`; the two quote-aware guards also require `perl`; the python hooks are
 stdlib python3 (all §2 deps). `_require.sh` is not a hook - it is the
@@ -423,6 +425,17 @@ it must be seeded alongside them or every guard that sources it denies
 every call it covers. Seed verbatim.
 
 ### `block-env-files.sh`
+
+PreToolUse guard (matcher `Read|Edit|Write|MultiEdit|NotebookEdit|Update|Create|Bash|Grep|Glob`,
+wired in §7). A file tool whose target basename is `.env` or `.env.<suffix>`
+is **denied**, doubling the declarative deny rules in settings.json with a
+reason that steers the agent to ask the user for the one value it needs. The
+committed non-secret variants (`.env.example`, `.sample`, `.template`,
+`.dist`, `.defaults`) pass. A Bash command is only text, and a `.env` token
+in it may be a commit message, a grep pattern or a string literal rather than
+an access, so Bash gets **ask**: the user approves a mention and denies a
+read. Requires `jq` via `_require.sh`. Tests:
+`tests/station-hooks/test-block-env-files.sh` (17 cases).
 
 Script: [`claude-code/hooks/block-env-files.sh`](hooks/block-env-files.sh).
 
@@ -597,50 +610,25 @@ contract); run after any edit.
 
 Script: [`claude-code/hooks/read-size-advisory.sh`](hooks/read-size-advisory.sh).
 
-### `cover-me-nudge.sh`
-
-PostToolUse hook (matcher `*`) - **shipped but unwired**: retired from the
-settings template because a context injection on every tool stream cost more
-than the rarely-taken review path it advertised; re-add the §7 entry to
-restore it. Advisory only, never blocks. It
-injects one line of `additionalContext` suggesting `/cover-me` at the two moments
-worth a fresh-context review: immediately after a hard-to-undo Bash command
-(`rm -rf`, `git push --force`, `DROP TABLE`/`DROP DATABASE`, a path under
-`migrations/`), or once a per-session tool-call counter reaches
-`COVER_ME_NUDGE_CALLS` (default 45). Firing resets the counter, and a destructive
-command cannot nudge again until five further calls have passed, so a run of
-`migrations/` reads produces one line rather than ten.
-
-A hook is the only mid-run injection point the harness has, which is exactly why
-this one is deterministic: a regex and an integer, **no model call**, no network,
-no transcript read. The counter lives in one small state file keyed by session id
-under `$TMPDIR/cover-me-nudge-$UID/`, so concurrent sessions do not share it and
-nothing persists across a reboot. Fail-open on every path (missing jq, unwritable
-state dir, garbage payload → silence). Threshold set high on purpose, per the
-read advisory's precedent: a nudge that fires during ordinary work becomes noise
-and gets ignored. Table-driven tests at
-`tests/station-hooks/test-cover-me-nudge.sh` (25 cases incl. the never-blocks
-contract, counter reset, session isolation and the no-model-call check); run
-after any edit.
-
-Script: [`claude-code/hooks/cover-me-nudge.sh`](hooks/cover-me-nudge.sh).
-
 ### `cmon_nudge.py`
 
 SessionStart (matcher `startup|resume`) and UserPromptSubmit - advisory only,
 never blocks. Keeps chat replies short by measurement rather than by standing
 instruction. At session start it injects one line saying cmon is enforced and
 naming the threshold, so the first long reply is less likely, not just the
-second. On every prompt it reads the model's previous main-thread turn from the
-transcript, counts words outside fenced code, and if the count is over
-`CMON_WORDS` (default 150) injects one line with the count and a pointer at the
-`cmon` rules. The model judges: compress, or carry on because the user asked
-for that length. Under the threshold it is silent, so a short session costs one
-line. Deliberately not a Stop hook: blocking at Stop would re-send the reply,
-which the user rejected as a waste of time; the nudge lands on the next reply
-instead. Fail-open on every path (missing transcript, malformed lines,
-sidechain rows, garbage stdin → silence, exit 0). Tests at
-`tests/station-hooks/test-cmon-nudge.py` (14 cases); run after any edit.
+second. On every prompt it reads the final text block of the model's previous
+main-thread turn from the transcript, counts words outside fenced code, and if
+the count is over `CMON_WORDS` (default 150) injects one line with the count
+and a pointer at the `cmon` rules. Only the final block counts: the progress
+lines a tool-heavy turn emits between calls are asked for by the harness, and
+summing them nudged for the wrong thing. The model judges: compress, or carry
+on because the user asked for that length. Under the threshold it is silent,
+so a short session costs one line. Deliberately not a Stop hook: blocking at
+Stop would re-send the reply, which the user rejected as a waste of time; the
+nudge lands on the next reply instead. Fail-open on every path (missing
+transcript, malformed lines, sidechain rows, garbage stdin → silence, exit 0).
+Tests at `tests/station-hooks/test-cmon-nudge.py` (15 cases); run after any
+edit.
 
 Script: [`claude-code/hooks/cmon_nudge.py`](hooks/cmon_nudge.py).
 
@@ -670,12 +658,16 @@ Deterministic violations **FAIL LOUD** (exit 2 - returns stderr to the agent so
 it is fixed immediately): a memory file with no `MEMORY.md` pointer, a missing
 index, missing/invalid frontmatter (`name`/`description`/`metadata.type` ∈
 {user, feedback, project, reference}), a `name:` that does not match the
-filename stem, or a dead index pointer. Judgment checks are advisory (stderr,
-exit 0): dangling `[[wikilinks]]` (allowed - they mark a memory worth writing
-later) and a doc-reconcile prompt. **Footgun (verified in `skill-authoring`):**
-exit 2 returns stderr to the agent; exit 1 is swallowed - so fails use 2.
+filename stem, or a dead index pointer. Judgment checks are advisory (exit 0,
+delivered as PostToolUse `additionalContext` on stdout): dangling
+`[[wikilinks]]` (allowed - they mark a memory worth writing later; only
+closed single-line links up to 120 characters count, the text is escaped and
+the list capped at ten, because this reaches the model) and a doc-reconcile
+prompt. **Footgun (verified in `skill-authoring`):** exit 2
+returns stderr to the agent; exit 1 is swallowed, and so is stderr at exit 0 -
+so fails use 2 and advisories use the context channel.
 Stdlib only; **fails OPEN** (a bug in the lint exits 0, never blocks a write).
-Tests: `tests/station-hooks/test-memory-lint.py` (12 cases).
+Tests: `tests/station-hooks/test-memory-lint.py` (14 cases).
 
 Script: [`claude-code/hooks/memory_lint.py`](hooks/memory_lint.py).
 
@@ -728,6 +720,47 @@ and session isolation).
 Scripts: [`claude-code/hooks/no-meta-commentary.sh`](hooks/no-meta-commentary.sh),
 [`claude-code/hooks/no-meta-commentary-check.sh`](hooks/no-meta-commentary-check.sh),
 [`claude-code/hooks/no-meta-commentary.patterns`](hooks/no-meta-commentary.patterns).
+
+### `reject_words.py` + `reject-words.toml`
+
+PreToolUse guard (matcher `Write|Edit|MultiEdit|NotebookEdit|Update|Create`,
+wired in §7 directly after `no-meta-commentary.sh`) - GLOBAL, **blocking**
+through a `permissionDecision: deny`. It refuses a doc-file write (`.md`,
+`.mdx`, `.markdown`, `.txt`, `.rst`, any case) that adds a word or phrase from
+`reject-words.toml`, matched whole and case-insensitive. Code and data files are
+never checked, and a word joined to others by a hyphen or underscore is a name,
+slug or identifier and passes. This is the write-side enforcement of the
+AGENTS.md plain-words rule.
+
+The list is one TOML table per category: `words`, `why`, `instead`, and an
+optional `ask` holding the question that separates the legitimate exception.
+The deny reason gives one block per category hit, so it steers the rewrite
+instead of only refusing. `REJECT_WORDS_FILE` overrides the list path. The
+shipped categories are `figurative-load` and `vague-vocabulary`; add one when a
+word keeps coming back after being corrected by hand.
+
+Only new occurrences count. Edit and MultiEdit compare `new_string` with
+`old_string`, and Write compares with the file as it stands on disk, so
+keeping or removing an existing occurrence never fires. A word inside a fenced
+block, a code span or double quotes is being named rather than used and is
+ignored. Path-excluded are the sites that quote the words on purpose:
+`*/hooks/*`, `*/tests/*`, `*/fixtures/*` and `*/skills/ai-slop-magic-eraser/*`.
+
+A legitimate use gets through by resubmitting the identical write. The first
+deny creates an empty marker named `sha256(path + incoming text)` under
+`${XDG_STATE_HOME:-~/.cache}/reject-words/<session_id>/`, opened with
+`O_EXCL|O_NOFOLLOW` so a planted symlink is refused, and the matching retry
+unlinks it and is allowed once. The model certifies its own exception, so this
+is a prompt to rewrite rather than a hard wall. Fails open on a garbage or
+malformed payload, a missing or unparseable list, or an unwritable state dir.
+Stdlib python3; on a python3 older than 3.11, which has no `tomllib`, the list
+loads empty and the guard passes everything. Tests:
+`tests/station-hooks/test-reject-words.py` (19 cases, including symlinks
+planted at the session and marker paths and an unwritable state dir); run
+after any edit.
+
+Script: [`claude-code/hooks/reject_words.py`](hooks/reject_words.py), list
+[`claude-code/hooks/reject-words.toml`](hooks/reject-words.toml).
 
 ### `reject_invisibles.py`
 
@@ -830,8 +863,15 @@ signpost worse than the original: it names the category, points at the files
 and dates the window, and no file-level scan reaches it.
 
 Two classes. DISCLOSURE catches a message describing the sensitivity rather
-than the change (scrub, sanitize, redact, leaked, "private aliases",
-"identifiers removed"). IDENTIFIER catches the thing itself, importing
+than the change. Phrases that only ever mean that ("private aliases",
+"identifiers removed", anonymize, de-identify, pseudonymize) refuse on their
+own; the verbs that are also everyday engineering words (scrub, sanitize,
+redact, leak, expose, mask) refuse unless the message uses them in a listed
+harmless collocation (a memory leak, sanitize user input, an exposed port,
+scrub build artifacts, a bitmask), so those pass and anything with an
+unlisted subject - "redact client names", "scrub usernames" - fails closed.
+The glued `-m"text"` flag form is inspected like `-m "text"`. IDENTIFIER
+catches the thing itself, importing
 `reject_identifiers.py` at runtime so the term list, the alias case rules,
 the synthetic-id rule and the no-echo report have one implementation and both
 gates match the same way. Any internal error allows the commit and says so.
@@ -841,23 +881,6 @@ editor path are uninspectable at hook time, and a commit-time git hook
 (`core.hooksPath`) is the layer that closes it.
 
 Script: [`claude-code/hooks/reject_bad_commit_message.py`](hooks/reject_bad_commit_message.py).
-
-### `scan_identifiers_on_stop.sh`
-
-Stop hook - **shipped but unwired**: its `prepublish_scan.py` scanner was
-never built, so the settings entry only produced a missing-scanner notice on
-every stop; re-add the §7 entry once the scanner exists. Advisory, never
-refuses to stop. Sweeps the guarded
-directories at the end of a session for what the pre-write guard cannot see:
-content that predates the hook, arrived through a git operation, or was
-written by another tool. It needs a scanner at `.claude/tools/prepublish_scan.py`
-(`IDENTIFIER_SCANNER` overrides the path). A missing scanner is reported, not
-passed over - the hook used to exit 0 there, which made an uninstalled sweep
-indistinguishable from a clean one while settings.json still showed the guard
-as wired. The report is bounded to repos that actually hold guarded
-directories, so it names a real gap instead of nagging on every stop.
-
-Script: [`claude-code/hooks/scan_identifiers_on_stop.sh`](hooks/scan_identifiers_on_stop.sh).
 
 ### `reject_published_copy_edits.py`
 
@@ -894,9 +917,11 @@ PreToolUse, UserPromptSubmit and SessionStart - **blocking at critical**.
 Reads the kernel's own memory verdict (the level behind Activity Monitor's
 pressure graph) plus swap in use, and stops the agent adding load when the
 machine is already struggling, whatever the cause. Critical is the kernel's
-critical level; warn is the kernel's warn level or swap at or above half of
-physical memory, which can raise a question but never a lockout because swap
-is sticky on macOS and never shrinks on its own.
+critical level; warn is the kernel's warn level with free memory at or below
+35%, or swap at or above half of physical memory, which can raise a question
+but never a lockout because swap is sticky on macOS and never shrinks on its
+own. The free-memory floor exists because the kernel reports warn while half
+the memory is still free, and asking on every call there was noise.
 
 On load-adding tools (Bash, Agent, Workflow, any MCP tool) warn asks and
 critical denies, or asks when the ack is fresh. UserPromptSubmit blocks the
@@ -907,7 +932,8 @@ names the top processes by memory, the model-facing text carries the numbers
 and an instruction to stop and wait. A resource guard, not a security control
 - the environment overrides can switch it off and that is accepted.
 
-Overrides: `MEMGATE_PRESSURE_LEVEL`, `MEMGATE_SWAP_MB`, `MEMGATE_SWAP_ASK_MB`,
+Overrides: `MEMGATE_PRESSURE_LEVEL`, `MEMGATE_SWAP_MB`, `MEMGATE_FREE_PCT`,
+`MEMGATE_SWAP_ASK_MB`, `MEMGATE_WARN_FREE_PCT`,
 `MEMGATE_ACK_FILE` (default `~/.claude/state/memory-gate-ack`). Touching the
 ack eases the gate for an hour and is the user's call from their own shell,
 which is why `guard-private.sh` refuses shell access to `~/.claude/state`.

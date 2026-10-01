@@ -163,9 +163,8 @@ class Linter:
             keys, _ = parse_frontmatter(self.notes[name])
             if keys is None:
                 continue
-            extra = set(keys) - ({"okf_version"} if name == "index.md" else set())
-            if extra:
-                self.add("reserved", name, 1, f"frontmatter not allowed on a reserved file: {', '.join(sorted(extra))}")
+            found = ", ".join(sorted(keys)) or "empty block"
+            self.add("reserved", name, 1, f"frontmatter not allowed on a reserved file: {found}")
 
     def check_filename(self, name: str) -> None:
         if not KEBAB_RE.match(name):

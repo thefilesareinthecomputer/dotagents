@@ -13,6 +13,10 @@ injects one line naming the count and pointing at the cmon rules. The model
 decides: compress, or carry on because the user asked for that length (a spec,
 a plan, a walkthrough). Under the threshold the hook exits silently.
 
+The reply is the last text block of the turn, the one the user reads as the
+answer. The progress lines a tool-heavy turn emits between calls are asked for
+by the harness and are not counted; summing them nudged for the wrong thing.
+
 Fail-open by construction: a missing transcript, a malformed line, a reply
 with no text - every path exits 0 with no output. Cheap by construction: one
 pass over the transcript, stdlib only.
@@ -62,11 +66,12 @@ def assistant_text(row: dict) -> str:
 
 
 def last_reply(transcript: Path) -> str:
-    """Text of the model's most recent completed turn, main thread only.
+    """Final text block of the model's most recent completed turn, main thread only.
 
     Turns are segmented by human prompts. The prompt now being submitted may
     or may not already be in the file, so the last non-empty segment is the
-    one that counts either way.
+    one that counts either way. Within it only the last block counts: the
+    earlier ones are progress lines between tool calls, not the reply.
     """
     segments: list[list[str]] = [[]]
     with transcript.open(encoding="utf-8", errors="replace") as fh:
@@ -88,7 +93,7 @@ def last_reply(transcript: Path) -> str:
                 segments[-1].append(text)
     for seg in reversed(segments):
         if seg:
-            return "\n".join(seg)
+            return seg[-1]
     return ""
 
 

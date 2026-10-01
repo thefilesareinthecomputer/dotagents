@@ -87,8 +87,8 @@ claims; per-claim caveats noted. Tags in brackets are referenced from SKILL.md.
   A single session cannot space - hence the re-test pack consumed by later
   on-demand re-certs.
 - **[interleaving]** Mixed practice 63% vs blocked 20% on a delayed test
-  (Rohrer & Taylor 2007, *Instructional Science* 35(6)). Order cert questions
-  across subtopics, not blocked by subtopic.
+  (Rohrer & Taylor 2007, *Instructional Science* 35(6)). Interleave look-alike
+  subtopics; block dissimilar ones (Brunmair & Richter 2019).
 - **[generative]** Across generative strategies, self-testing (70/76 positive
   experiments), self-explaining (44/54), and teaching (17/19) have the
   strongest records (Fiorella & Mayer 2016, *EPR* 28(4)).

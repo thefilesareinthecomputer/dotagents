@@ -9,7 +9,9 @@ actually verifiable:
   now). Footgun, verified: exit 2 returns stderr to the agent; exit 1 is
   swallowed silently. A lint that exits 1 does nothing - so failures use 2.
 
-  JUDGMENT -> advisory, stderr, exit 0.
+  JUDGMENT -> advisory, exit 0, delivered as PostToolUse additionalContext on
+  stdout. Stderr at exit 0 is swallowed by the harness (the same footgun), so
+  an advisory printed there reaches nobody.
 
 Stdlib only, no network. Fails OPEN: any error in the lint itself exits 0 so a
 lint bug can never block a real memory write.
@@ -105,21 +107,33 @@ def main() -> int:
             errors.append(f"MEMORY.md pointer → {link} does not resolve to a file")
 
     # Advisory: dangling wikilinks are ALLOWED (mark a memory worth writing later).
-    for wl in sorted(set(re.findall(r"\[\[([^\]\|#]+)", "".join(body_all)))):
-        if wl.strip() not in names:
-            warns.append(f"dangling [[{wl.strip()}]] - allowed; marks a memory worth writing later")
+    # Only closed, single-line links of bounded length count, and the link text
+    # is escaped and the list capped: this text now reaches the model as context,
+    # and a stray `[[` must not drag a file's worth of prose into it.
+    link_re = r"\[\[([^\]\|#\n]{1,120})(?:[|#][^\]\n]{0,120})?\]\]"
+    dangling = sorted({wl.strip() for wl in re.findall(link_re, "".join(body_all))
+                       if wl.strip() not in names})
+    for wl in dangling[:10]:
+        warns.append(f"dangling [[{clean(wl)}]] - allowed; marks a memory worth writing later")
+    if len(dangling) > 10:
+        warns.append(f"+{len(dangling) - 10} more dangling links")
 
     warns.append(
         "reconcile: does this repo's own documentation still agree with this memory? "
         "If this memory CORRECTS something, correct the doc too - a memory and a doc that disagree are worse than either alone."
     )
 
-    for w in warns:
-        print(f"memory-lint [advisory]: {w}", file=sys.stderr)
     if errors:
+        for w in warns:
+            print(f"memory-lint [advisory]: {w}", file=sys.stderr)
         for e in errors:
             print(f"memory-lint [FAIL]: {e}", file=sys.stderr)
         return 2
+    # Advisory only: the verified channel at exit 0 is additionalContext.
+    print(json.dumps({"hookSpecificOutput": {
+        "hookEventName": "PostToolUse",
+        "additionalContext": "memory-lint [advisory]: " + " | ".join(warns),
+    }}))
     return 0
 
 

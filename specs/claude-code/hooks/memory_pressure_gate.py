@@ -6,7 +6,9 @@ pressure graph) plus swap in use, and stops the agent from adding load when
 the machine is already struggling, whatever the cause.
 
 Severity: critical is the kernel's critical level only. Warn is the kernel's
-warn level, or swap in use at or above half of physical memory (swap is
+warn level with free memory at or below WARN_FREE_PCT (the kernel raises
+warn while half the memory is still free, which asked on every call for
+nothing), or swap in use at or above half of physical memory (swap is
 sticky on macOS and never shrinks on its own, so it can raise a question but
 never a lockout).
 
@@ -28,7 +30,10 @@ below can switch it off, and that is acceptable.
 Environment overrides:
   MEMGATE_PRESSURE_LEVEL  force the kernel level (1 normal, 2 warn, 4 critical)
   MEMGATE_SWAP_MB         force swap in use, megabytes
+  MEMGATE_FREE_PCT        force the free-memory percentage
   MEMGATE_SWAP_ASK_MB     swap that asks (default half of physical memory)
+  MEMGATE_WARN_FREE_PCT   free memory at or below which the kernel's warn
+                          level counts (default 35)
   MEMGATE_ACK_FILE        ack file (default ~/.claude/state/memory-gate-ack);
                           touching it eases the gate for ACK_MINUTES
   BRAIN_SEAT              set by the second-brain spawner on a seat's process:
@@ -70,6 +75,7 @@ class Config:
     warn_level: int = 2
     crit_level: int = 4
     swap_ask_mb: int = 0          # 0 means half of physical memory
+    warn_free_pct: int = 35       # kernel warn counts only at or below this
     gated_tools: tuple = GATED_TOOLS
     gated_prefixes: tuple = GATED_PREFIXES
 
@@ -98,7 +104,7 @@ def severity(sig, cfg):
     """'critical', 'warn', or '' with the reason that produced it."""
     if sig.level >= cfg.crit_level:
         return 'critical', f'kernel memory pressure level {sig.level} (critical)'
-    if sig.level >= cfg.warn_level:
+    if sig.level >= cfg.warn_level and sig.free_pct <= cfg.warn_free_pct:
         return 'warn', f'kernel memory pressure level {sig.level} (warn)'
     ask_mb = cfg.swap_ask_mb or max(sig.mem_mb // 2, 1)
     if sig.swap_mb >= ask_mb:
@@ -165,10 +171,9 @@ def read_signals(env, run=_sysctl_all):
     None when anything is unreadable, which the caller treats as no gate."""
     try:
         lines = run(SYSCTL_KEYS).splitlines()
-        level = int(env.get('MEMGATE_PRESSURE_LEVEL') or lines[0])
-        free_pct = int(lines[1])
-        swap_mb = int(env['MEMGATE_SWAP_MB']) if 'MEMGATE_SWAP_MB' in env \
-            else parse_swap_mb(lines[2])
+        level = _env_int(env, 'MEMGATE_PRESSURE_LEVEL', int(lines[0]))
+        free_pct = _env_int(env, 'MEMGATE_FREE_PCT', int(lines[1]))
+        swap_mb = _env_int(env, 'MEMGATE_SWAP_MB', parse_swap_mb(lines[2]))
         mem_mb = int(lines[3]) // (1024 * 1024)
     except (OSError, ValueError, IndexError, subprocess.SubprocessError):
         return None
@@ -230,7 +235,8 @@ def main():
     env = os.environ
     event = payload.get('hook_event_name', '') or 'SessionStart'
     tool = str(payload.get('tool_name', '') or '')
-    cfg = Config(swap_ask_mb=_env_int(env, 'MEMGATE_SWAP_ASK_MB', 0))
+    cfg = Config(swap_ask_mb=_env_int(env, 'MEMGATE_SWAP_ASK_MB', 0),
+                 warn_free_pct=_env_int(env, 'MEMGATE_WARN_FREE_PCT', 35))
     ack_file = Path(env.get('MEMGATE_ACK_FILE',
                             Path.home() / '.claude' / 'state' / 'memory-gate-ack'))
     sig = read_signals(env)

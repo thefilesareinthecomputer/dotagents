@@ -4,7 +4,8 @@ Target: ~/.claude/hooks/memory_lint.py (seeded from SPEC-CLAUDE-CODE.md §8).
 Run: python3 tests/station-hooks/test-memory-lint.py   (or via unittest discover)
 
 Contract: deterministic violations exit 2 (return to agent); judgment checks are
-advisory (exit 0); a non-memory path is ignored (exit 0); the lint fails OPEN.
+advisory (exit 0, delivered as PostToolUse additionalContext on stdout); a
+non-memory path is ignored (exit 0); the lint fails OPEN.
 """
 
 import json
@@ -31,9 +32,14 @@ GOOD_INDEX = "# Memory Index\n\n- [Sample](sample-fact.md) - a valid memory\n"
 
 
 def run(file_path: str) -> tuple[int, str]:
+    """Exit code plus everything the agent could see: stderr, and at exit 0 the
+    additionalContext carried on stdout."""
     payload = json.dumps({"tool_name": "Write", "tool_input": {"file_path": file_path}})
     p = subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True, text=True)
-    return p.returncode, p.stderr
+    seen = p.stderr
+    if p.stdout.strip():
+        seen += json.loads(p.stdout)["hookSpecificOutput"]["additionalContext"]
+    return p.returncode, seen
 
 
 def make_dir(tmp: Path, mem: str = GOOD_MEM, index: str | None = GOOD_INDEX, name: str = "sample-fact.md") -> Path:
@@ -59,6 +65,39 @@ class TestPasses(unittest.TestCase):
             code, err = run(str(f))
             self.assertEqual(code, 0)
             self.assertIn("reconcile", err)
+
+    def test_advisory_travels_as_context_not_swallowed_stderr(self):
+        """Stderr at exit 0 reaches nobody; the advisory must be in stdout JSON."""
+        with tempfile.TemporaryDirectory() as t:
+            f = make_dir(Path(t))
+            payload = json.dumps({"tool_name": "Write", "tool_input": {"file_path": str(f)}})
+            p = subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0)
+            self.assertEqual(p.stderr, "")
+            out = json.loads(p.stdout)["hookSpecificOutput"]
+            self.assertEqual(out["hookEventName"], "PostToolUse")
+            self.assertIn("reconcile", out["additionalContext"])
+
+    def test_unclosed_wikilink_cannot_drag_prose_into_context(self):
+        """The advisory now reaches the model, so an unclosed `[[` must not
+        capture a file's worth of text, and link text must be escaped."""
+        mem = GOOD_MEM + "\n[[ stray\n" + ("prose line with \x1b[31m escapes\n" * 200)
+        with tempfile.TemporaryDirectory() as t:
+            f = make_dir(Path(t), mem=mem)
+            code, seen = run(str(f))
+            self.assertEqual(code, 0)
+            self.assertNotIn("prose line", seen)
+            self.assertNotIn("\x1b", seen)
+            self.assertLess(len(seen), 600)
+
+    def test_aliased_and_headed_dangling_links_are_still_reported(self):
+        mem = GOOD_MEM + "\nSee [[ghost-one|an alias]] and [[ghost-two#heading]].\n"
+        with tempfile.TemporaryDirectory() as t:
+            f = make_dir(Path(t), mem=mem)
+            code, seen = run(str(f))
+            self.assertEqual(code, 0)
+            self.assertIn("ghost-one", seen)
+            self.assertIn("ghost-two", seen)
 
     def test_dangling_wikilink_is_advisory_not_fail(self):
         mem = GOOD_MEM.replace("[[sample-fact]]", "[[not-a-real-memory]]")

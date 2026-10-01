@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# PreToolUse guard: blocks Read/Edit/Write/Bash/Grep/Glob from touching .env files.
+# PreToolUse guard: keeps Read/Edit/Write/Grep/Glob and Bash away from .env files.
 #
-# .env files routinely hold secrets (API keys, DB creds, tokens). This hook denies
-# the tool call and hands the model a clear instruction to STOP and talk to the user
-# instead of working around the block. The conventional non-secret variants
-# (.env.example, .env.sample, .env.template, .env.dist, .env.defaults) are allowed.
+# .env files routinely hold secrets (API keys, DB creds, tokens). A file tool that
+# names one is denied, with a clear instruction to STOP and talk to the user instead
+# of working around the block. A Bash command that mentions one raises a permission
+# prompt instead, because the text may be a commit message, a grep pattern or a
+# string literal rather than an access: the user approves a mention and denies a
+# read. The conventional non-secret variants (.env.example, .env.sample,
+# .env.template, .env.dist, .env.defaults) are allowed everywhere.
 #
 # Companion to the permissions.deny rules in settings.json. The deny rules are the
 # declarative first line; this hook adds the Bash coverage (deny rules can't pattern
@@ -45,10 +48,13 @@ cleaned=$(printf '%s' "$candidates" | tr -d "\"'" | tr '=|;:,()&<>' ' ')
 
 is_blocked=0
 hit=""
+# set -f keeps a glob token such as .env* literal instead of expanding it against
+# the hook's own working directory; a glob over dotenv files is a hit too.
+set -f
 for word in $cleaned; do
   b=$(basename "$word" 2>/dev/null) || continue
   case "$b" in
-    .env|.env.*)
+    .env|.env.*|.env[*?[]*)
       case "$b" in
         .env.example|.env.sample|.env.template|.env.dist|.env.defaults|.env.example.*) ;;
         *) is_blocked=1; hit="$b" ;;
@@ -56,8 +62,17 @@ for word in $cleaned; do
       ;;
   esac
 done
+set +f
 
 if [ "$is_blocked" -eq 1 ]; then
+  # A file tool names its target exactly, so a hit is a real access: deny.
+  # A Bash command only mentions the token somewhere in its text - a commit
+  # message, a grep pattern, a string literal - so the user decides: ask.
+  if [ "$tool" = "Bash" ]; then
+    reason="This Bash command mentions a protected .env file (${hit}), which may hold secrets. Approve only if the command does not read, copy or print its contents; a mention in a commit message, pattern or string literal is fine. If the agent needs a value from it, deny and have it ask you for just that value."
+    jq -n --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}'
+    exit 0
+  fi
   reason="Blocked: this ${tool} call targets a protected .env file (${hit}), which may hold secrets (API keys, credentials, tokens). Do NOT retry via another tool or shell trick. Stop and talk to the user: (1) if you need a specific config value, ask them to paste just that value; (2) if they genuinely want you to read or modify the .env file, ask them to confirm so they can approve it explicitly; (3) if you only need variable names/shape, suggest a committed .env.example instead. Surface this to the user rather than working around it."
   jq -n --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
   exit 0

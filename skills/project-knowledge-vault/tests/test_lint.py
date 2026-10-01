@@ -69,10 +69,18 @@ def test_reserved_fires_on_missing_log_and_frontmatter_on_index(tmp_path: Path) 
     v = seed(tmp_path)
     (v / "log.md").unlink()
     p = v / "index.md"
-    p.write_text(p.read_text().replace('okf_version: "0.2"', 'okf_version: "0.2"\ntitle: Front door', 1))
+    p.write_text('---\nokf_version: "0.2"\n---\n\n' + p.read_text())
     code, findings = lint(v)
     assert code == 1 and checks(findings) == {"reserved"}
     assert len(findings) == 2
+
+
+def test_seeded_reserved_files_carry_no_frontmatter(tmp_path: Path) -> None:
+    v = seed(tmp_path)
+    for name in ("index.md", "log.md"):
+        assert not (v / name).read_text().startswith("---"), name
+    code, findings = lint(v)
+    assert code == 0 and "reserved" not in checks(findings)
 
 
 def test_filename_fires_on_uppercase_or_underscore(tmp_path: Path) -> None:
