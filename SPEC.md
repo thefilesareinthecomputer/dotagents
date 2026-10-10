@@ -12,14 +12,16 @@ available to Claude Code (and other skill-aware agents) on every device.
 Third-party/upstream skills are **not** published here - they are consumed from
 installed plugins (e.g. `agent-skills@addy-agent-skills`), which auto-update and
 expose namespaced `plugin:skill` entries. This repo carries only what the user
-authors or forks (**24 skills** `agent-cc-configs-sync`, `agent-mail`,
-`ai-engineering`, `ai-slop-magic-eraser`, `cmon`, `code-kg`, `codex-task`,
-`cover-me`, `deep-research`, `frontend-aesthetics`, `hi`, `meta-loop`,
+authors or forks (**31 skills** `a-little-help-from-my-friends`, `agent-cc-configs-sync`,
+`agent-mail`, `agent-review`, `ai-engineering`, `ai-slop-magic-eraser`,
+`antigravity-task`, `cmon`, `code-kg`, `codex-task`, `cover-me`, `cursor-task`,
+`deep-research`, `frontend-aesthetics`, `hi`, `local-model-task`, `meta-loop`,
 `my-security-review-checklist`, `notes`, `obsidian`, `obsidian-kg`,
 `plugin-update`, `project-knowledge-vault`, `reflect`, `repo-device-sync`,
-`skill-authoring`, `sprint-board`, `teach-me`, `wrap-up`;
-**8 subagents** `my-security-reviewer`, `supervisor`, `ai-engineer`, `advisor`,
-`researcher`, `reader`, `worker`, `curator`;
+`sanitize`, `skill-authoring`, `sprint-board`, `support-local`, `teach-me`,
+`wrap-up`;
+**9 subagents** `my-security-reviewer`, `supervisor`, `ai-engineer`, `advisor`,
+`researcher`, `reader`, `worker`, `curator`, `support-local`;
 **13 commands** `agent-mail`, `my-security-review`, `supervisor`, `reflect`,
 `wrap-up`, `cmon`, and the agent-skills aliases `spec`, `plan`, `build`, `test`,
 `review`, `code-simplify`, `ship` - the aliases carry

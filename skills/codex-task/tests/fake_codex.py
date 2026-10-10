@@ -61,6 +61,14 @@ def main():
     if mode == "error":
         emit({"type": "item.completed", "item": {"type": "error", "message": "fake failure"}})
         return 1
+    if mode == "readonly":
+        result = {"summary": "answered", "files_changed": [], "notes": "", "blocked_on": ""}
+        emit({"type": "item.completed", "item": {"type": "agent_message", "text": "The answer is 42."}})
+        emit({"type": "item.completed", "item": {"type": "agent_message", "text": json.dumps(result)}})
+        emit({"type": "turn.completed", "usage": {"input_tokens": 10, "output_tokens": 5}})
+        if last:
+            Path(last).write_text(json.dumps(result))
+        return 0
 
     if mode == "pathspec":
         # A filename that is git pathspec magic. Harvest feeds changed names
@@ -75,6 +83,12 @@ def main():
         target = ws / "src" / "allowed.py"
         target.unlink()
         target.symlink_to("/etc/hosts")
+        return 0
+    if mode == "gitdir":
+        # Point the worktree's gitdir at the real repository, then edit an allowed file.
+        real = (ws / ".git").read_text().split("gitdir: ", 1)[1].strip()
+        (ws / ".git").write_text(f"gitdir: {Path(real).parent.parent}\n")
+        (ws / "src" / "allowed.py").write_text("def f():\n    return 2\n")
         return 0
 
     (ws / "src" / "allowed.py").write_text("def f():\n    return 2\n")

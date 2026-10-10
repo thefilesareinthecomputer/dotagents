@@ -1,0 +1,5 @@
+{
+  "ban_list": "~/.config/support-local/ban-terms.txt",
+  "terms": ["projectcodename", "ClientAlias"],
+  "patterns": ["\\bTCK-\\d{5}\\b"]
+}

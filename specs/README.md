@@ -20,6 +20,8 @@ needs around it.
 | [`pi/`](pi/SPEC-PI.md) | Pi | none, reads `~/.agents/skills` |
 | [`deepagents/`](deepagents/SPEC-DEEPAGENTS.md) | deepagents | passed in code |
 
+[`drafts/`](drafts/README.md) holds station elements that are built and tested but have not passed the gate their feature spec names. It is not a harness folder: it has one subfolder per target harness, named like the harness folders in the table (`drafts/claude-code/`, `drafts/codex/`, and so on). Nothing in it is seeded, wired or configured anywhere, and no harness spec describes it until it moves into that harness's folder.
+
 ## The folder convention
 
 Every harness folder follows the shape `claude-code/` established:

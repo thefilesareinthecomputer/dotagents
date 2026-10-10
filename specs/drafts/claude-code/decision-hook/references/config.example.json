@@ -1,0 +1,28 @@
+{
+  "base_url": "http://127.0.0.1:11434",
+  "model": "tev1:0.8b",
+  "embed_model": "embeddinggemma",
+  "keep_alive": "10m",
+  "client_timeout_s": 1.5,
+  "warm_timeout_s": 15,
+  "escalation_cap": 5,
+  "budget_path": "~/.config/local-models/budget.json",
+  "modes": {
+    "PreToolUse": {
+      "default": "shadow",
+      "acceptEdits": "shadow",
+      "plan": "shadow",
+      "auto": "shadow",
+      "dontAsk": "shadow",
+      "bypassPermissions": "off"
+    },
+    "UserPromptSubmit": {
+      "default": "off",
+      "acceptEdits": "off",
+      "plan": "off",
+      "auto": "off",
+      "dontAsk": "off",
+      "bypassPermissions": "off"
+    }
+  }
+}

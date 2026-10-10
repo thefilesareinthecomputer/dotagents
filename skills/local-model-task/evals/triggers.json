@@ -1,0 +1,50 @@
+[
+  {
+    "name": "local-log-summary",
+    "query": "run the build log through the local model and have it tell me which steps failed, I don't want to spend claude tokens on it",
+    "should_trigger": true,
+    "why": "Names the local model as the worker for a text-in, text-out task."
+  },
+  {
+    "name": "qwen-extract-json",
+    "query": "have qwen pull every endpoint name and HTTP method out of the API notes into JSON",
+    "should_trigger": true,
+    "why": "Names a local model family for a structured extraction."
+  },
+  {
+    "name": "ollama-code-search",
+    "query": "use the ollama model to find where the retry logic lives in this repo instead of a sonnet search agent",
+    "should_trigger": true,
+    "why": "Search mode: the user wants grep matches ranked by the local model."
+  },
+  {
+    "name": "gateway-triage",
+    "query": "send this ticket list to my own gateway's small model and have it sort them by severity",
+    "should_trigger": true,
+    "why": "Names the user's gateway as the backend."
+  },
+  {
+    "name": "codex-boundary",
+    "query": "give this refactor of the auth module to codex and show me the diff",
+    "should_trigger": false,
+    "why": "Handing work to Codex is codex-task."
+  },
+  {
+    "name": "plain-summary",
+    "query": "summarize the design doc for me",
+    "should_trigger": false,
+    "why": "No local model or gateway named; Claude answers directly."
+  },
+  {
+    "name": "install-advice",
+    "query": "which ollama models should I install on a 16 GB mac for coding?",
+    "should_trigger": false,
+    "why": "Advice about models, not a task to delegate."
+  },
+  {
+    "name": "ollama-setup",
+    "query": "my ollama server won't start after the update, can you look at the logs",
+    "should_trigger": false,
+    "why": "Debugging Ollama itself, not delegating work to it."
+  }
+]

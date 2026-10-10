@@ -1,0 +1,56 @@
+[
+  {
+    "name": "codebase-question",
+    "should_trigger": true,
+    "query": "Find out from this codebase how the retry logic in the sync client decides when to give up. I don't want to read it all myself.",
+    "why": "An information goal over a large body of code, with the user asking not to spend session tokens reading."
+  },
+  {
+    "name": "vault-question",
+    "should_trigger": true,
+    "query": "What does the guarded vault say about the client's deadline for the migration? Just the answer, keep the files local.",
+    "why": "A question over a guarded folder; the worker asks the vault and never reads it."
+  },
+  {
+    "name": "notes-survey",
+    "should_trigger": true,
+    "query": "Survey my obsidian notes for every mention of the pricing experiment and summarize what we decided.",
+    "why": "A survey over an indexed corpus, the obsidian-kg path."
+  },
+  {
+    "name": "cheap-delegation",
+    "should_trigger": true,
+    "query": "Can we hand this lookup to the cheap local setup instead of burning Fable tokens on a 300-file read?",
+    "why": "The explicit cost motive the skill exists for."
+  },
+  {
+    "name": "onboarding",
+    "should_trigger": true,
+    "query": "Let's start onboarding the local models on my session history - pick which projects count and clean them first.",
+    "why": "The Phase 2 onboarding is this skill's, even while unbuilt; the skill says so."
+  },
+  {
+    "name": "single-file-read",
+    "should_trigger": false,
+    "query": "Open config.py and tell me what the default timeout is.",
+    "why": "One file; the session reads it directly."
+  },
+  {
+    "name": "web-research",
+    "should_trigger": false,
+    "query": "Research what the current best practice for rate limiting a public API is.",
+    "why": "Web research is deep-research, not a local corpus."
+  },
+  {
+    "name": "run-a-local-model-directly",
+    "should_trigger": false,
+    "query": "Have the local qwen model summarize these two meeting notes into a schema.",
+    "why": "A single bounded local task is local-model-task itself; no worker is needed."
+  },
+  {
+    "name": "write-code",
+    "should_trigger": false,
+    "query": "Add a --dry-run flag to the deploy script.",
+    "why": "An edit, not an information goal."
+  }
+]

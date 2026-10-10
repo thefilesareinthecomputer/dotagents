@@ -1,0 +1,9 @@
+{
+  "goal": "string",
+  "answer": "string",
+  "answerable": "boolean",
+  "evidence": "array",
+  "coverage": "string",
+  "local_calls": "number",
+  "stop_reason": "string"
+}

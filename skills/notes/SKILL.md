@@ -100,6 +100,10 @@ Merge findings into `plan.md`, `todo.md` and any in-flight feature spec. Edit
 surgically, preserve each file's voice. **Do not touch `README.md` or `SPEC.md`** -
 note anything they make false for step 6.
 
+If `tasks/supervisor/` holds reports dated today, read each once and move every
+durable fix it names into `todo.md` or `plan.md` as an item with an owner; the
+report itself is a record and is not edited.
+
 **A hot file is a working index, not a narrative.** One entry is a few lines:
 state, blocker, next action, pointer. Point rather than restate. Keep exact names,
 paths, commands and one-line whys; cut narration, replayed debate, rejected

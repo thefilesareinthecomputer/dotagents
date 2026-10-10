@@ -417,7 +417,8 @@ Six are advisory/non-blocking (`read-size-advisory`,
 `memory-routing` is advisory until a memory folder reaches its cap;
 the rest can block.
 Every script here is wired; retired hooks live under the repo's `__archive/`
-with their tests, not here.
+with their tests, and station elements still earning their place live under
+`specs/drafts/`, not here.
 All shell hooks require
 `jq`; the two quote-aware guards also require `perl`; the python hooks are
 stdlib python3 (all §2 deps). `_require.sh` is not a hook - it is the
@@ -886,7 +887,8 @@ than the change. Phrases that only ever mean that ("private aliases",
 own; the verbs that are also everyday engineering words (scrub, sanitize,
 redact, leak, expose, mask) refuse unless the message uses them in a listed
 harmless collocation (a memory leak, sanitize user input, an exposed port,
-scrub build artifacts, a bitmask), so those pass and anything with an
+scrub build artifacts, a bitmask, or the `sanitize` skill named as a subject
+prefix, spec file or backticked name), so those pass and anything with an
 unlisted subject - "redact client names", "scrub usernames" - fails closed.
 The glued `-m"text"` flag form is inspected like `-m "text"`. IDENTIFIER
 catches the thing itself, importing

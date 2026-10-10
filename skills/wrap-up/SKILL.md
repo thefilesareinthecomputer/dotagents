@@ -5,6 +5,12 @@ description: Full session closeout - a security review and a curator pass over t
 
 # wrap-up
 
+The goal is a clean close and a strong start: the session ends with its files
+reviewed, every in-repo claim true, the tree committed and pushed on the right
+branch, memory reconciled, and `tasks/todo.md` holding everything the next
+session needs after the context is cleared, with nothing left only in this
+conversation.
+
 ```
 fetch → [ security review ‖ curator (background) ‖ inbox → notes ] → join → ignore audit → commit → push → parity → reflect
           (session's files)  (how its prose reads)   (agent-mail) (docs, and every              (repo-device-sync)        (memory)

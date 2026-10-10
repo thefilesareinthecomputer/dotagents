@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "sanitize report",
+  "description": "Counts and relative paths only. No field ever holds a matched value or a snippet of input.",
+  "type": "object",
+  "required": ["mode", "files", "removed", "recall_layer", "files_changed", "skipped", "withheld"],
+  "properties": {
+    "mode": {"enum": ["copy", "tree"]},
+    "files": {"type": "integer", "description": "files handled (text, code, JSON, JSONL, CSV, docx)"},
+    "removed": {
+      "type": "object",
+      "description": "hits by class across every file; term and ban split by view",
+      "propertyNames": {"enum": ["secret", "email", "phone", "home_path", "role_code", "catalog",
+                                 "term", "term-normalized", "term-encoded",
+                                 "ban", "ban-normalized", "ban-encoded", "pattern", "path"]},
+      "additionalProperties": {"type": "integer"}
+    },
+    "recall_layer": {"enum": ["off", "gliner-pii"]},
+    "files_changed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "origin", "removed", "classes"],
+        "properties": {
+          "path": {"type": "string", "description": "relative path in the copy, itself passed through the engine"},
+          "origin": {"type": "string", "description": "the top-level folder, so a whole source can be dropped"},
+          "removed": {"type": "integer"},
+          "classes": {"type": "object", "additionalProperties": {"type": "integer"}}
+        }
+      }
+    },
+    "skipped": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "why"],
+        "properties": {
+          "path": {"type": "string"},
+          "why": {"enum": ["binary", "pdf", "too-large"]},
+          "copied": {"type": "boolean", "description": "copy mode: true when --include-binary copied it through unchanged"}
+        }
+      }
+    },
+    "withheld": {"type": "integer", "description": "answer mode only; always 0 here"}
+  }
+}

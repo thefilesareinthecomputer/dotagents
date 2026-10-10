@@ -125,8 +125,28 @@ class TestRunAndApply(Base):
     def test_clean_run_exits_zero(self):
         r = self.run_task(mode="clean")
         self.assertEqual(r.returncode, 0, r.stderr)
-        rpt, _ = self.report()
+        rpt, run_dir = self.report()
         self.assertEqual(rpt["changed_out_of_scope"], [])
+        self.assertTrue((run_dir / "result.md").exists())
+
+    def test_read_only_run_uses_the_read_only_sandbox_and_applies_nothing(self):
+        r = self.run_cmd("run", "--repo", str(self.repo), "--brief", str(self.brief), "--read-only", mode="readonly")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rpt, run_dir = self.report()
+        self.assertTrue(rpt["read_only"])
+        self.assertEqual(rpt["allowlist"], [])
+        argv = json.loads((self.tmp / "argv.json").read_text())["argv"]
+        self.assertEqual(argv[argv.index("-s") + 1], "read-only")
+        self.assertNotIn("--output-schema", argv)
+        self.assertIn("The answer is 42.", (run_dir / "result.md").read_text())
+        r = self.run_cmd("apply", "--run", rpt["run_id"])
+        self.assertEqual(r.returncode, 0)
+        self.assertIn("read-only", r.stdout)
+
+    def test_no_allowlist_without_read_only_is_rejected(self):
+        r = self.run_cmd("run", "--repo", str(self.repo), "--brief", str(self.brief))
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("--read-only", r.stderr)
 
     def test_apply_refuses_when_head_moved(self):
         self.assertEqual(self.run_task().returncode, 0)
@@ -310,7 +330,9 @@ class TestArgv(Base):
         for keep in ("HOME", "PATH", "CODEX_HOME"):
             self.assertIn(keep, seen, keep)
         self.assertEqual(seen["HOME"], os.environ["HOME"])
-        self.assertEqual(seen["PATH"], os.environ["PATH"])
+        # A pyenv shim on PATH prepends its own dirs when it re-executes python, so the
+        # session's PATH is asserted as a suffix rather than an exact match.
+        self.assertTrue(seen["PATH"].endswith(os.environ["PATH"]), seen["PATH"])
         self.assertEqual(Path(seen["CODEX_HOME"]), (self.state / "home").resolve())
 
     def test_brief_carries_allowlist_and_task(self):
@@ -339,6 +361,14 @@ class TestBoundaryHardening(Base):
         # operator reads to see what Codex touched out of scope.
         dropped = (run_dir / "dropped.patch").read_text()
         self.assertIn("sneaky.txt", dropped, "dropped.patch omits the out-of-scope file")
+
+    def test_gitdir_pointer_rewrite_is_refused_at_harvest(self):
+        r = self.run_task(mode="gitdir")
+        self.assertEqual(r.returncode, 4, r.stderr + r.stdout)
+        rpt, run_dir = self.report()
+        self.assertTrue(any(".git pointer changed" in e for e in rpt["codex_errors"]))
+        self.assertEqual((run_dir / "allowed.patch").read_text(), "")
+        self.assertEqual(git(["status", "--porcelain"], self.repo).stdout, "")
 
     def test_symlink_swap_of_an_allowed_file_is_refused(self):
         # An allowed name whose mode became 120000 must not reach the real tree.

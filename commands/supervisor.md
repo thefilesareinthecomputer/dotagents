@@ -18,8 +18,11 @@ scope creep," "I'm worried about the migration"). If intent or stakes aren't
 clear from the conversation, infer them from the current work and state your
 inference in the brief rather than stalling.
 
-Relay the supervisor's verdict (on track / watch out / stop and rethink)
-and its findings back to the user. It is **advisory**: surface the flags, don't
+Relay the supervisor's verdict (on track / watch out / stop and rethink), its
+findings and its root-cause section back to the user, and **write the report**
+to `tasks/supervisor/YYYY-MM-DD-<slug>.md` as the `cover-me` skill specifies
+(every run, On track included; no transcript text or tool output in it). Name
+the path with the verdict. It is **advisory**: surface the flags, don't
 silently act on them or block on them. For depth it defers (full code review,
 security), route to `agent-skills:code-review-and-quality`,
 `my-security-review-checklist`, or `agent-skills:security-and-hardening`.

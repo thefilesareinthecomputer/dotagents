@@ -77,7 +77,11 @@ HARMLESS_USE = re.compile(
     r"methods|function|functions|prop|props|option|options|flag|flags|hook|hooks|"
     r"type|types|interface|interfaces)\b|"
     r"\bscrub\w*\s+(stale\s+)?(the\s+)?(cache|caches|build|builds|artifact|artifacts|tmp|temp)\b|"
-    r"\b(bit|subnet|net|affinity|signal)\s*mask(s|ed|ing)?\b|\bmask\s+(bits?|the\s+cursor)\b",
+    r"\b(bit|subnet|net|affinity|signal)\s*mask(s|ed|ing)?\b|\bmask\s+(bits?|the\s+cursor)\b|"
+    # The skill named sanitize, as a proper noun: a subject prefix, the spec
+    # file, a backticked name, or "the sanitize skill" (user ruling 2026-10-09).
+    r"(?:^|\n)\s*saniti[sz]e:|`saniti[sz]e`|\bSPEC-SANITIZE\b|"
+    r"\b(the\s+)?saniti[sz]e\s+(skill|spec|engine|command)\b",
     re.I,
 )
 PLACEHOLDER = {

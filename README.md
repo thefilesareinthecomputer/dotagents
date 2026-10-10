@@ -250,6 +250,7 @@ more than the pause that would have prevented it.
   tests/              # station hook suites, plus per-skill behavior batteries
   SPEC.md             # living spec: current state and scope
   specs/              # one folder per harness: station spec + seed files
+  specs/drafts/       # built-but-ungated station elements, one subfolder per harness (claude-code/, codex/, ...); never seeded or wired
   tasks/plan.md       # active plan, backlog, and dev docs
   tasks/todo.md       # next actions and session handoff
   tasks/completed/    # dated cold storage, immutable once written
@@ -275,22 +276,29 @@ description is its trigger contract and its body is the workflow.
 | `ai-engineering` | AI/agent stack knowledge in three modes: read (choose from a dated catalog), write (discover, verify, record), build (intake-driven scaffolding) |
 | `ai-slop-magic-eraser` | Rewrites prose and layout to the user's voice with meaning fixed, and flags what looks invented; runs forked in `curator` |
 | `cmon` | Restates the last verbose reply in as few words as possible, then holds that register |
-| `cover-me` | Spawns the `supervisor` peer to scrutinize in-flight work |
+| `cover-me` | Spawns the `supervisor` peer to scrutinize in-flight work and writes its dated root-cause report to `tasks/supervisor/` |
 | `deep-research` | Multi-angle web research: parallel researchers, cross-validated, cited |
 | `frontend-aesthetics` | Raise UI past the defaults that read as AI slop, and verify the rendered result in a browser |
 | `hi` | Session-start orientation, read-only |
 | `meta-loop` | Orchestration: plan, fan out, verify, synthesize |
 | `my-security-review-checklist` | Pre-merge security gate for agent tooling |
 | `code-kg` | Offline symbol-level knowledge graph over a codebase: imports, entry points, framework-aware liveness, subsystem communities, coupling hotspots, agent-tooling layer, data-store inventory, coverage join |
+| `a-little-help-from-my-friends` | Panel review for the highest-stakes reasoning: four harnesses answer one question over a fixed file set, rank each other blind behind per-reviewer shuffled labels, and a Claude chair synthesizes; every member read-only through agent-review, the script writes every output |
+| `agent-review` | One outside harness (Claude Code, Codex, Cursor or Antigravity, with its model and effort) reviews a fixed set of files read-only from a staging copy holding only those files, after the user approves the list; the review comes back as text |
+| `antigravity-task` | Delegates one bounded task from Claude Code to the Antigravity CLI (Gemini) in an isolated worktree under a sandbox-exec write-deny profile, writes confined to a file allowlist, diff reviewed before apply; read-only mode returns text |
 | `codex-task` | Delegates one bounded task from Claude Code to the local Codex CLI in an isolated worktree, writes confined to a file allowlist, diff reviewed before apply |
+| `cursor-task` | Delegates one bounded task from Claude Code to the Cursor agent CLI (Grok) in an isolated worktree under a sandbox-exec write-deny profile, writes confined to a file allowlist, diff reviewed before apply; read-only mode returns text |
+| `local-model-task` | Hands one bounded text or search task from Claude Code to a local Ollama model on loopback, with the result on disk and a short capsule back; refuses Ollama's cloud API and exposed listeners |
 | `notes` | End-of-session docs sweep, plus correcting any repo text the session made false |
 | `obsidian` | Obsidian markdown standard plus a per-vault authoring workflow |
 | `obsidian-kg` | Offline section-level knowledge graph over a markdown corpus |
 | `project-knowledge-vault` | Seeds and lints a flat, OKF-compatible project vault: the contract, a scaffolder, a conformance linter and obsidian-kg profile rows |
 | `reflect` | End-of-session memory reconciliation |
 | `repo-device-sync` | Multi-device git sync ritual |
+| `sanitize` | Deterministic scrubbing engine: a cleaned copy of any file or folder, a report-only tree scan, or an answer gate on stdin; secrets, personal shapes and the station term list on raw and normalized text, no model inside, a report that never holds a value |
 | `skill-authoring` | House profile for authoring and auditing agent tooling |
 | `sprint-board` | Plans, writes and audits agile backlogs as markdown |
+| `support-local` | Hands one information goal to a Haiku 5.5 worker that drives the local models over a named corpus and returns one JSON answer whose references the script re-resolves; headless runs assert the model and record tokens |
 | `teach-me` | Teaches a topic and certifies understanding |
 | `wrap-up` | Full session closeout: security review and curator alongside inbox and notes, then gitignore audit, commit and sync, then reflect |
 
@@ -304,7 +312,8 @@ description is its trigger contract and its body is the workflow.
 | `my-security-reviewer` | Fresh-context reviewer applying the checklist to staged diffs |
 | `reader` | Read-only fan-out worker: searches one bounded question, returns findings |
 | `researcher` | Source-cited researcher for one bounded angle; the `deep-research` worker |
-| `supervisor` | Read-only peer watching in-flight work for drift and landmines |
+| `supervisor` | Read-only peer watching in-flight work for drift and landmines, with a root-cause section (config, prompt, session, environment) on every verdict |
+| `support-local` | Goal-bound worker on `claude-haiku-5-5` that drives local models over a corpus and returns one JSON answer with evidence; cannot spawn agents or read guarded files |
 | `worker` | Fan-out worker that changes the tree and returns evidence of what it changed |
 
 ### Commands (`commands/*.md`)

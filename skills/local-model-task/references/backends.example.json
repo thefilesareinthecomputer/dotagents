@@ -1,0 +1,18 @@
+{
+  "default": "ollama",
+  "backends": {
+    "ollama": {
+      "base_url": "http://127.0.0.1:11434",
+      "api": "ollama",
+      "locality": "local",
+      "default_model": "qwen3.5:4b"
+    },
+    "gateway": {
+      "base_url": "https://gateway.example.com/v1",
+      "api": "openai",
+      "locality": "private",
+      "default_model": "small",
+      "api_key_env": "MODEL_GATEWAY_KEY"
+    }
+  }
+}

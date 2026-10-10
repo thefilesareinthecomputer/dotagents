@@ -170,12 +170,13 @@ def check_argv(argv: list[str]) -> None:
             raise TaskError(f"refusing to spawn Codex with {bad!r} in argv")
 
 
-def build_argv(ws: Path, model: str, effort: str, last_msg: Path) -> list[str]:
+def build_argv(ws: Path, model: str, effort: str, last_msg: Path, read_only: bool = False) -> list[str]:
     if not TOKEN_RE.match(model) or not TOKEN_RE.match(effort):
         raise TaskError("model and effort must be plain tokens")
     argv = [
         codex_bin(), "exec", "--json", "--ephemeral", "--ignore-user-config",
-        "-s", "workspace-write", "-C", str(ws),
+        # read-only is Codex's own no-write sandbox; the answer comes back as text.
+        "-s", "read-only" if read_only else "workspace-write", "-C", str(ws),
         "-m", model,
         "-c", f'model_reasoning_effort="{effort}"',
         "-c", 'approval_policy="never"',
@@ -187,16 +188,19 @@ def build_argv(ws: Path, model: str, effort: str, last_msg: Path) -> list[str]:
         "-c", "analytics.enabled=false",
         "-c", "features.memories=false",
         "-o", str(last_msg),
-        "--output-schema", str(RESULT_SCHEMA),
-        "-",
     ]
+    # The result schema shapes an edit run's final message. A read-only run's deliverable
+    # is the message itself, so it stays free text and any JSON block in it is the caller's.
+    if not read_only:
+        argv += ["--output-schema", str(RESULT_SCHEMA)]
+    argv.append("-")
     check_argv(argv)
     return argv
 
 
 def render_brief(task: str, allow: list[str], repo_name: str) -> str:
     tpl = BRIEF_TEMPLATE.read_text(encoding="utf-8")
-    allow_block = "\n".join(f"- {p}" for p in allow)
+    allow_block = "\n".join(f"- {p}" for p in allow) if allow else "- (none: this is a read-only run; answer in your final message)"
     return (tpl.replace("{{TASK}}", task.strip())
                .replace("{{ALLOWLIST}}", allow_block)
                .replace("{{REPO_NAME}}", repo_name))
@@ -252,7 +256,10 @@ def spawn_codex(argv: list[str], prompt: str, run_dir: Path, timeout: int,
         for sig in (signal.SIGTERM, signal.SIGINT):
             prior[sig] = signal.getsignal(sig)
             signal.signal(sig, _raise_interrupt)
+        # Both clocks: the monotonic clock stops while a Mac sleeps, so a run that spans a
+        # sleep would outlive its timeout on monotonic time alone (seen 2026-10-10).
         deadline = time.monotonic() + timeout
+        wall_deadline = time.time() + timeout
         # start_new_session=True detaches Codex from this process group, so
         # without the finally it survives anything that kills the parent -
         # including the Bash-tool timeout SKILL.md tells the operator to set.
@@ -260,7 +267,7 @@ def spawn_codex(argv: list[str], prompt: str, run_dir: Path, timeout: int,
         # harvest it or stop it.
         try:
             while proc.poll() is None:
-                if time.monotonic() > deadline:
+                if time.monotonic() > deadline or time.time() > wall_deadline:
                     _kill_group(proc)
                     return proc.returncode if proc.returncode is not None else -9, "timeout"
                 time.sleep(0.2)
@@ -329,10 +336,23 @@ def symlink_entries(ws: Path, base: str, paths: list[str]) -> list[str]:
     return sorted(set(found))
 
 
-def harvest(ws: Path, allow: list[str], run_dir: Path, base: str) -> tuple[list[str], list[str]]:
+def gitdir_pointer(ws: Path) -> bytes:
+    """The worktree's `.git` file, which tells git where the real gitdir is. An agent with
+    write access to the worktree could point it at the user's own repository, so harvest
+    refuses when it changed since the worktree was made (closeout review 2026-10-10). A
+    deleted or replaced pointer reads as changed."""
+    try:
+        return (ws / ".git").read_bytes()
+    except OSError:
+        return b""
+
+
+def harvest(ws: Path, allow: list[str], run_dir: Path, base: str, pointer: bytes) -> tuple[list[str], list[str]]:
     """Diff the worktree against the base commit; write allowed.patch; return
     (in_scope, out_of_scope). Diffing against base rather than the index means
     anything Codex staged or committed is still seen."""
+    if gitdir_pointer(ws) != pointer:
+        raise TaskError("the worktree's .git pointer changed during the run; nothing harvested", EXIT_CODEX_ERROR)
     git(["add", "-A", "-N", "--", "."], ws)  # intent-to-add so new files diff
     names = git(["diff", "--no-renames", "--name-only", "-z", base, "--"], ws).stdout.split("\0")
     changed = sorted(n for n in names if n)
@@ -368,7 +388,9 @@ def dirty_paths(root: Path, paths: list[str]) -> list[str]:
 
 def cmd_run(a: argparse.Namespace) -> int:
     root = repo_root(a.repo)
-    allow = validate_allow(root, a.allow)
+    allow = validate_allow(root, a.allow) if a.allow else []
+    if not allow and not a.read_only:
+        raise TaskError("at least one --allow path is required unless --read-only")
     timeout = int(a.timeout)
     if not 30 <= timeout <= MAX_TIMEOUT:
         raise TaskError(f"--timeout must be between 30 and {MAX_TIMEOUT} seconds")
@@ -385,9 +407,10 @@ def cmd_run(a: argparse.Namespace) -> int:
     ws = run_dir / "ws"
     run_dir.mkdir(parents=True)
     git(["worktree", "add", "--detach", str(ws), base], root)
+    pointer = gitdir_pointer(ws)
 
     last_msg = run_dir / "last_message.txt"
-    argv = build_argv(ws, a.model, a.effort, last_msg)
+    argv = build_argv(ws, a.model, a.effort, last_msg, a.read_only)
     prompt = render_brief(task, allow, root.name)
     (run_dir / "brief.md").write_text(prompt, encoding="utf-8")
     (run_dir / "argv.json").write_text(json.dumps(argv, indent=1), encoding="utf-8")
@@ -399,7 +422,12 @@ def cmd_run(a: argparse.Namespace) -> int:
     if (home / "auth.json").exists() and not (home / "auth.json").is_symlink():
         warnings.append("Codex replaced the auth symlink in the isolated home during this run; "
                         "the next run relinks, but check `codex login status` if auth fails")
-    in_scope, out_scope = harvest(ws, allow, run_dir, base)
+    try:
+        in_scope, out_scope = harvest(ws, allow, run_dir, base, pointer)
+    except TaskError as exc:
+        in_scope, out_scope = [], []
+        ev["errors"].append(str(exc))
+        (run_dir / "allowed.patch").write_text("", encoding="utf-8")
 
     result = None
     if last_msg.exists():
@@ -407,6 +435,12 @@ def cmd_run(a: argparse.Namespace) -> int:
             result = json.loads(last_msg.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, UnicodeDecodeError):
             result = {"raw": last_msg.read_text(encoding="utf-8", errors="replace")[:4000]}
+    # The full final message, for read-only runs whose deliverable is text. The
+    # schema-constrained last_message.txt holds only the JSON object.
+    result_text = None
+    if ev["messages"]:
+        (run_dir / "result.md").write_text("\n\n".join(ev["messages"]), encoding="utf-8")
+        result_text = str(run_dir / "result.md")
 
     if reason == "timeout":
         code = EXIT_TIMEOUT
@@ -419,8 +453,9 @@ def cmd_run(a: argparse.Namespace) -> int:
 
     report = {
         "run_id": run_id, "run_dir": str(run_dir), "repo": str(root), "base": base,
-        "model": a.model, "effort": a.effort, "timeout_s": timeout, "elapsed_s": elapsed,
+        "model": a.model, "effort": a.effort, "read_only": a.read_only, "timeout_s": timeout, "elapsed_s": elapsed,
         "allowlist": allow, "changed_in_scope": in_scope, "changed_out_of_scope": out_scope,
+        "result_text": result_text,
         "dirty_allowed_files_in_repo": dirty_paths(root, allow),
         "codex_home": str(home), "warnings": warnings,
         "codex_rc": rc, "exit_reason": reason, "codex_errors": ev["errors"],
@@ -442,6 +477,7 @@ def cmd_run(a: argparse.Namespace) -> int:
         print(f"  summary  : {str(result['summary'])[:300]}")
     print(f"  patch    : {run_dir / 'allowed.patch'}")
     print(f"  report   : {run_dir / 'report.json'}")
+    print(f"report_json={run_dir / 'report.json'}")  # the machine-readable line callers anchor on
     return code
 
 
@@ -466,6 +502,9 @@ def cmd_apply(a: argparse.Namespace) -> int:
     root = Path(rpt["repo"])
     if repo_root(str(root)) != root:
         raise TaskError("recorded repo root no longer resolves")
+    if not rpt["allowlist"]:
+        print("nothing to apply: the run was read-only")
+        return EXIT_OK
     allow = validate_allow(root, rpt["allowlist"])  # re-check against the tree as it is now
     patch = run_dir / "allowed.patch"
     if not patch.exists() or not patch.read_text(encoding="utf-8").strip():
@@ -540,8 +579,10 @@ def main(argv: list[str] | None = None) -> int:
 
     r = sub.add_parser("run", help="run Codex on a task in an isolated worktree")
     r.add_argument("--repo", required=True, help="any path inside the target repo")
-    r.add_argument("--allow", action="append", required=True, help="repo-relative file Codex may change; repeatable")
+    r.add_argument("--allow", action="append", help="repo-relative file Codex may change; repeatable")
     r.add_argument("--brief", required=True, help="file holding the task text, or - for stdin")
+    r.add_argument("--read-only", action="store_true",
+                   help="Codex's read-only sandbox; no allowlist needed; the final message lands in result.md")
     r.add_argument("--model", default=DEFAULT_MODEL)
     r.add_argument("--effort", default=DEFAULT_EFFORT)
     r.add_argument("--timeout", default=DEFAULT_TIMEOUT, help=f"seconds, max {MAX_TIMEOUT}")

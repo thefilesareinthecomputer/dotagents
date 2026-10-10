@@ -21,6 +21,7 @@ and should be run with a Bash timeout a little above `--timeout` (default 900 s)
 ```
 codex_task.py run --repo <path-in-repo> --allow <file> [--allow <file>...] --brief <file|->
                   [--model gpt-6-astra] [--effort high] [--timeout 900] [--base HEAD]
+codex_task.py run --repo <path-in-repo> --read-only --brief <file|-> [--model ...]
 ```
 
 - `--allow` is repo-relative, files only, repeatable. Paths may not exist yet
@@ -29,6 +30,16 @@ codex_task.py run --repo <path-in-repo> --allow <file> [--allow <file>...] --bri
 - `--brief` is the task text. Write it as you would brief a contractor: what to
   change, what "done" looks like, what to leave alone. The script wraps it in
   `references/brief.md`, which adds the allowlist and the result shape.
+- `--read-only` runs Codex's own read-only sandbox, which takes no allowlist and
+  allows no edits; the final message lands in `result.md`, and `report.json` points
+  at it. This is the mode for reviews and opinions, and `apply` has nothing to do
+  afterwards. Probed 2026-10-10: writes inside and outside the worktree are
+  refused, and reads outside it are not.
+- `--effort` is passed as Codex's `model_reasoning_effort` config key, since
+  `codex exec --help` lists no effort flag (codex-cli 0.160.0, 2026-10-10). The documented values are `low`, `medium`,
+  `high`, `xhigh`, `max` and `ultra`, and which ones apply depends on the model;
+  GPT-6 Astra answered on `medium`, `high`, `xhigh`, `max` and `ultra` (probed
+  2026-10-10).
 - The worktree starts from `--base` (default `HEAD`), so uncommitted edits in
   the real tree are not visible to Codex. Commit first if they matter.
 

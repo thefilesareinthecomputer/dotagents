@@ -1,0 +1,74 @@
+[
+  {
+    "name": "clean-copy-of-folder",
+    "query": "make me a cleaned copy of this export folder with the client names and any keys stripped before I share it",
+    "should_trigger": true,
+    "why": "A sanitized copy of a folder is copy mode."
+  },
+  {
+    "name": "training-staging",
+    "query": "run the staging folder through the scrubber before the fine-tune reads it and show me what was removed by class",
+    "should_trigger": true,
+    "why": "Copy mode over a training staging folder with the counts-only report."
+  },
+  {
+    "name": "word-doc-before-llm",
+    "query": "I want to paste this docx into a cloud model, strip anything identifying from it first",
+    "should_trigger": true,
+    "why": "A Word document cleaned before any model sees it."
+  },
+  {
+    "name": "repo-pre-publish-scan",
+    "query": "scan the repo for leftover identifiers, emails or secrets before I push the mirror, don't change anything",
+    "should_trigger": true,
+    "why": "Tree mode: report only, exit 1 on hits."
+  },
+  {
+    "name": "extra-terms-this-run",
+    "query": "redact these three project codenames and anything matching TCK-##### from the notes folder as well as the usual list",
+    "should_trigger": true,
+    "why": "Per-run terms and patterns on top of the station list."
+  },
+  {
+    "name": "vault-answer-gate",
+    "query": "before the vault answer goes back to the cloud agent, check it against the protected term list and withhold it if it hits",
+    "should_trigger": true,
+    "why": "Answer mode on stdin, failing closed."
+  },
+  {
+    "name": "html-input-sanitizer",
+    "query": "sanitize user input in the signup form so script tags can't get through",
+    "should_trigger": false,
+    "why": "Web input sanitization is application code, not this engine."
+  },
+  {
+    "name": "git-history-rewrite",
+    "query": "rewrite the git history to drop the commit that had the token in it",
+    "should_trigger": false,
+    "why": "History rewriting is a git operation; the engine never edits history."
+  },
+  {
+    "name": "write-time-hook",
+    "query": "why did the identifier hook flag my edit to the skill file just now",
+    "should_trigger": false,
+    "why": "The write-time hook is its own tool; this skill is a batch copy and scan."
+  },
+  {
+    "name": "pdf-text-extraction",
+    "query": "pull the text out of these PDFs into markdown",
+    "should_trigger": false,
+    "why": "Extraction, not cleaning; PDFs are out of scope for this engine."
+  },
+  {
+    "name": "model-pii-masker",
+    "query": "which local NER model should we use to mask names in transcripts",
+    "should_trigger": false,
+    "why": "Picking an AI tool is the ai-engineering skill; the recall layer here is a later phase."
+  },
+  {
+    "name": "delete-the-file",
+    "query": "delete the old exports folder, we don't need it anymore",
+    "should_trigger": false,
+    "why": "A deletion is not a cleaned copy."
+  }
+]

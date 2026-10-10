@@ -20,7 +20,9 @@ Only edits to the files listed above are kept. Any change to any other path is d
 
 # Final answer
 
-Reply with a single JSON object and nothing else:
+In a read-only run (no files listed above), answer the task in your final message exactly as the task asks, in the shape it asks for, and add nothing after it. Read files with read-only shell commands such as `cat`, `sed -n` or `grep`, since those are your reading tools, and change nothing.
+
+Otherwise reply with a single JSON object and nothing else:
 
 - `summary`: two or three sentences on what you changed and why.
 - `files_changed`: the listed paths you actually edited.

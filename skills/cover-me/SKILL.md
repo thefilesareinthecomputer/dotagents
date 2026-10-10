@@ -169,12 +169,33 @@ allowed to say **"you're fine."**
 
 ## What you get back
 
-A verdict first, then terse findings:
+A verdict first, then terse findings, then a root-cause section:
 
 - **On track**: proportionate and scoped; names what it checked.
-- **Watch out**: it'll work, but here's what'll bite.
-- **Stop and rethink**: real bug, blown scope, or unsafe/irreversible move.
+- **Watch out**: the work will function, but something in it will cause
+  problems, and the findings name what.
+- **Stop and rethink**: there is a real bug, the scope is blown, or the next
+  move is unsafe or irreversible.
 
 Findings are one line each (`file:line`, what's wrong, the smallest fix), most
 important first. Act on the Stop-and-rethink and Watch-out items; the verdict is
-advice, the call is yours.
+advice, and the call is yours.
+
+The **root cause** section names, per finding that has one, the cause class
+(config, prompt, session, environment), its evidence, the durable fix (which
+file changes) and whether the transcript shows a pattern. On an On-track verdict
+it says what was checked.
+
+## Write the report, every time
+
+The supervisor is read-only, so **you** write its report on every run,
+including On track. The path is `tasks/supervisor/YYYY-MM-DD-<slug>.md` at the
+repo root, with the date from `date +%F` and the slug from the task intent in
+kebab case (at most 40 characters; add `-2`, `-3` when the name exists that
+day). The report contains, in this order and nothing else: the date and session
+id; the task intent as you briefed it; the stakes; the verdict; the findings
+verbatim; the root-cause section verbatim; and one line per durable fix saying
+whether you applied it, queued it in `tasks/todo.md`, or left it for the user. Never paste transcript
+text, diffs or tool output into the report: it is a tracked file, and the
+transcript can hold secrets. Tell the user the path in one line with the
+verdict. The folder's rules are in `tasks/AGENTS.md`.
