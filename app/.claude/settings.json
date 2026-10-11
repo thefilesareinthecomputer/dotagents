@@ -12,7 +12,15 @@
       "Bash(agents config get:*)",
       "Bash(agents config set:*)",
       "Bash(uv run agents config get:*)",
-      "Bash(uv run agents config set:*)"
+      "Bash(uv run agents config set:*)",
+      "Bash(agn seat:*)",
+      "Bash(uv run agn seat:*)",
+      "Bash(agn search:*)",
+      "Bash(uv run agn search:*)",
+      "Bash(agn config get:*)",
+      "Bash(agn config set:*)",
+      "Bash(uv run agn config get:*)",
+      "Bash(uv run agn config set:*)"
     ],
     "deny": [
       "Read(**/.env)",

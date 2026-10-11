@@ -362,6 +362,12 @@ def test_seat_spawn_env_marks_the_seat():
     a seat's CLI env carries AGENTS_APP_SEAT, the main lane's does not."""
     assert "AGENTS_APP_SEAT" not in chat._cli_env()
     assert chat._cli_env(FOREIGN_SEAT)["AGENTS_APP_SEAT"] == "worker"
+    # The main lane never looks like a seat, even when the server's own env
+    # holds the marker.
+    import os
+    from unittest import mock
+    with mock.patch.dict(os.environ, {"AGENTS_APP_SEAT": "leaked"}):
+        assert "AGENTS_APP_SEAT" not in chat._cli_env()
 
 
 def test_spawn_env_carries_no_credentials(monkeypatch):

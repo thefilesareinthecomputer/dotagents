@@ -957,8 +957,9 @@ Overrides: `MEMGATE_PRESSURE_LEVEL`, `MEMGATE_SWAP_MB`, `MEMGATE_FREE_PCT`,
 `MEMGATE_ACK_FILE` (default `~/.claude/state/memory-gate-ack`). Touching the
 ack eases the gate for an hour and is the user's call from their own shell,
 which is why `guard-private.sh` refuses shell access to `~/.claude/state`.
-`BRAIN_SEAT`, set by a headless spawner, denies every gated call outright
-with an attributable reason prefix, because no prompt is possible headless.
+`AGENTS_APP_SEAT` (or `BRAIN_SEAT` from the standalone second-brain app), set
+by a headless spawner, denies every gated call outright with an attributable
+reason prefix, because no prompt is possible headless.
 
 Script: [`claude-code/hooks/memory_pressure_gate.py`](hooks/memory_pressure_gate.py).
 

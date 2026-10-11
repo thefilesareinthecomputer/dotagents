@@ -56,14 +56,17 @@ norm=$(python3 -c 'import os,sys; print(os.path.normpath(sys.argv[1]))' "$path" 
 [ -n "$norm" ] && path="$norm"
 
 target="${HOME}/.claude"
+# A headless group-chat seat marks its process with AGENTS_APP_SEAT (the agents
+# app in ~/.agents/app) or BRAIN_SEAT (the standalone second-brain app). Either
+# way an ask would be a silent deny nobody can attribute, so a seat is denied
+# with a prefix the spawner parses.
+seat="${AGENTS_APP_SEAT:-${BRAIN_SEAT:-}}"
 
 case "$path" in
   "$target"|"$target"/*)
-    # A second-brain seat (BRAIN_SEAT in its env) is headless: an ask
-    # would be a silent deny nobody can attribute. Deny with a prefix the
-    # spawner parses; global config changes are the user's own turn.
-    if [ -n "${BRAIN_SEAT:-}" ]; then
-      reason="brain-gate: claude-folder: seat ${BRAIN_SEAT} may not modify ${path} inside the global ~/.claude config folder; a headless seat cannot answer the prompt this would raise. The user changes global config in their own turn."
+    # Global config changes are the user's own turn.
+    if [ -n "$seat" ]; then
+      reason="brain-gate: claude-folder: seat ${seat} may not modify ${path} inside the global ~/.claude config folder; a headless seat cannot answer the prompt this would raise. The user changes global config in their own turn."
       jq -n --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
       exit 0
     fi
@@ -75,8 +78,8 @@ case "$path" in
     # A repo's own permission file. A repo-wide Edit allow would otherwise
     # let a session grant itself more, so the prompt is raised here; a seat
     # is denied outright with the same parseable prefix as above.
-    if [ -n "${BRAIN_SEAT:-}" ]; then
-      reason="brain-gate: claude-folder: seat ${BRAIN_SEAT} may not modify ${path}; permission files change only in the user's own turn."
+    if [ -n "$seat" ]; then
+      reason="brain-gate: claude-folder: seat ${seat} may not modify ${path}; permission files change only in the user's own turn."
       jq -n --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
       exit 0
     fi

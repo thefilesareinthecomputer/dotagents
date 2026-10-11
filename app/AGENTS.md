@@ -13,8 +13,8 @@ group threads. It lives as the `app/` module of the skills repo and is its own
 gate) is not part of this app; it lives with the vault that runs it. The repo's
 root `AGENTS.md` holds the rules every agent works under; this file adds the
 ones specific to this module, and `CLAUDE.md` contains only `@AGENTS.md`. The
-working state and the record of moving the standalone app into this repo are in
-the repo's `tasks/` folder (`SPEC-AGENTS-APP.md`).
+maintainer's working state lives in the repo's `tasks/` folder, which is not
+part of the published tree.
 
 ## Run it
 
@@ -70,9 +70,9 @@ seats live in the global roster (`~/.agents-app/seats.json`); the user calls one
 into a thread by @-mentioning its name, which invites it on the spot. The
 main agent displays as Main and answers to @main, @agents, @agn, or @app
 (never an invite); a message @-scoped to other seats skips it. A
-conversation with participants runs sequential rounds: each seat is a REAL
-harness session with its own cwd, context, and permissions (SPEC-GROUP-CHAT-V1
-in tasks/ is the contract). Permissions are federated: a claude seat runs
+conversation with participants runs sequential rounds: each seat is a real
+harness session with its own cwd, context, and permissions, and the README's
+group chat section is the contract. Permissions are federated: a claude seat runs
 under its own repo's `.claude` settings, every seat carries a fixed deny set
 as spawn flags (grant and rule mutation, plugin and harness re-spawns;
 pushes are decided by the seat repo's own committed allow list), a seat

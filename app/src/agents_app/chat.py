@@ -272,8 +272,10 @@ def _cli_env(seat: dict | None = None) -> dict[str, str]:
     keep |= {name.strip() for name
              in os.environ.get("AGENTS_APP_SPAWN_PASSTHROUGH", "").split(",")
              if name.strip()}
+    # The seat marker is set per spawn below, never inherited from the server's
+    # own environment, so the main lane can never look like a seat.
     env = {name: value for name, value in os.environ.items()
-           if name in keep or name.startswith("AGENTS_APP_")}
+           if name in keep or (name.startswith("AGENTS_APP_") and name != "AGENTS_APP_SEAT")}
     # `agents` must resolve inside spawned sessions even on a fresh clone
     # with no global install: the server's own venv bin carries it.
     venv_bin = str(Path(sys.executable).resolve().parent)
@@ -298,7 +300,9 @@ def _cli_env(seat: dict | None = None) -> dict[str, str]:
 # the env (_cli_env marks every seat spawn; app._refuse_inside_seat).
 _SEAT_DENIED_GRANTS = ("Bash(agents seat:*)", "Bash(uv run agents seat:*)",
                        "Bash(agents config set:*)",
-                       "Bash(uv run agents config set:*)")
+                       "Bash(uv run agents config set:*)",
+                       "Bash(agn seat:*)", "Bash(uv run agn seat:*)",
+                       "Bash(agn config set:*)", "Bash(uv run agn config set:*)")
 
 # Actions denied to every seat as spawn flags, so the AUTHORIZATION prompt
 # text has a mechanism behind it (PLAN-SEAT-HARDENING-V1 P0): mutating

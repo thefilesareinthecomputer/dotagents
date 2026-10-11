@@ -36,7 +36,9 @@ Environment overrides:
                           level counts (default 35)
   MEMGATE_ACK_FILE        ack file (default ~/.claude/state/memory-gate-ack);
                           touching it eases the gate for ACK_MINUTES
-  BRAIN_SEAT              set by the second-brain spawner on a seat's process:
+  AGENTS_APP_SEAT         set by the agents app's spawner on a seat's process
+                          (BRAIN_SEAT, from the standalone second-brain app,
+                          is honored the same way):
                           every gated call is denied outright (no prompt is
                           possible headless) with a "brain-gate: memory-pressure"
                           reason prefix the spawner attributes, ack or not
@@ -243,7 +245,7 @@ def main():
     if sig is None or not severity(sig, cfg)[0]:
         return 0
     acked = acknowledged(ack_file)
-    seat = env.get('BRAIN_SEAT') or None
+    seat = env.get('AGENTS_APP_SEAT') or env.get('BRAIN_SEAT') or None
     # No ps spawn on a struggling machine for a call that passes anyway,
     # and no process names for a seat: they land in a foreign repo's
     # conversation record.

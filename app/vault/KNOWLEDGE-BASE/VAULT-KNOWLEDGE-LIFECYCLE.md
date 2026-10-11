@@ -10,7 +10,7 @@ tags:
 
 # The Knowledge Lifecycle
 
-This vault runs a closed loop. Knowledge is not collected; it is earned. Every note in `KNOWLEDGE-BASE/` passed through the same gate, and nothing else counts as knowledge.
+A vault in this tiered layout can run a closed loop, where knowledge is earned rather than collected and every note in `KNOWLEDGE-BASE/` passed through the same gate. The loop is run by skills that live with the vault that uses them, not by this app; the sample vault here follows the layout and this note describes the loop those skills implement.
 
 ## The loop
 
@@ -20,7 +20,7 @@ This vault runs a closed loop. Knowledge is not collected; it is earned. Every n
 4. **Projects** in `PROJECTS/` consume the knowledge base. See the template workspace at [[PROJECTS/PROJECT-A/index|PROJECT-A]].
 5. **Gap assessment** scores a project's required knowledge against `KNOWLEDGE-BASE/` only. It is blind to `_RESEARCH/` by design. The ranked gap queue becomes the next research work order, closing the loop.
 
-Validated mastery accumulates in the ledger at [[user-knowledge-profile]].
+Validated mastery accumulates in the owner's ledger under `_USER/`, which is per user and not part of the sample vault.
 
 ## Invariants
 
