@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCANNER = ROOT / "skills" / "my-security-review-checklist" / "scripts" / "unicode_smuggle_check.py"
-PUBLISHED = ["agents", "commands", "skills", "specs", "tests", "second-brain", ".github", "sync-skills.sh"]
+PUBLISHED = ["agents", "commands", "skills", "specs", "tests", "app", ".github", "sync-skills.sh"]
 
 
 class PublishedSetHygiene(unittest.TestCase):

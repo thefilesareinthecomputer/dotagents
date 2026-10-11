@@ -94,9 +94,9 @@ assembly step, so:
   tree into `~/.claude/{skills,agents,commands}`, preserving device-local entries.
 - Keep the living docs current (this file, `README.md` - incl. its Architecture
   and Skills catalog sections - and `tasks/plan.md`).
-- Maintain `second-brain/`, the optional local app for talking to the harnesses
-  over a markdown vault: a FastAPI server on loopback, a vanilla JS chat and
-  graph UI, and the `brain` CLI. It is its own `uv` project with `fastapi` and
+- Maintain `app/`, the agents chat app for talking to the harnesses over a
+  markdown vault: a FastAPI server on loopback, a vanilla JS chat and graph UI
+  with multi-agent group threads, and the `agents` CLI (alias `agn`). It is its own `uv` project with `fastapi` and
   `uvicorn` as its only runtime dependencies, loads the one `obsidian-kg` engine
   from `skills/`, and never holds an API key; model calls go through a harness
   CLI or the local Ollama daemon.

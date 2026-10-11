@@ -254,7 +254,7 @@ more than the pause that would have prevented it.
   tasks/plan.md       # active plan, backlog, and dev docs
   tasks/todo.md       # next actions and session handoff
   tasks/completed/    # dated cold storage, immutable once written
-  second-brain/       # optional local app: chat with the harnesses over a markdown vault and its graph; own uv project
+  app/                # the agents chat app: group chat with the harnesses over a markdown vault and its graph; own uv project, CLI `agents` / `agn`
   __archive/          # gitignored soft-deletions of retired root docs
   README.md           # this file, including the catalog and architecture
   AGENTS.md           # the harness-agnostic rules every agent works under
@@ -301,7 +301,7 @@ description is its trigger contract and its body is the workflow.
 | `sprint-board` | Plans, writes and audits agile backlogs as markdown |
 | `support-local` | Hands one information goal to a Haiku 5.5 worker that drives the local models over a named corpus and returns one JSON answer whose references the script re-resolves; headless runs assert the model and record tokens |
 | `teach-me` | Teaches a topic and certifies understanding |
-| `wrap-up` | Full session closeout: security review and curator alongside inbox and notes, then gitignore audit, commit and sync, then reflect |
+| `wrap-up` | Closes a session cleanly for a strong start next time: review of the session's files, docs and the handoff brought current, commit and push on the right branch, then memory |
 
 ### Subagents (`agents/*.md`)
 
@@ -326,7 +326,7 @@ description is its trigger contract and its body is the workflow.
 | `/my-security-review` | The agent-tooling security review; dispatches `my-security-reviewer` for depth |
 | `/reflect` | Memory reconciliation (propose -> user gate -> apply); in-repo stale claims go to `/notes` |
 | `/supervisor` | Spawns the supervisor peer (alias of `cover-me`) |
-| `/wrap-up` | Full closeout: security review and curator alongside inbox and `/notes`, then gitignore audit, commit, sync and push, then `/reflect` |
+| `/wrap-up` | Closes the session cleanly: review, inbox and `/notes`, commit and push on the right branch, then `/reflect` |
 | `/spec` `/plan` `/build` `/test` `/review` `/ship` `/code-simplify` | House SOP for each stage, self-contained |
 
 Those seven stage commands each carry the house procedure in full and defer to
