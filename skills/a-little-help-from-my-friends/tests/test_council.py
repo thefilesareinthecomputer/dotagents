@@ -173,6 +173,47 @@ class TestStages(Base):
         self.assertIn("fewer than two", r.stderr)
         self.assertTrue((self.out / "run.json").exists())
 
+    def test_unavailable_member_is_skipped_and_the_run_is_partial(self):
+        self.env["AGENT_REVIEW_FAKE_MISSING"] = "codex"
+        responses = {m: {"stage2": "ABC"} for m in MEMBERS}
+        r = self.run_council(responses)
+        self.assertEqual(r.returncode, 3, r.stderr + r.stdout)
+        self.assertIn("skipped", r.stdout)
+        self.assertIn("codex", r.stdout)
+        self.assertFalse((self.out / "stage1" / "codex-brief.md").exists())
+        self.assertFalse((self.out / "stage2" / "codex-brief.md").exists())
+        run = json.loads((self.out / "run.json").read_text())
+        self.assertEqual(list(run["skipped"]), ["codex"])
+        self.assertNotIn("codex", run["members"])
+        tally = json.loads((self.out / "tally.json").read_text())
+        self.assertEqual(sorted(tally["answered"]), ["antigravity", "claude", "cursor"])
+        self.assertEqual(tally["valid_reviews"], 3)
+        self.assertTrue((self.out / "synthesis.md").exists())
+        self.assertNotIn("codex", [c["member"] for c in self.calls()])
+
+    def test_too_few_available_members_exits_4_before_staging(self):
+        self.env["AGENT_REVIEW_FAKE_MISSING"] = "codex,cursor,antigravity"
+        r = self.run_council()
+        self.assertEqual(r.returncode, 4, r.stderr + r.stdout)
+        self.assertIn("fewer than two members are available", r.stderr)
+        self.assertIn("codex", r.stderr)
+        self.assertFalse(self.out.exists())
+        self.assertEqual(self.calls(), [])
+
+    def test_chair_falls_back_to_session_when_claude_is_unavailable(self):
+        self.env["AGENT_REVIEW_FAKE_MISSING"] = "claude"
+        responses = {m: {"stage2": "ABC"} for m in MEMBERS}
+        r = self.run_council(responses, extra=["--members", "codex,cursor,antigravity"])
+        self.assertEqual(r.returncode, 3, r.stderr + r.stdout)
+        self.assertIn("chair   session", r.stdout)
+        self.assertIn("claude", r.stdout)
+        self.assertTrue((self.out / "chair-brief.md").exists())
+        self.assertFalse((self.out / "synthesis.md").exists())
+        run = json.loads((self.out / "run.json").read_text())
+        self.assertEqual(run["chair"], "session")
+        self.assertIn("claude", run["chair_fallback"])
+        self.assertEqual(run["skipped"], {})
+
     def test_chair_session_leaves_the_brief_and_no_synthesis(self):
         responses = {m: {"stage2": "ABCD"} for m in MEMBERS}
         r = self.run_council(responses, extra=["--chair", "session"])

@@ -3,7 +3,11 @@
 
   agent_review.py run --harness claude|codex|cursor|antigravity [--model NAME] [--effort LEVEL]
                       --brief <file|-> --file <path> [--file ...] [--root <dir>] [--out <dir>] [--timeout 1500]
-  agent_review.py harnesses          print the table: runner, default model, effort levels, how effort is passed
+  agent_review.py harnesses          print the table: runner, default model, effort levels, how effort is passed,
+                                     and whether the CLI is installed here
+
+Exit codes: 0 review written; 2 bad arguments; 3 the harness is not installed on this
+machine (nothing is created); 4 the harness ran and failed or returned nothing.
 
 The named files, and nothing else, are copied into a one-commit staging repo; the
 harness runs read-only in a worktree of it and hands its text back; this script
@@ -36,15 +40,16 @@ SKILLS_ROOT = SKILL_DIR.parent
 REFS = SKILL_DIR / "references"
 
 HARNESSES = {
-    "claude": {"runner": "claude", "model": "claude-fable-5-1", "levels": ("low", "medium", "high", "xhigh", "max"),
-               "label": "Claude Code"},
-    "codex": {"runner": "codex-task", "model": "gpt-6-astra", "levels": ("low", "medium", "high", "xhigh", "max", "ultra"),
-              "label": "Codex CLI"},
-    "cursor": {"runner": "cursor-task", "model": "grok-4.7", "levels": ("low", "medium", "high", "xhigh", "max"),
-               "label": "Cursor agent CLI"},
-    "antigravity": {"runner": "antigravity-task", "model": "gemini-3.1-pro", "levels": ("low", "medium", "high", "xhigh", "max"),
-                    "label": "Antigravity CLI"},
+    "claude": {"runner": "claude", "bin": "claude", "model": "claude-fable-5-1",
+               "levels": ("low", "medium", "high", "xhigh", "max"), "label": "Claude Code"},
+    "codex": {"runner": "codex-task", "bin": "codex", "model": "gpt-6-astra",
+              "levels": ("low", "medium", "high", "xhigh", "max", "ultra"), "label": "Codex CLI"},
+    "cursor": {"runner": "cursor-task", "bin": "agent", "model": "grok-4.7",
+               "levels": ("low", "medium", "high", "xhigh", "max"), "label": "Cursor agent CLI"},
+    "antigravity": {"runner": "antigravity-task", "bin": "agy", "model": "gemini-3.1-pro",
+                    "levels": ("low", "medium", "high", "xhigh", "max"), "label": "Antigravity CLI"},
 }
+SANDBOX_EXEC = "/usr/bin/sandbox-exec"
 DEFAULT_EFFORT = "high"
 TASK_SCRIPTS = {
     "codex-task": SKILLS_ROOT / "codex-task" / "scripts" / "codex_task.py",
@@ -67,7 +72,7 @@ ENV_ALLOW = ("HOME", "PATH", "USER", "LANG", "SHELL", "TERM", "TMPDIR")
 TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 FENCED_JSON = re.compile(r"```json\s*(\{.*?\})\s*```", re.S)
 
-EXIT_OK, EXIT_ARGS, EXIT_FAILED = 0, 2, 4
+EXIT_OK, EXIT_ARGS, EXIT_UNAVAILABLE, EXIT_FAILED = 0, 2, 3, 4
 
 
 class ReviewError(Exception):
@@ -149,6 +154,21 @@ def resolve(harness: str, model: str | None, effort: str | None) -> dict:
             raise ReviewError(f"{harness} takes effort {', '.join(cfg['levels'])}, not {effort!r}")
         cfg["effort"] = effort
     return cfg
+
+
+def availability(cfg: dict) -> str | None:
+    """Why this harness cannot run on this machine, or None when it can. Only what is
+    checkable without a call is checked: the CLI on PATH, and sandbox-exec for the two
+    runners that need it. A missing login or a refused model surfaces as a failed run
+    with the CLI's own error, since no CLI answers that without a paid call."""
+    if fake_bin():
+        missing = os.environ.get("AGENT_REVIEW_FAKE_MISSING", "").split(",")
+        return f"fake: {cfg['bin']} not installed" if cfg["harness"] in missing else None
+    if not shutil.which(cfg["bin"]):
+        return f"the {cfg['label']} CLI ({cfg['bin']}) is not on PATH"
+    if cfg["runner"] in ("cursor-task", "antigravity-task") and not Path(SANDBOX_EXEC).exists():
+        return f"{SANDBOX_EXEC} is missing, so the write-deny profile cannot be applied"
+    return None
 
 
 # ---------------------------------------------------------------- staging ---
@@ -329,6 +349,9 @@ def extract_json_block(text: str | None, key: str | None = None) -> dict | None:
 
 def cmd_run(a: argparse.Namespace) -> int:
     cfg = resolve(a.harness, a.model, a.effort)
+    why = availability(cfg)
+    if why:
+        raise ReviewError(f"{cfg['harness']} is unavailable here: {why}", EXIT_UNAVAILABLE)
     brief = sys.stdin.read() if a.brief == "-" else Path(a.brief).read_text(encoding="utf-8")
     if not brief.strip():
         raise ReviewError("the brief is empty")
@@ -367,11 +390,13 @@ def cmd_run(a: argparse.Namespace) -> int:
 
 
 def cmd_harnesses(a: argparse.Namespace) -> int:
-    print(f"{'harness':<12} {'runner':<18} {'default model':<18} {'levels':<40} effort is passed as")
+    print(f"{'harness':<12} {'runner':<18} {'default model':<18} {'levels':<40} {'effort is passed as':<36} available")
     how = {"claude": "claude -p --effort", "codex-task": "model_reasoning_effort config key",
            "cursor-task": "a suffix of the model slug", "antigravity-task": "agy --effort, or a level slug"}
     for name, cfg in HARNESSES.items():
-        print(f"{name:<12} {cfg['runner']:<18} {cfg['model']:<18} {', '.join(cfg['levels']):<40} {how[cfg['runner']]}")
+        why = availability(dict(cfg, harness=name))
+        print(f"{name:<12} {cfg['runner']:<18} {cfg['model']:<18} {', '.join(cfg['levels']):<40} "
+              f"{how[cfg['runner']]:<36} {'yes' if why is None else 'no: ' + why}")
     return EXIT_OK
 
 

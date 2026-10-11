@@ -21,6 +21,10 @@ Members are harnesses, each with its model: claude (Claude Code, Fable), codex (
 Astra), cursor (Grok 4.7), antigravity (Gemini 3.1 Pro). The staging, the harness
 table and the read-only runners come from the agent-review skill; this script adds
 the fan-out, the blinding, the tally and the chair. No member writes anything.
+
+A member whose CLI is not installed is skipped up front and the run continues with the
+rest (exit 3, `skipped` in run.json); fewer than two available members is exit 4 before
+anything is created. A missing claude CLI turns the chair into `session`.
 """
 
 from __future__ import annotations
@@ -240,6 +244,22 @@ def cmd_run(a: argparse.Namespace) -> int:
     cfgs = roster(members, models, efforts, effort)
     if a.chair not in ("claude", "session"):
         raise CouncilError("--chair is claude or session")
+    # A member whose CLI is not installed here is skipped before anything is spent, and
+    # the run goes on with the rest; a login or model refusal still shows up as a stage-1
+    # failure, which drops that member the same way.
+    skipped = {m: why for m in members if (why := ar.availability(cfgs[m]))}
+    members = [m for m in members if m not in skipped]
+    cfgs = {m: cfgs[m] for m in members}
+    if len(members) < 2:
+        raise CouncilError("fewer than two members are available on this machine; skipped: "
+                           + "; ".join(f"{m} ({why})" for m, why in skipped.items()), EXIT_FAILED)
+    chair = a.chair
+    chair_fallback = None
+    if chair == "claude":
+        chair_cfg = ar.resolve("claude", models.get("claude"), efforts.get("claude") or effort)
+        chair_fallback = ar.availability(chair_cfg)
+        if chair_fallback:
+            chair = "session"
     timeout = int(a.timeout)
     if not 60 <= timeout <= MAX_TIMEOUT:
         raise CouncilError(f"--timeout must be between 60 and {MAX_TIMEOUT}")
@@ -260,13 +280,16 @@ def cmd_run(a: argparse.Namespace) -> int:
 
     started = time.time()
     print(f"council {run_id}: {len(members)} members, {len(rels)} files, out {out}")
+    for m, why in skipped.items():
+        print(f"  skipped {m:<12} {why}")
+    run_extra = {"skipped": skipped, "chair": chair, "chair_fallback": chair_fallback}
     answers = stage1(question, rels, cfgs, stage, out, timeout)
     for m in members:
         state = "ok" if answers[m].get("text") else f"FAILED ({answers[m].get('error')})"
         print(f"  stage 1 {m:<12} {answers[m]['elapsed_s']:>7}s  {state}")
     answered = [m for m in members if answers[m].get("text")]
     if len(answered) < 2:
-        _write_run(out, run_id, cfgs, rels, answers, {}, {}, None, started, EXIT_FAILED)
+        _write_run(out, run_id, cfgs, rels, answers, {}, {}, None, started, EXIT_FAILED, run_extra)
         raise CouncilError("fewer than two members answered; nothing to review", EXIT_FAILED)
 
     reviews, blinding = stage2(question, rels, cfgs, answers, stage, out, timeout)
@@ -280,8 +303,7 @@ def cmd_run(a: argparse.Namespace) -> int:
     (out / "chair-brief.md").write_text(chair_brief(question, rels, answers, reviews, tally, cfgs), encoding="utf-8")
 
     synthesis = None
-    if a.chair == "claude":
-        chair_cfg = ar.resolve("claude", models.get("claude"), efforts.get("claude") or effort)
+    if chair == "claude":
         res = ar.run_harness(chair_cfg, out / "chair-brief.md", stage, timeout, out)
         res["role"] = "chair"
         (out / "chair.json").write_text(json.dumps(res, indent=1), encoding="utf-8")
@@ -291,19 +313,28 @@ def cmd_run(a: argparse.Namespace) -> int:
             print(f"  chair   claude       {res['elapsed_s']:>7}s  ok")
         else:
             print(f"  chair   claude       {res['elapsed_s']:>7}s  FAILED ({res.get('error')}); write the synthesis from chair-brief.md")
+    elif chair_fallback:
+        print(f"  chair   session: claude is unavailable ({chair_fallback}); write synthesis.md from chair-brief.md")
     else:
         print("  chair   session: write synthesis.md from chair-brief.md")
 
-    partial = len(answered) < len(members) or tally["valid_reviews"] < len(members) or (a.chair == "claude" and not synthesis)
+    partial = (bool(skipped) or bool(chair_fallback) or len(answered) < len(members)
+               or tally["valid_reviews"] < len(members) or (chair == "claude" and not synthesis))
     code = EXIT_PARTIAL if partial else EXIT_OK
-    _write_run(out, run_id, cfgs, rels, answers, reviews, tally, synthesis, started, code)
+    _write_run(out, run_id, cfgs, rels, answers, reviews, tally, synthesis, started, code, run_extra)
     print(f"  order   : {' > '.join(tally['order'])}")
+    dropped = {m: answers[m].get("error") for m in members if m not in answered}
+    if skipped or dropped or tally.get("invalid_reviews"):
+        print("  without : " + "; ".join(
+            [f"{m} skipped ({why})" for m, why in skipped.items()]
+            + [f"{m} failed stage 1 ({err})" for m, err in dropped.items()]
+            + [f"{m} review excluded" for m in tally.get("invalid_reviews", [])]))
     print(f"  out     : {out}")
     return code
 
 
-def _write_run(out, run_id, cfgs, rels, answers, reviews, tally, synthesis, started, code):
-    run = {"run_id": run_id, "members": cfgs, "files": rels,
+def _write_run(out, run_id, cfgs, rels, answers, reviews, tally, synthesis, started, code, extra=None):
+    run = {"run_id": run_id, "members": cfgs, "files": rels, **(extra or {}),
            "stage1": {m: {k: v for k, v in r.items() if k != "text"} for m, r in answers.items()},
            "stage2": {m: {k: v for k, v in r.items() if k != "text"} for m, r in reviews.items()},
            "tally": tally, "synthesis": synthesis, "elapsed_s": round(time.time() - started, 1), "exit_code": code}

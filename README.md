@@ -254,6 +254,7 @@ more than the pause that would have prevented it.
   tasks/plan.md       # active plan, backlog, and dev docs
   tasks/todo.md       # next actions and session handoff
   tasks/completed/    # dated cold storage, immutable once written
+  second-brain/       # optional local app: chat with the harnesses over a markdown vault and its graph; own uv project
   __archive/          # gitignored soft-deletions of retired root docs
   README.md           # this file, including the catalog and architecture
   AGENTS.md           # the harness-agnostic rules every agent works under

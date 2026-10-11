@@ -53,8 +53,12 @@ minutes depending on the harness; keep the Mac awake (`caffeinate -i`) for a lon
 - `--out` names an empty output folder; otherwise a new run lands under
   `~/.local/state/agent-review/<run-id>/`.
 
-Exit codes: `0` review written; `4` the harness failed or returned nothing; `2` bad
-arguments.
+Exit codes: `0` the review was written; `2` the arguments were bad; `3` the
+harness's CLI is not installed on this machine, and nothing was created; `4` the
+harness ran and failed or returned nothing. A model the CLI refuses also comes
+back as `4`, with the CLI's own message. On `3` or `4`, tell the user which
+harness it was and why, from stderr or the `error` field in `run.json`, and offer
+another harness; `harnesses` prints which ones are installed.
 
 Output: `review.md` (the harness's text), `brief.md` (what it was sent, with the
 file list and its tool note), `files.json`, `stage/` (the staging repo), `run.json`

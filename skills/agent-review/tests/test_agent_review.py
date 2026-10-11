@@ -170,11 +170,34 @@ class TestRun(Base):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(json.loads((self.out / "files.json").read_text()), ["a.py"])
 
-    def test_harnesses_table_prints(self):
-        r = subprocess.run([sys.executable, str(SCRIPT), "harnesses"], env=self.env, text=True, capture_output=True)
+    def test_harnesses_table_prints_availability(self):
+        env = dict(self.env, AGENT_REVIEW_FAKE_MISSING="cursor")
+        r = subprocess.run([sys.executable, str(SCRIPT), "harnesses"], env=env, text=True, capture_output=True)
         self.assertEqual(r.returncode, 0)
-        for name in ("claude", "codex", "cursor", "antigravity"):
-            self.assertIn(name, r.stdout)
+        rows = {line.split()[0]: line for line in r.stdout.splitlines()[1:]}
+        for name in ("claude", "codex", "antigravity"):
+            self.assertIn("yes", rows[name], rows[name])
+        self.assertIn("not installed", rows["cursor"])
+
+    def test_missing_cli_exits_3_before_anything_is_created(self):
+        env = {k: v for k, v in self.env.items() if k not in ("AGENT_REVIEW_FAKE_BIN", "AGENT_REVIEW_TEST")}
+        empty = self.tmp / "nobin"
+        empty.mkdir()
+        env["PATH"] = str(empty)
+        args = [sys.executable, str(SCRIPT), "run", "--harness", "claude", "--brief", str(self.brief),
+                "--out", str(self.out), "--file", str(self.src / "notes.md")]
+        r = subprocess.run(args, env=env, text=True, capture_output=True, timeout=120)
+        self.assertEqual(r.returncode, 3, r.stderr + r.stdout)
+        self.assertIn("not on PATH", r.stderr)
+        self.assertFalse(self.out.exists())
+
+    def test_fake_missing_harness_exits_3_in_test_mode(self):
+        self.env["AGENT_REVIEW_FAKE_MISSING"] = "codex"
+        r = self.run_review(harness="codex")
+        self.assertEqual(r.returncode, 3, r.stderr + r.stdout)
+        self.assertIn("unavailable", r.stderr)
+        self.assertFalse(self.out.exists())
+        self.assertEqual(self.calls(), [])
 
 
 if __name__ == "__main__":
