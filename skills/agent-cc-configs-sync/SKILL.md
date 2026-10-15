@@ -61,8 +61,11 @@ python3 ~/.agents/skills/agent-cc-configs-sync/scripts/harness_probe.py         
 
 It prints one row per core harness (Claude Code, Codex, Cursor, Copilot, goose,
 pi, Antigravity) with the installed version, the config home, and whether the
-harness lists one of this repo's skills where a no-login listing exists. Stamp a station spec's
-version line from this output, never from memory.
+harness lists one of this repo's skills where a no-login listing exists, and a
+remote-control column that must read `off` for every harness (SPEC.md invariant
+7: remote control, background daemons and telemetry are off on every station).
+Any other value names the switch to flip; the harness spec says where it lives.
+Stamp a station spec's version line from this output, never from memory.
 
 Then hooks, which the seeder handles. Their scripts come from two folders
 (the repository's `hooks/` and `specs/claude-code/hooks/`), and the `hooks` key

@@ -49,6 +49,7 @@ unless `CODEX_HOME` is isolated.
 | Global | `~/.codex/auth.json` | the ChatGPT sign-in; never copied, symlinked into an isolated `CODEX_HOME` by `codex-task` |
 | Global | `~/.codex/models_cache.json` | the model lineup and effort levels, refreshed by the CLI |
 | Global | `~/.codex/skills/` | Codex's own skill folder; this station uses `~/.agents/skills/` instead |
+| Remote control (invariant 7) | `[features] daemon_auto_start = false` and `[analytics] enabled = false` in `~/.codex/config.toml`; `codex remote-control` never started | the shared app-server daemon, remote control and analytics, all off on the laptop 2026-10-15; the daemon paragraph below says what the daemon does when on |
 | Project | `AGENTS.md` at the repo root | rules, read per repo |
 | Project | `.agents/skills/` | project skills, with the parent and repo-root variants in the table below |
 
@@ -148,6 +149,22 @@ stand up for automated use while an interactive home keeps its plugins.
 Note the boundary this does and does not draw: a separate `CODEX_HOME` is a
 configuration boundary, not an isolation boundary. A process running as the same
 user can still read the default home directly.
+
+**An interactive session leaves a daemon behind, and it keeps the home's auth
+busy.** The `daemon_auto_start` feature (stable, on by default at 0.162.1)
+starts `codex app-server --listen unix:// --managed-daemon` under whichever
+`CODEX_HOME` is in use. It reparents to launchd, survives the session, records
+itself in `<home>/app-server-daemon/daemon.pid`, opens a socket under
+`/private/tmp/codex-daemon-<uid>/`, and fetches the model list from the vendor
+about every four and a half minutes with that home's `auth.json` attached. One
+spawned by a scratch-home TUI session on 2026-10-13 ran until it was found two
+days later. A headless `codex exec --ephemeral --ignore-user-config` in a fresh
+home spawned none, with or without the flag (2026-10-15, 0.162.1), so the TUI is
+the spawner; `-c features.daemon_auto_start=false` is accepted by every
+subcommand and `codex features disable daemon_auto_start` writes it into a
+home's `config.toml`. Any scratch home gets that line before its first
+interactive use, and anything that creates one kills the recorded pid when it
+is done; `codex-task` does both.
 
 ## Delegation from Claude Code: the `codex-task` skill
 

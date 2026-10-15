@@ -51,6 +51,7 @@ and has reset a tightened mode within an hour (Permissions below).
 | Editor, global | `~/.cursor/permissions.json` | the IDE's permissions, a separate system from the CLI's |
 | Editor, global | `~/.cursor/mcp.json` | MCP servers (absent on this station) |
 | Compatibility | `~/.claude/agents/` | read as a global subagent path by the IDE, not by the CLI |
+| Remote control (invariant 7) | `privacyCache.ghostMode` in `~/.cursor/cli-config.json`; `cursor-agent worker` never run | privacy mode on and no cloud worker on the laptop 2026-10-15; `worker` would let Cursor-hosted agents execute tool calls on this machine |
 | Project | `.cursor/cli.json` | the complete permissions object for that repo, deny list included |
 | Project | `.cursor/agents/`, `.cursor/hooks.json`, `.cursor/mcp.json`, `.cursor/rules/` | subagents (the only level the CLI loads them from), hooks, MCP, rules |
 | Project | `AGENTS.md` at the repo root | rules, read per repo |

@@ -175,6 +175,14 @@ foothold. This is not a preference to weigh against convenience.
 6. Work that matters runs on Anthropic or genuinely local models. Hosted
    third-party models are for medium-stakes and hobby work. Ollama `:cloud`
    models are hosted, not local, and fall under that limit.
+7. **No harness this repo sets up is remotely controlled, remotely supervised or
+   reporting home.** Every remote-control, session-export, background-daemon and
+   telemetry switch a harness exposes is off on every station, and a headless
+   invocation passes the per-session form where no persistent one exists.
+   Model calls, sign-in and hooks are core function and stay untouched; a
+   switch that would break them is recorded in the harness spec as the
+   exception, not flipped. `harness_probe.py` reports the state per harness;
+   each `specs/<harness>/SPEC-*.md` names the switch.
 
 ## Workflow to propagate a change
 

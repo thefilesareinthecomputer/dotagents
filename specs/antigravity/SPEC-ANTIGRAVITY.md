@@ -107,6 +107,14 @@ each marked `# Added by Antigravity CLI installer`. The `--dir` flag is the only
 documented option and does not suppress this. Expect to trim the duplicates by
 hand after installing.
 
+**Remote control (invariant 7).** `agy remote-control start` registers a
+background daemon that pairs the CLI with a remote client, and `--remote-control`
+does the same for one session; neither has run on the laptop (`agy remote-control
+status`: not running, no launch agent, 2026-10-15), and `antigravity-task`
+refuses `--remote-control` in its argv. The telemetry switch is unverified: the
+1.3.5 binary holds no `usageStatisticsEnabled` string, so Gemini CLI's opt-out
+key may be ignored, and the sign-in asks for Google telemetry scope. Open item.
+
 Authentication is Google Sign-In on first run, cached in the system keyring.
 The interactive session requires a TTY; print mode does not. At 1.3.3 the CLI
 also takes `--effort low|medium|high|xhigh|max` and `--mode accept-edits|auto|plan`

@@ -4,9 +4,9 @@
 Google's announcement as read on 2026-08-08); Antigravity CLI
 (`agy`) is its successor and
 [`SPEC-ANTIGRAVITY.md`](../antigravity/SPEC-ANTIGRAVITY.md) is the live station
-spec. The `gemini` binary still installed through npm (0.63.0 on the laptop,
-2026-10-14) is not set up or seeded, and `~/.gemini/` now belongs to `agy`,
-which inherited the folder. The sections below describe the Gemini CLI station
+spec. The `gemini` npm package was removed from the laptop on 2026-10-15 (it
+had never been run), and `~/.gemini/` belongs to `agy`, which inherited the
+folder. The sections below describe the Gemini CLI station
 for the Code Assist Standard and Enterprise tiers that keep the product.
 
 Google's terminal agent. Notable here as one of the **two harnesses besides
@@ -30,9 +30,9 @@ Discovery order, lowest to highest precedence:
 restart. Workspace skills require the folder to be trusted (`/trust`); user-scope
 skills are not subject to that.
 
-**Not verified here.** Gemini CLI 0.63.0 is installed through npm on the laptop
-but has never been run or set up here; the above is from Google's documentation
-as of 2026-07-31. Note that `~/.gemini/` does now
+**Not verified here.** Gemini CLI was never run or set up on either station,
+and the laptop's npm install was removed on 2026-10-15; the above is from
+Google's documentation as of 2026-07-31. Note that `~/.gemini/` does now
 exist, created by the Antigravity CLI installer on 2026-08-08, so its presence is
 no longer evidence that Gemini CLI is installed. `~/.gemini/config/` and
 `~/.gemini/antigravity-cli/` belong to `agy`; see

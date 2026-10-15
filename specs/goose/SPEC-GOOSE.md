@@ -50,6 +50,7 @@ a source the research pass could not find (findings, section 2).
 | Global | `~/.config/goose/config.yaml` | provider, model, extensions and settings |
 | Global | `~/.config/goose/.goosehints`, `~/.config/goose/AGENTS.md` | the documented global context files (neither exists on the laptop) |
 | Global | `~/.config/goose/memory/` | the memory extension's store |
+| Remote control (invariant 7) | `GOOSE_TELEMETRY_ENABLED: false` in `config.yaml`; `goose serve` and `goose acp` never run | telemetry off on the laptop 2026-10-15; the ACP server is the only remote surface and starts only by hand |
 | Relocation | `GOOSE_PATH_ROOT` | moves `config/`, `data/sessions/` and `state/logs/` under one root |
 | Project | `.goosehints`, `AGENTS.md`, from the working directory up to the repo root | context files, local wins |
 | Project | `.goose/skills/`, `.agents/plugins/<name>/hooks/` | project skills and hook plugins |

@@ -323,7 +323,8 @@ The principles each block enforces:
    to an "ask" permission prompt (`ask-before-claude-folder-edits.sh`), so
    nothing silently changes how every session behaves.
 7. **No remote control** - `disableRemoteControl` keeps sessions
-   local-only.
+   local-only, and `env.DISABLE_TELEMETRY` keeps them quiet; both are what
+   `harness_probe.py` reads for invariant 7.
 8. **Authored text carries no invisible characters** - `reject_invisibles.py`
    on every Write/Edit-family call denies new content holding zero-widths,
    bidi controls, look-alike spaces, private-use and other invisible

@@ -872,7 +872,8 @@ def _run_codex(cfg: dict, brief_path: Path, stage: Path, timeout: int, work: Pat
     argv = [cli_path("codex"), "exec", "--json", "--ephemeral", "--ignore-user-config", "--skip-git-repo-check",
             "-s", "read-only", "-C", str(cwd), "-m", cfg["model"],
             "-c", f'model_reasoning_effort="{cfg["effort"] or DEFAULT_EFFORT}"', "-c", 'approval_policy="never"',
-            "-c", "analytics.enabled=false", "-c", "features.memories=false", "-"]
+            "-c", "analytics.enabled=false", "-c", "features.memories=false",
+            "-c", "features.daemon_auto_start=false", "-"]
     proc = _spawn(argv, prompt, timeout, cwd, work, f"codex-{slug(cfg.get('member') or 'codex')}")
     if isinstance(proc, dict):
         return proc

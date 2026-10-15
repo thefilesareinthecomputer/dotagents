@@ -264,7 +264,8 @@ class TestOneShotRunners(Base):
 
     def test_every_harness_gets_the_inlined_files_no_tool_grant_and_an_empty_cwd(self):
         expect = {"claude": (["--tools", "", "--max-turns", "1", "--no-session-persistence"], "stdin"),
-                  "codex": (["exec", "--json", "--ephemeral", "--ignore-user-config", "-s", "read-only", "-"], "stdin"),
+                  "codex": (["exec", "--json", "--ephemeral", "--ignore-user-config", "-s", "read-only",
+                             "features.daemon_auto_start=false", "-"], "stdin"),
                   "cursor": (["-p", "--mode", "ask", "--trust"], "stdin"),
                   "antigravity": (["--mode", "plan", "--print-timeout", "0", "-p"], "argv")}
         if not Path("/usr/bin/sandbox-exec").exists():

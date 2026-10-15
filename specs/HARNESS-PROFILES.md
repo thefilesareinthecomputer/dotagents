@@ -9,19 +9,21 @@ A version bump is a re-probe trigger: rerun the probe, restate the date, and tre
 ## The probe's output
 
 ```
-harness      version             config home        present  skills canary
-claude-code  2.1.280             ~/.claude          True     symlink present
-codex        0.162.1             ~/.codex           True     no listing
-cursor       2026.10.01-e373342  ~/.cursor          True     no listing
-copilot      1.0.81              ~/.copilot         True     lists skill-authoring
-goose        1.54.0              ~/.config/goose    True     lists skill-authoring
-pi           1.1.0               ~/.pi/agent        True     no listing
-antigravity  1.3.3               ~/.gemini/config   True     skills.json present
+harness      version             config home        present  skills canary          remote control
+claude-code  2.1.280             ~/.claude          True     symlink present        off
+codex        0.162.1             ~/.codex           True     no listing             off
+cursor       2026.10.01-e373342  ~/.cursor          True     no listing             off
+copilot      1.0.81              ~/.copilot         True     lists skill-authoring  off; per session only (--no-remote-export)
+goose        1.54.0              ~/.config/goose    True     lists skill-authoring  off
+pi           1.1.0               ~/.pi/agent        True     no listing             off
+antigravity  1.3.3               ~/.gemini/config   True     skills.json present    off; telemetry switch unverified
 ```
 
-The Antigravity row read `skills.json absent` before STORY-000074 wrote the file the same day, and a later probe that evening showed `agy` at 1.3.5: the binary updates itself, so the version here is the one the first probe saw.
+The Antigravity row read `skills.json absent` before STORY-000074 wrote the file the same day, and a later probe that evening showed `agy` at 1.3.5: the binary updates itself, so the version here is the one the first probe saw. The remote-control column was added 2026-10-15 and read in a fresh shell after `PI_TELEMETRY=0` went into the profile.
 
 "No listing" means the harness has no skill-list command that runs without a sign-in, so discovery is either verified another way or not verified yet; each spec says which.
+
+"Remote control" is SPEC.md invariant 7: `off` means every remote-control, daemon and telemetry switch the harness exposes is off on this station, read from its config files and the process table; the row names the switch otherwise, and each spec's config table says where it lives.
 
 ## Side by side
 
@@ -35,7 +37,7 @@ The Antigravity row read `skills.json absent` before STORY-000074 wrote the file
 | pi | 1.1.0 | Homebrew `pi-coding-agent` | `~/.pi/agent/` | not yet observed (the bench runs under a fake home) | none; TypeScript extensions instead | BYOK, 20+ providers | medium stakes; configurable lane; sandboxed |
 | Antigravity | 1.3.3, self-updated to 1.3.5 the same evening | `install.sh` to `~/.local/bin` | `~/.gemini/config/` | yes, through `skills.json` with an absolute path (model self-report in print mode; `~` is not expanded) | none here; `agy inspect` is gone at 1.3.3 | Google-hosted Gemini; `--effort low..max` | medium stakes; parked on the boards |
 
-Gemini CLI 0.63.0 is also installed through npm; the consumer product was retired on 2026-06-18 (doc-derived, recorded in the Gemini spec) and Antigravity is its successor, so it has no row.
+Gemini CLI has no row: the consumer product was retired on 2026-06-18 (doc-derived, recorded in the Gemini spec), Antigravity is its successor, and the laptop's never-run npm install was removed on 2026-10-15.
 dsh, deepagents-code and kimi are not installed on the laptop.
 
 ## What each one is for

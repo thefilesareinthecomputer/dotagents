@@ -198,6 +198,10 @@ def build_argv(ws: Path, model: str, effort: str, last_msg: Path, read_only: boo
         "-c", 'shell_environment_policy.include_only=["HOME","PATH","USER","LANG","SHELL","TMPDIR"]',
         "-c", "analytics.enabled=false",
         "-c", "features.memories=false",
+        # Codex can leave an `app-server --managed-daemon` under its home that
+        # outlives the run, parented to launchd, and polls the vendor with the
+        # linked auth every few minutes. Never from a run this script starts.
+        "-c", "features.daemon_auto_start=false",
         "-o", str(last_msg),
     ]
     # The result schema shapes an edit run's final message. A read-only run's deliverable
@@ -310,6 +314,49 @@ def _kill_group(proc: subprocess.Popen) -> None:
             except (ProcessLookupError, PermissionError):
                 return
             time.sleep(0.1)
+
+
+def reap_daemon(home: Path) -> str | None:
+    """Kill a Codex managed daemon left under the isolated home, if one is
+    recorded in app-server-daemon/daemon.pid and its command line names that
+    home. Belt to the daemon_auto_start=false braces: one seen 2026-10-13 ran
+    for two days with the linked auth. Returns a warning when one was killed."""
+    pidfile = home / "app-server-daemon" / "daemon.pid"
+    if not pidfile.exists():
+        return None
+    try:
+        pid = int(json.loads(pidfile.read_text(encoding="utf-8"))["pid"])
+    except (OSError, ValueError, KeyError, TypeError):
+        pid = 0
+    killed = False
+    if pid > 1:
+        cmd = subprocess.run(["ps", "-ww", "-o", "command=", "-p", str(pid)],
+                             capture_output=True, text=True).stdout
+        # The pid may have been reused; only a codex whose argv names this home
+        # dies. Paths are compared resolved: /var and /private/var are one dir.
+        target = home.resolve()
+        names_home = any(Path(tok).resolve() == target or target in Path(tok).resolve().parents
+                         for tok in cmd.split() if tok.startswith("/"))
+        if "codex" in cmd and names_home:
+            for sig in (signal.SIGTERM, signal.SIGKILL):
+                try:
+                    os.kill(pid, sig)
+                except ProcessLookupError:
+                    break
+                end = time.monotonic() + 5.0
+                while time.monotonic() < end:
+                    try:
+                        os.kill(pid, 0)
+                    except ProcessLookupError:
+                        break
+                    time.sleep(0.1)
+                else:
+                    continue
+                break
+            killed = True
+    shutil.rmtree(home / "app-server-daemon", ignore_errors=True)
+    shutil.rmtree(home / "app-server-control", ignore_errors=True)
+    return f"killed a Codex daemon (pid {pid}) left under the isolated home" if killed else None
 
 
 def parse_events(run_dir: Path) -> dict:
@@ -439,6 +486,8 @@ def cmd_run(a: argparse.Namespace) -> int:
     rc, reason = spawn_codex(argv, prompt, run_dir, timeout, home)
     elapsed = round(time.time() - started, 1)
     ev = parse_events(run_dir)
+    if (w := reap_daemon(home)):
+        warnings.append(w)
     if (home / "auth.json").exists() and not (home / "auth.json").is_symlink():
         warnings.append("Codex replaced the auth symlink in the isolated home during this run; "
                         "the next run relinks, but check `codex login status` if auth fails")
@@ -577,6 +626,8 @@ def remove_run(run_dir: Path) -> None:
 
 def cmd_clean(a: argparse.Namespace) -> int:
     sdir = state_dir()
+    if (w := reap_daemon(sdir / "home")):
+        print(w, file=sys.stderr)
     if a.run:
         run_dir, _ = load_report(a.run)
         remove_run(run_dir)

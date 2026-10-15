@@ -107,6 +107,11 @@ seven days.
   one, so no second login, and no trust entries, memories or session state
   land in `~/.codex/`. Without this, a headless run writes
   `trust_level = "trusted"` for the target repo into the real config.
+- **No daemon outlives a run.** Every run passes
+  `features.daemon_auto_start=false`, and `run` and `clean` both kill any
+  `codex app-server --managed-daemon` recorded under the isolated home. One
+  left by an interactive session in a scratch home ran for two days, parented
+  to launchd, polling the vendor every few minutes with the linked auth.
 - **No `--dangerously-*` flag** can be passed; the script refuses its own argv
   if one appears.
 

@@ -136,5 +136,78 @@ class Probe(unittest.TestCase):
         self.assertIn("1.2.0", r.stdout)
 
 
+class RemoteControl(unittest.TestCase):
+    """SPEC.md invariant 7: the column reads config files and an injected
+    process list, so these never depend on what runs on the test machine."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="harness-probe-rc-"))
+        self.home = self.tmp
+        sys.path.insert(0, str(SCRIPT.parent))
+        import harness_probe
+        self.hp = harness_probe
+
+    def tearDown(self):
+        import shutil
+        sys.path.remove(str(SCRIPT.parent))
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def row(self, name):
+        return next(r for r in self.hp.ROWS if r.harness == name)
+
+    def remote(self, name, procs=(), env=None):
+        return self.hp.remote_of(self.row(name), self.home, list(procs), env or {})
+
+    def write(self, rel, text):
+        p = self.home / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+
+    def test_claude_code_needs_both_the_setting_and_the_env(self):
+        self.assertTrue(self.remote("claude-code").startswith("ON"))
+        self.write(".claude/settings.json", json.dumps({"disableRemoteControl": True}))
+        self.assertIn("DISABLE_TELEMETRY", self.remote("claude-code"))
+        self.write(".claude/settings.json", json.dumps({"disableRemoteControl": True, "env": {"DISABLE_TELEMETRY": "1"}}))
+        self.assertEqual(self.remote("claude-code"), "off")
+
+    def test_codex_needs_the_daemon_off_analytics_off_and_no_daemon_process(self):
+        self.write(".codex/config.toml", "[features]\ndaemon_auto_start = false\n\n[analytics]\nenabled = false\n")
+        self.assertEqual(self.remote("codex"), "off")
+        self.assertIn("daemon running", self.remote("codex", procs=["/x/bin/codex app-server --listen unix:// --managed-daemon"]))
+        self.write(".codex/config.toml", "[analytics]\nenabled = false\n")
+        self.assertIn("daemon_auto_start", self.remote("codex"))
+
+    def test_cursor_is_on_when_a_cloud_worker_runs_or_ghost_mode_is_off(self):
+        self.write(".cursor/cli-config.json", json.dumps({"privacyCache": {"ghostMode": True}}))
+        self.assertEqual(self.remote("cursor"), "off")
+        self.assertIn("worker", self.remote("cursor", procs=["cursor-agent worker --pool x"]))
+        self.write(".cursor/cli-config.json", json.dumps({"privacyCache": {"ghostMode": False}}))
+        self.assertTrue(self.remote("cursor").startswith("ON"))
+
+    def test_copilot_has_only_a_per_session_switch(self):
+        self.assertIn("per session", self.remote("copilot"))
+        self.assertTrue(self.remote("copilot", procs=["copilot --remote -p hi"]).startswith("ON"))
+        self.assertIn("per session", self.remote("copilot", procs=["copilot --no-remote-export -p hi"]))
+
+    def test_goose_pi_and_antigravity(self):
+        self.write(".config/goose/config.yaml", "GOOSE_MODEL: x\nGOOSE_TELEMETRY_ENABLED: false\n")
+        self.assertEqual(self.remote("goose"), "off")
+        self.assertIn("serve", self.remote("goose", procs=["goose serve --port 1"]))
+        self.assertTrue(self.remote("pi").startswith("ON"))
+        self.assertEqual(self.remote("pi", env={"PI_TELEMETRY": "0"}), "off")
+        self.assertTrue(self.remote("antigravity").startswith("off"))
+        self.assertTrue(self.remote("antigravity", procs=["agy remote-control start"]).startswith("ON"))
+        self.write("Library/LaunchAgents/com.google.antigravity.remote.plist", "<plist/>")
+        self.assertIn("launch agent", self.remote("antigravity"))
+
+    def test_the_column_reaches_the_json_and_the_table(self):
+        env = {"PATH": str(self.tmp), "HOME": str(self.home)}
+        r = subprocess.run([sys.executable, str(SCRIPT), "--json"], text=True, capture_output=True, env=env, timeout=60)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(all("remote_control" in row for row in json.loads(r.stdout)))
+        r = subprocess.run([sys.executable, str(SCRIPT)], text=True, capture_output=True, env=env, timeout=60)
+        self.assertIn("remote control", r.stdout.splitlines()[0])
+
+
 if __name__ == "__main__":
     unittest.main()

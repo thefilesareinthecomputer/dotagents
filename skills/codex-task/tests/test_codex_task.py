@@ -266,7 +266,8 @@ class TestArgv(Base):
                      "sandbox_workspace_write.exclude_tmpdir_env_var=true",
                      'approval_policy="never"', "analytics.enabled=false",
                      "shell_environment_policy.include_only=",
-                     "features.memories=false", "--output-schema"):
+                     "features.memories=false", "features.daemon_auto_start=false",
+                     "--output-schema"):
             self.assertIn(must, joined, must)
         self.assertEqual(argv[-1], "-")
         ws = argv[argv.index("-C") + 1]
@@ -468,6 +469,43 @@ class TestClean(Base):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertFalse(run_dir.exists())
         self.assertNotIn(str(run_dir), git(["worktree", "list"], self.repo).stdout)
+
+
+class TestDaemonReaper(Base):
+    """A Codex managed daemon recorded under the isolated home is killed by a
+    run and by clean; a pid whose command line does not name that home is not."""
+
+    def plant(self, argv_tag: str):
+        home = self.state / "home"
+        (home / "app-server-daemon").mkdir(parents=True)
+        proc = subprocess.Popen([sys.executable, "-c", "import sys, time; time.sleep(120)",
+                                 argv_tag], start_new_session=True)
+        (home / "app-server-daemon" / "daemon.pid").write_text(json.dumps({"pid": proc.pid}))
+        self.addCleanup(lambda: proc.kill() if proc.poll() is None else None)
+        return home, proc
+
+    def test_run_kills_a_daemon_left_under_the_home(self):
+        home, proc = self.plant(f"codex app-server --managed-daemon {self.state / 'home'}")
+        r = self.run_task()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIsNotNone(proc.poll(), "the daemon outlived the run")
+        self.assertFalse((home / "app-server-daemon").exists())
+        rpt, _ = self.report()
+        self.assertTrue(any("daemon" in w for w in rpt["warnings"]), rpt["warnings"])
+
+    def test_clean_kills_a_daemon_left_under_the_home(self):
+        home, proc = self.plant(f"codex app-server --managed-daemon {self.state / 'home'}")
+        r = self.run_cmd("clean", "--older-than-days", "9999")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIsNotNone(proc.poll(), "the daemon outlived clean")
+        self.assertIn("killed a Codex daemon", r.stderr)
+
+    def test_a_reused_pid_that_is_not_our_codex_is_left_alone(self):
+        home, proc = self.plant("some-other-program")
+        r = self.run_cmd("clean", "--older-than-days", "9999")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIsNone(proc.poll(), "an unrelated process was killed")
+        self.assertFalse((home / "app-server-daemon").exists(), "the stale pid file should still go")
 
 
 if __name__ == "__main__":

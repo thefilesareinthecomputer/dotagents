@@ -50,6 +50,7 @@ enterprise setting in GitHub's web UI, with nothing to write in a repo.
 | CLI and editor, global | `~/.copilot/mcp-config.json` | MCP servers, not created by default |
 | CLI and editor, global | `~/.copilot/hooks/`, `~/.copilot/agents/`, `~/.copilot/instructions/` | hooks, custom agents (`*.agent.md`), scoped instructions |
 | Credentials | the system keychain | the `/login` device-flow token; a bare `~/.copilot` says nothing about login state |
+| Remote control (invariant 7) | per session: `--no-remote-export`; `settings.json` has no persistent key (`copilot help config`, 1.0.81) | session export to GitHub web and mobile and remote control from them, both off unless `--remote` or `--remote-export` is passed; every headless invocation passes `--no-remote-export`; OpenTelemetry export is off unless configured |
 | Editor, global | `~/.claude/CLAUDE.md` | read when `chat.useClaudeMdFile` is on |
 | Project | `.github/copilot-instructions.md` | always-on instructions, seeded as a pointer at `AGENTS.md` |
 | Project | `.github/instructions/`, `.github/prompts/`, `.github/agents/`, `.github/hooks/`, `.github/skills/` | scoped instructions, prompt files, agents, hooks, project skills |

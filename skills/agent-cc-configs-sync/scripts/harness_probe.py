@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Probe the core harnesses on this station: installed version, config home and
-whether the harness sees this repository's skills.
+"""Probe the core harnesses on this station: installed version, config home,
+whether the harness sees this repository's skills, and whether its remote
+control, background daemon and telemetry switches are off.
 
 Each row runs the harness's own version command and, where a listing exists
 that needs no sign-in, looks for one of this repo's skills in it. Harnesses
-with no such listing say so rather than guessing. Config homes derive from
+with no such listing say so rather than guessing. The remote-control column is
+read from config files and the process table alone. Config homes derive from
 HOME. A missing binary is a row, never an error.
 
   python3 harness_probe.py            # text table
@@ -20,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -91,8 +94,77 @@ def canary_of(row: Row, home: Path, skill: str, installed: bool) -> str:
     return "no listing"
 
 
+def _json_file(p: Path) -> dict:
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def processes() -> list[str]:
+    """Command lines of every process on the station (ps is world-readable)."""
+    _, out, _ = run(["ps", "-axo", "command="])
+    return out.splitlines()
+
+
+def remote_of(row: Row, home: Path, procs: list[str], env: dict[str, str]) -> str:
+    """The remote-control, daemon and telemetry state of one harness, read from
+    its config files and the process table only (SPEC.md invariant 7). "off"
+    means every switch the harness exposes is off; anything else names the
+    switch that is on or the fact that the harness has no persistent one."""
+    if row.harness == "claude-code":
+        s = _json_file(home / ".claude" / "settings.json")
+        on = [] if s.get("disableRemoteControl") is True else ["disableRemoteControl unset"]
+        if s.get("env", {}).get("DISABLE_TELEMETRY") != "1":
+            on.append("env.DISABLE_TELEMETRY unset")
+        return "off" if not on else "ON: " + ", ".join(on)
+    if row.harness == "codex":
+        try:
+            toml = (home / ".codex" / "config.toml").read_text(encoding="utf-8")
+        except OSError:
+            toml = ""
+        on = []
+        if not re.search(r"^\s*daemon_auto_start\s*=\s*false", toml, re.M):
+            on.append("features.daemon_auto_start not false")
+        if not re.search(r"^\s*\[analytics\]\s*\n\s*enabled\s*=\s*false", toml, re.M):
+            on.append("analytics.enabled not false")
+        if any("codex app-server" in p for p in procs):
+            on.append("app-server daemon running")
+        return "off" if not on else "ON: " + ", ".join(on)
+    if row.harness == "cursor":
+        if any("cursor-agent worker" in p for p in procs):
+            return "ON: cloud worker running"
+        c = _json_file(home / ".cursor" / "cli-config.json")
+        ghost = c.get("privacyCache", {}).get("ghostMode")
+        return "off" if ghost is True else "ON: privacy mode not ghost"
+    if row.harness == "copilot":
+        if any("copilot" in p and "--remote" in p and "--no-remote" not in p for p in procs):
+            return "ON: a session with --remote"
+        return "off; per session only (--no-remote-export)"
+    if row.harness == "goose":
+        if any("goose serve" in p for p in procs):
+            return "ON: goose serve running"
+        try:
+            yaml = (home / ".config" / "goose" / "config.yaml").read_text(encoding="utf-8")
+        except OSError:
+            yaml = ""
+        return "off" if re.search(r"^GOOSE_TELEMETRY_ENABLED:\s*false", yaml, re.M) else "ON: GOOSE_TELEMETRY_ENABLED not false"
+    if row.harness == "pi":
+        return "off" if env.get("PI_TELEMETRY", "").lower() in ("0", "false", "no") else "ON: PI_TELEMETRY unset (install telemetry)"
+    if row.harness == "antigravity":
+        if any("agy" in p and "remote-control" in p for p in procs):
+            return "ON: remote-control daemon running"
+        agents = home / "Library" / "LaunchAgents"
+        if agents.is_dir() and any("antigravity" in p.name.lower() or "agy" in p.name.lower() for p in agents.iterdir()):
+            return "ON: remote-control launch agent registered"
+        return "off; telemetry switch unverified"
+    return "unknown"
+
+
 def probe(skill: str) -> list[dict]:
     home = Path.home()
+    procs = processes()
     out = []
     for row in ROWS:
         version = version_of(row.binary)
@@ -105,6 +177,7 @@ def probe(skill: str) -> list[dict]:
             "config_home": str(cfg),
             "config_home_present": cfg.is_dir(),
             "canary": canary_of(row, home, skill, installed),
+            "remote_control": remote_of(row, home, procs, dict(os.environ)),
         })
     return out
 
@@ -113,8 +186,8 @@ def table(rows: list[dict]) -> str:
     """The text table shows config homes as ~/..., so a pasted table never
     holds a home path; --json keeps the real path for scripts."""
     home = str(Path.home())
-    cols = ("harness", "version", "config_home", "config_home_present", "canary")
-    heads = ("harness", "version", "config home", "present", "skills canary")
+    cols = ("harness", "version", "config_home", "config_home_present", "canary", "remote_control")
+    heads = ("harness", "version", "config home", "present", "skills canary", "remote control")
     cells = []
     for r in rows:
         vals = [str(r[c]) for c in cols]

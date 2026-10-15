@@ -51,6 +51,7 @@ is configured, `SPEC.md` invariant 6 binds.
 | Global | `~/.pi/agent/skills/` | Pi's own skill root, where a loose root-level `.md` is a skill |
 | Global | `~/.pi/agent/installed-plugins/`, `~/.pi/agent/servers/` | extensions and MCP servers |
 | Global | `~/.pi/agent/session-store.db`, `~/.pi/agent/logs/` | sessions and logs |
+| Remote control (invariant 7) | `export PI_TELEMETRY=0` in the shell profile; no remote-control feature | install telemetry off (set on the laptop 2026-10-15); `/share` uploads a session only when invoked |
 | Project, after trust | `.pi/skills/`, `.agents/skills/` | project skills, in cwd and ancestors |
 | Per run | `--skill <path>`, `--tools`, `--exclude-tools`, `--no-skills` | the run's skill and tool surface |
 
