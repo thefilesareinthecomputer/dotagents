@@ -1,11 +1,10 @@
 # SPEC-ANTIGRAVITY.md - Antigravity CLI station
 
-Google's terminal agent, invoked as `agy`, and the successor to Gemini CLI. A
-single compiled Go binary with no Node dependency, sharing its agent harness with
-the Antigravity IDE so one configuration serves both. It resolves the currency
-warning in [`SPEC-GEMINI.md`](../gemini/SPEC-GEMINI.md): consumer Gemini CLI was retired on
-2026-06-18, and Code Assist Standard and Enterprise are the only tiers that keep
-it.
+Google's terminal agent, invoked as `agy`, and the successor to Gemini CLI. It is
+a single compiled Go binary with no Node dependency, sharing its agent harness
+with the Antigravity IDE so one configuration serves both. Consumer Gemini CLI
+was retired on 2026-06-18, and Code Assist Standard and Enterprise are the only
+tiers that keep it ([`SPEC-GEMINI.md`](../gemini/SPEC-GEMINI.md)).
 
 ## Skills: this one needs a setup step
 
@@ -39,27 +38,41 @@ plugins. Both take the same schema, an `entries` array of paths to scan and an
 ```json
 {
   "entries": [
-    { "path": "~/.agents/skills" }
+    { "path": "<home>/.agents/skills" }
   ]
 }
 ```
+
+**The path must be absolute.** Observed on 1.3.3 (2026-10-14) through the
+model's own report in print mode, since no listing command exists: with
+`"~/.agents/skills"` a run asked to name its loaded skills without tools named
+only the two built-ins; with the home folder spelled out it named 29 of this
+repo's 32 skills, leaving out `agent-cc-configs-sync`, `harness-bench` and
+`plugin-update` for a reason not yet checked. `$HOME` was not tried. Write the
+file with the station's real home path; it is a station-local file and is never
+committed.
 
 That is preferable to symlinking `~/.gemini/config/skills` at this repo, because
 it adds a path rather than claiming a directory Antigravity manages, and it
 leaves room for device-local skills beside it. It is also the only place in these
 specs where a harness offers a first-class way to point at an external tree.
 
-**Partly verified.** `agy` 1.1.11 is installed on this machine and
-`~/.gemini/config/` exists with `config.json` and `mcp_config.json`, so the
-global root is confirmed; the customization roots, elements and JSON schema above
-are quoted from the shipped binary's own documentation strings, read on
-**2026-08-08**. The `skills.json` file has not been written and skill discovery
-has not been observed. Google's web documentation gives the global skills path as
-`~/.gemini/antigravity-cli/skills/` instead, which conflicts with the binary; on
-disk that directory holds only `builtin/skills/` with Antigravity's three
-built-ins (`agy-customizations`, `permissioned-github`, `antigravity_guide`).
-Resolve it with `agy inspect`, which lists loaded config files, available skills,
-plugins, hooks and MCP servers, before relying on either path.
+**Verified on the laptop 2026-10-14:** `agy 1.3.3` at the first probe with
+`harness_probe.py` in the `agent-cc-configs-sync` skill, and `1.3.5` at a second
+probe the same evening, so the binary updates itself without being asked. The
+probe's canary for this harness is the presence of `skills.json`. The file was
+written that day with the absolute path and discovery was observed as the model's
+self-report in print mode: asked to name its loaded skills without tools, it
+listed 29 of this repo's skills beside the two built-ins it named
+(`agy-customizations`, `antigravity-guide`). The customization
+roots, elements and JSON schema above were read from the 1.1.11 binary's own
+documentation strings on 2026-08-08 and still hold at 1.3.3 as far as the skills
+entry goes. Google's web documentation gives the global skills path as
+`~/.gemini/antigravity-cli/skills/` instead; on disk that directory holds only
+`builtin/skills/`. **`agy inspect` is gone at 1.3.3**: the subcommands are
+`agent`/`agents`, `changelog`, `help`, `install`, `mcp`, `models`, `plugin`,
+`remote-control` and `update`, so a loaded-skills listing is now a print-mode
+question rather than a command.
 
 ## What does not carry over
 
@@ -77,8 +90,12 @@ the one that carries assets.
 ## Station config
 
 Settings live under `~/.gemini/antigravity-cli/`, with MCP servers in
-`~/.gemini/config/mcp_config.json`. `agy inspect` is the diagnostic when
-something is not loading. A one-shot importer migrates a legacy `~/.gemini/`
+`~/.gemini/config/mcp_config.json`. The `~/.gemini/` home is inherited from
+Gemini CLI, which Antigravity replaced; `~/.gemini/config/` is the customization
+root and `~/.gemini/antigravity-cli/` the state folder. `agy inspect` was the
+diagnostic when something did not load and no longer exists at 1.3.3; `agy
+agents`, `agy mcp list` and `agy plugin list` cover their parts, and skills are
+checked with a print-mode question (above). A one-shot importer migrates a legacy `~/.gemini/`
 Gemini CLI setup, converting extensions into plugins and rewriting `settings.json`
 into the new schema.
 
@@ -91,7 +108,10 @@ documented option and does not suppress this. Expect to trim the duplicates by
 hand after installing.
 
 Authentication is Google Sign-In on first run, cached in the system keyring.
-`agy inspect` and the interactive session both require a TTY.
+The interactive session requires a TTY; print mode does not. At 1.3.3 the CLI
+also takes `--effort low|medium|high|xhigh|max` and `--mode accept-edits|auto|plan`
+(`--help`, 2026-10-14), and a headless run that needs a tool permission is
+auto-denied with a message naming the `permissions.allow` rule to add.
 
 **Headless mode exists** - the earlier claim that nothing runs under a
 non-interactive shell is superseded. Observed on this machine's 1.1.11 binary

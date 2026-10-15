@@ -13,6 +13,8 @@ Behavior is selected by FAKE_CODEX_MODE:
 
 FAKE_CODEX_ARGV, if set, receives the argv and the inherited environment as
 JSON - the environment is what the scrub test reads.
+FAKE_CODEX_ORPHAN, if set, starts a sleeping child tagged with its value that outlives
+the fake (tests the process-group kill after a normal exit).
 """
 
 import json
@@ -41,6 +43,8 @@ def main():
                         "env": dict(os.environ)}))
     ws = Path(arg_after("-C") or ".")
     last = arg_after("-o")
+    if os.environ.get("FAKE_CODEX_ORPHAN"):
+        subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)", os.environ["FAKE_CODEX_ORPHAN"]])
 
     if mode == "bigprompt":
         time.sleep(float(os.environ.get("FAKE_CODEX_SLEEP", "120")))

@@ -42,10 +42,20 @@ class TestBrief(unittest.TestCase):
     def test_fills_every_section(self):
         brief = sl.build_brief("Where is the exit code table?", "/tmp/repo", "the file and line", "tests", 12, 5)
         for needle in ("## Goal\n\nWhere is the exit code table?", "## Corpus\n\n/tmp/repo", "the file and line", "tests",
-                       "Turns: 12. Local calls: 5.", '"stop_reason"', "Never call Ollama directly"):
+                       "Turns: 12. Local calls: 5.", '"stop_reason"', '"quote"'):
             self.assertIn(needle, brief)
         self.assertNotIn("{goal}", brief)
         self.assertNotIn("{{", brief, "the template's JSON braces are unescaped in the output")
+
+    def test_the_protocol_lives_once_in_the_agent_body_not_again_in_the_default_brief(self):
+        # the headless run appends the agent body as the system prompt and a subagent has it as its definition, so a
+        # brief that repeated the working rules and the failure protocol sent them twice per turn
+        brief = sl.build_brief("g", "/tmp/repo", "", "", 12, 5)
+        body = sl.agent_body()
+        for rule in ("Never call Ollama directly", "exits 3", "stop_reason: \"blocked\"", "--keep-alive 300"):
+            self.assertIn(rule, body, rule)
+            self.assertNotIn(rule, brief, rule)
+        self.assertIn("## When a call fails", sl.build_brief("g", "/tmp/repo", "", "", 12, 5, "full"))  # the comparison arm keeps its own
 
     def test_defaults_for_the_optional_sections(self):
         brief = sl.build_brief("goal", "/tmp/repo", "", "", 30, 20)
@@ -59,7 +69,7 @@ class TestBrief(unittest.TestCase):
             self.assertIn('"stop_reason"', brief)
             self.assertIn("answerable: false", brief, "every variant says abstention is a correct result")
             self.assertNotIn("{goal}", brief)
-        self.assertIn("Do not open files with Read before", sl.build_brief("g", "/tmp/repo", "", "", 30, 20, "default"))
+        self.assertIn("Do not open files with Read before", sl.agent_body())   # the local-first rule, now in the one place the worker reads it
         self.assertEqual(sl.build_brief("g", "/tmp/repo", "", "", 30, 20, "local-first"), sl.build_brief("g", "/tmp/repo", "", "", 30, 20, "default"))
         self.assertTrue(sl.build_brief("g", "/tmp/repo", "", "", 30, 20, "full").startswith("# Brief for support-local (full variant)"))
         with self.assertRaises(sl.TaskError):
@@ -84,10 +94,10 @@ class TestVerify(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_references_are_resolved_by_the_script_not_the_worker(self):
-        obj = good_answer(evidence=[{"claim": "ok line", "ref": "a.py:2", "verified": False},
-                                    {"claim": "past the end", "ref": "a.py:9", "verified": True},
-                                    {"claim": "file level", "ref": "a.py", "verified": False},
-                                    {"claim": "missing file", "ref": "b.py:1", "verified": True},
+        obj = good_answer(evidence=[{"claim": "ok line", "ref": "a.py:2", "quote": "EXIT_ARGS = 2", "verified": False},
+                                    {"claim": "past the end", "ref": "a.py:9", "quote": "x", "verified": True},
+                                    {"claim": "file level", "ref": "a.py", "quote": "EXIT_OK = 0", "verified": False},
+                                    {"claim": "missing file", "ref": "b.py:1", "quote": "x", "verified": True},
                                     {"claim": "vault", "ref": "vault:notes#s12", "verified": True},
                                     {"claim": "no ref", "verified": True},
                                     "not an object"])
@@ -97,16 +107,58 @@ class TestVerify(unittest.TestCase):
         self.assertEqual(out["unsupported_count"], 5)
         self.assertIn("only the vault", out["evidence"][4]["check"])
 
+    def test_a_verified_claim_needs_its_quote_at_the_cited_line(self):
+        # the line existing is not evidence; the quote the worker relies on must sit at that line
+        obj = good_answer(evidence=[{"claim": "no quote", "ref": "a.py:2"},
+                                    {"claim": "quote elsewhere", "ref": "a.py:2", "quote": "EXIT_OK = 0"},
+                                    {"claim": "quote here, spacing aside", "ref": "a.py:2", "quote": "EXIT_ARGS=2"},
+                                    {"claim": "quote too short", "ref": "a.py:2", "quote": "= 2"},
+                                    {"claim": "file level, quote in file", "ref": "a.py", "quote": "EXIT_ARGS = 2"},
+                                    {"claim": "file level, quote absent", "ref": "a.py", "quote": "EXIT_NOPE"},
+                                    {"claim": "range holds it", "ref": "a.py:1-2", "quote": "EXIT_ARGS = 2"}])
+        out = sl.verify_answer(obj, self.corpus)
+        self.assertEqual([c["verified"] for c in out["evidence"]], [False, False, True, False, True, False, True])
+        self.assertEqual(out["evidence"][0]["check"], "no quote to check against the cited line")
+        self.assertEqual(out["evidence"][1]["check"], "quote not found at the cited line")
+        self.assertEqual(out["evidence"][2]["check"], "quote found at the cited line")
+        self.assertIn("shorter than", out["evidence"][3]["check"])
+        self.assertEqual(out["evidence"][5]["check"], "quote not found in the file")
+
+    def test_an_answer_with_nothing_verified_is_downgraded_to_unanswerable(self):
+        obj = good_answer(answerable=True, evidence=[{"claim": "bare", "ref": "a.py:2"}])
+        out = sl.verify_answer(obj, self.corpus)
+        self.assertFalse(out["answerable"])
+        self.assertEqual(out["downgraded"], "answerable set to false: no claim verified")
+        obj = good_answer(answerable=True, evidence=[])
+        self.assertFalse(sl.verify_answer(obj, self.corpus)["answerable"])
+        obj = good_answer(answerable=True, evidence=[{"claim": "ok", "ref": "a.py:2", "quote": "EXIT_ARGS = 2"}])
+        out = sl.verify_answer(obj, self.corpus)
+        self.assertTrue(out["answerable"])
+        self.assertNotIn("downgraded", out)
+        obj = good_answer(answerable=False, evidence=[])
+        self.assertNotIn("downgraded", sl.verify_answer(obj, self.corpus))
+
     def test_line_ranges_resolve(self):
-        obj = good_answer(evidence=[{"claim": "range ok", "ref": "a.py:1-2"}, {"claim": "range past end", "ref": "a.py:1-9"},
-                                    {"claim": "backwards", "ref": "a.py:2-1"}])
+        obj = good_answer(evidence=[{"claim": "range ok", "ref": "a.py:1-2", "quote": "EXIT_OK = 0"},
+                                    {"claim": "range past end", "ref": "a.py:1-9", "quote": "EXIT_OK = 0"},
+                                    {"claim": "backwards", "ref": "a.py:2-1", "quote": "EXIT_OK = 0"}])
         out = sl.verify_answer(obj, self.corpus)
         self.assertEqual([c["verified"] for c in out["evidence"]], [True, False, False])
-        self.assertEqual(out["evidence"][0]["check"], "line range exists")
+        self.assertEqual(out["evidence"][0]["check"], "quote found at the cited line")
 
-    def test_absolute_refs_need_no_corpus(self):
-        obj = good_answer(evidence=[{"claim": "abs", "ref": str(self.corpus / "a.py") + ":1"}])
-        self.assertTrue(sl.verify_answer(obj, None)["evidence"][0]["verified"])
+    def test_absolute_refs_are_unverified_without_a_corpus_root(self):
+        # an index or vault corpus has no path, so without --corpus-root nothing bounds an absolute ref
+        obj = good_answer(evidence=[{"claim": "abs", "ref": str(self.corpus / "a.py") + ":1", "quote": "EXIT_OK = 0"}])
+        out = sl.verify_answer(obj, None)
+        self.assertFalse(out["evidence"][0]["verified"])
+        self.assertIn("corpus root", out["evidence"][0]["check"])
+        self.assertTrue(sl.verify_answer(good_answer(evidence=obj["evidence"]), self.corpus)["evidence"][0]["verified"])
+
+    def test_corpus_root_names_the_files_behind_an_index_corpus(self):
+        self.assertEqual(sl.corpus_root("kg:myindex", str(self.corpus)), self.corpus)
+        self.assertEqual(sl.corpus_root(str(self.corpus), None), self.corpus)
+        self.assertIsNone(sl.corpus_root("vault:notes", None))
+        self.assertIsNone(sl.corpus_root("not-a-dir-or-index", None))
 
     def test_refs_outside_the_corpus_stay_unverified(self):
         outside = Path(self.tmp.name) / "outside.py"
@@ -131,7 +183,8 @@ class TestVerify(unittest.TestCase):
             sl.parse_json_object("no json here")
 
     def test_capsule_never_prints_file_content(self):
-        obj = sl.verify_answer(good_answer(answer="EXIT_OK lives on line one", evidence=[{"claim": "c", "ref": "a.py:1"}]), self.corpus)
+        obj = sl.verify_answer(good_answer(answer="EXIT_OK lives on line one",
+                                           evidence=[{"claim": "c", "ref": "a.py:1", "quote": "EXIT_OK = 0"}]), self.corpus)
         text = sl.capsule(obj)
         self.assertIn("1 verified, 0 unsupported", text)
         self.assertNotIn("EXIT_ARGS = 2", text)
@@ -267,7 +320,7 @@ class TestHeadlessRun(unittest.TestCase):
         self.assertEqual(sl.verify_answer(obj, self.corpus)["stop_reason"], "blocked")
 
     def test_verify_from_stdin(self):
-        obj = good_answer(evidence=[{"claim": "c", "ref": "a.py:1"}])
+        obj = good_answer(evidence=[{"claim": "c", "ref": "a.py:1", "quote": "EXIT_OK = 0"}])
         p = subprocess.run([sys.executable, str(SCRIPT), "verify", "--answer", "-", "--corpus", str(self.corpus)],
                            input=json.dumps(obj), capture_output=True, text=True, env=self.env, timeout=60)
         self.assertEqual(p.returncode, 0, p.stderr)

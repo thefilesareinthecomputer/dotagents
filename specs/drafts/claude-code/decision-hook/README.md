@@ -14,14 +14,16 @@ python3 ~/.agents/specs/drafts/claude-code/decision-hook/scripts/label.py harves
 python3 ~/.agents/specs/drafts/claude-code/decision-hook/scripts/label.py review --set risk --n 20
 python3 ~/.agents/specs/drafts/claude-code/decision-hook/scripts/label.py review --set risk --recheck
 python3 ~/.agents/specs/drafts/claude-code/decision-hook/scripts/label.py stats --set risk
-python3 ~/.agents/specs/drafts/claude-code/decision-hook/scripts/evaluate.py --set risk --model tev1:0.8b --calibrate --sweep
-python3 ~/.agents/specs/drafts/claude-code/decision-hook/scripts/evaluate.py --set risk --model laya --labels ~/.agents/specs/drafts/claude-code/decision-hook/references/scenarios.jsonl   # the 126-call scenario corpus, no labeling needed
+python3 ~/.agents/specs/drafts/claude-code/decision-hook/scripts/evaluate.py --set risk                        # the features judgment on the labeled set, no model
+python3 ~/.agents/specs/drafts/claude-code/decision-hook/scripts/evaluate.py --set risk --fit [--write-params]   # refit the logistic weights on the tuning split
+python3 ~/.agents/specs/drafts/claude-code/decision-hook/scripts/evaluate.py --set risk --labels ~/.agents/specs/drafts/claude-code/decision-hook/references/scenarios.jsonl   # the 126-call scenario corpus, a development set
+python3 ~/.agents/specs/drafts/claude-code/decision-hook/scripts/evaluate.py --set risk --judgment systemone --model tev1:0.8b --calibrate --sweep   # the decision model, for comparison
 python3 ~/.agents/specs/drafts/claude-code/decision-hook/scripts/evaluate.py --set routing
-python3 -m unittest discover -s ~/.agents/specs/drafts/claude-code/decision-hook/tests                      # 85 unit and fake-server cases, no tokens
+python3 -m unittest discover -s ~/.agents/specs/drafts/claude-code/decision-hook/tests                      # 114 unit and fake-server cases, no tokens
 DECISION_HOOK_HARNESS=1 python3 -m unittest discover -s ~/.agents/specs/drafts/claude-code/decision-hook/tests/harness   # 4 cases through the real claude CLI, about $0.50
 ```
 
-**Measured state (2026-10-09, laptop):** the plumbing passes the harness tests; the judgment does not yet pass the success numbers. On the scenario corpus tev1:0.8b reaches recall 0.12 to 0.23 and laya 0.36 to 0.45; a nearest-neighbor head over `embeddinggemma` reaches 0.86 but spends 19 false escalations per 100, nearly all on scary-looking benign calls. Shadow stays the only sane mode until a judgment clears both numbers; `NOTES.md` and the spec hold the detail.
+**Measured state (2026-10-11, laptop):** the judgment is deterministic call features and one logistic score (`scripts/features.py`, weights in `references/features.json`), with no model on the hot path; the decision model sits behind `judgment: systemone` in the config. On the scenario corpus, a development set written by the same author as the rules, the features flag 80 of 80 should-ask rows and 0 of 46 fine rows; the base model reached 10 to 18 of 80 and a nearest-neighbor head over `embeddinggemma` spent 19 false escalations per 100. The real labels and a two-week shadow window decide whether it clears the success numbers; shadow stays the only mode until then. `NOTES.md` and the spec hold the detail.
 
 ## Wiring
 
@@ -35,14 +37,14 @@ The hook entries read the harness payload on stdin:
             "command": "python3 ~/.claude/hooks/decision-hook/scripts/decide.py --event pre-tool-use"}]}
 ```
 
-`--event session-start` (SessionStart, `timeout: 20`) warms the model once so the first call is not a cold load. `--event user-prompt-submit` is the routing hint and is off by default.
+`--event session-start` (SessionStart, `timeout: 20`) warms the decision model once when `judgment` is `systemone` or `both`, so the first call is not a cold load; with the default `features` judgment there is no model to warm. `--event user-prompt-submit` is the routing hint and is off by default.
 
 ## Reading the output
 
-- **A permission prompt whose reason starts `decision-hook:`** names the option that fired (`destroy`, `exfil`, `creds`, `config`, `install`), its calibrated probability, and the option's wording. Judge the call on its merits; the model only raises the flag.
+- **A permission prompt whose reason starts `decision-hook:`** names the harm category (`destroy`, `exfil`, `creds`, `config`, `install`), the score, and the features that fired (or, under `judgment: systemone`, the option's calibrated probability and wording). Judge the call on its merits; the judgment only raises the flag.
 - **`report`** prints counts only. `skipped` means another model held Ollama's single slot or the memory budget refused a cold load; `timeout` means the 1.5 s client budget passed; `capped` means the session hit the escalation cap. A rising skip rate means the model is being evicted; a rising flag rate means thresholds drifted or the work changed shape.
 - **`doctor`** fails on a non-loopback endpoint, a missing model tag, a missing routing index, or an endpoint that does not answer. Warnings name any mode set to `active`.
-- **`evaluate`** reports held-out recall and false escalations per 100 calls, per stratum, and the fitted thresholds and Platt parameters. `--write-params` copies them into `references/risk.json`; nothing else changes thresholds.
+- **`evaluate`** reports held-out recall and false escalations per 100 calls with 95% intervals, per stratum and per category. For the features judgment, `--fit --write-params` writes the refitted logistic weights into `references/features.json`; for `--judgment systemone`, `--write-params` copies the fitted thresholds and Platt parameters into `references/risk.json`. Nothing else changes either file.
 
 ## Config and state
 

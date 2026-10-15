@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Score a decision model or the routing index on the labeled sets.
+"""Score the features judgment, a decision model, or the routing index on the labeled sets.
 
-    evaluate.py --set risk --model tev1:0.8b [--calibrate] [--sweep] [--budget 2.0] [--write-params]
+    evaluate.py --set risk [--labels FILE] [--fit] [--write-params]                 # the features judgment, no model
+    evaluate.py --set risk --judgment systemone --model tev1:0.8b [--calibrate] [--sweep] [--budget 0.3] [--write-params]
     evaluate.py --set routing
 
 Model answers are cached per (model, candidate) under the state directory, so a
@@ -34,22 +35,25 @@ GRID = [i / 20 for i in range(1, 20)]   # 0.05 .. 0.95
 # ------------------------------------------------------------------ metrics
 
 def flagged_by(row: dict, question: dict) -> bool:
+    """A row the model never answered (a failed call) is never flagged: it counts as a miss,
+    not as a row that vanished from the denominator. A row judged by features holds its
+    verdict in `flag_by_features`."""
+    if "flag_by_features" in row:
+        return bool(row["flag_by_features"])
     return decide.decide_risk(row.get("probs") or {}, question) is not None
 
 
-def metrics(rows: list[dict], question: dict) -> dict:
-    n = len(rows)
-    ask = [r for r in rows if r.get("label") == "ask"]
-    fine = [r for r in rows if r.get("label") == "fine"]
-    hits = sum(flagged_by(r, question) for r in ask)
-    false = sum(flagged_by(r, question) for r in fine)
-    out = {"n": n, "should_ask": len(ask), "flagged": hits + false,
-           "recall": round(hits / len(ask), 4) if ask else None,
-           "false_escalations_per_100": round(100.0 * false / n, 2) if n else None, "by_stratum": {}}
-    for stratum in sorted({str(r.get("stratum")) for r in rows}):
-        sub = [r for r in rows if str(r.get("stratum")) == stratum]
-        out["by_stratum"][stratum] = metrics_flat(sub, question)
-    return out
+def wilson(k: int, n: int, z: float = 1.96) -> tuple[float | None, float | None]:
+    """The 95% Wilson interval for k successes in n, in the unit of the rate (0 to 1). A
+    handful of positives gives an interval too wide to certify anything, which is the point
+    of printing it."""
+    if n <= 0:
+        return None, None
+    p = k / n
+    denom = 1 + z * z / n
+    centre = p + z * z / (2 * n)
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
+    return round(max(0.0, (centre - half) / denom), 4), round(min(1.0, (centre + half) / denom), 4)
 
 
 def metrics_flat(rows: list[dict], question: dict) -> dict:
@@ -57,8 +61,22 @@ def metrics_flat(rows: list[dict], question: dict) -> dict:
     fine = [r for r in rows if r.get("label") == "fine"]
     hits = sum(flagged_by(r, question) for r in ask)
     false = sum(flagged_by(r, question) for r in fine)
-    return {"n": len(rows), "recall": round(hits / len(ask), 4) if ask else None,
-            "false_escalations_per_100": round(100.0 * false / len(rows), 2) if rows else None}
+    r_lo, r_hi = wilson(hits, len(ask))
+    f_lo, f_hi = wilson(false, len(rows))
+    return {"n": len(rows), "should_ask": len(ask), "flagged": hits + false,
+            "failed_calls": sum(1 for r in rows if not r.get("probs")),
+            "recall": round(hits / len(ask), 4) if ask else None,
+            "recall_ci": [r_lo, r_hi],
+            "false_escalations_per_100": round(100.0 * false / len(rows), 2) if rows else None,
+            "false_escalations_per_100_ci": [None if f_lo is None else round(100 * f_lo, 2), None if f_hi is None else round(100 * f_hi, 2)]}
+
+
+def metrics(rows: list[dict], question: dict) -> dict:
+    out = dict(metrics_flat(rows, question), by_stratum={})
+    for stratum in sorted({str(r.get("stratum")) for r in rows}):
+        sub = [r for r in rows if str(r.get("stratum")) == stratum]
+        out["by_stratum"][stratum] = metrics_flat(sub, question)
+    return out
 
 
 # ------------------------------------------------------------------ calibration
@@ -82,11 +100,18 @@ def fit_platt(ps: list[float], ys: list[int], steps: int = 500) -> dict:
 
 
 def calibrate(rows: list[dict], question: dict) -> dict:
-    """Per-option Platt parameters fitted on rows that carry probabilities and a label."""
+    """Per-option Platt parameters fitted on rows that carry probabilities and a label. When
+    rows name a category, an option's positives are the should-ask rows of its own category;
+    a shared should-ask target would teach every option's slope from every category's rows."""
+    rows = [r for r in rows if r.get("probs")]
+    tagged = any(r.get("category") for r in rows if r.get("label") == "ask")
     params = {}
     for option in question.get("thresholds") or {}:
         ps = [float((r.get("probs") or {}).get(option, 0.0)) for r in rows]
-        ys = [1 if r.get("label") == "ask" else 0 for r in rows]
+        if tagged:
+            ys = [1 if r.get("label") == "ask" and (r.get("category") or option) == option else 0 for r in rows]
+        else:
+            ys = [1 if r.get("label") == "ask" else 0 for r in rows]
         params[option] = fit_platt(ps, ys)
     return params
 
@@ -197,7 +222,7 @@ def eval_risk(a: argparse.Namespace) -> int:
         append_cache(cache_path(a.model + ("-" + Path(a.labels).stem if a.labels else "")), {"id": r["id"], "probs": r["probs"], "ms": ms})
     if asked:
         decide.unload(client, a.model)
-    rows = [r for r in rows if r.get("probs")]
+    # rows the model never answered stay: a failed call is a miss, and the report counts them
     tuning = [r for r in rows if r.get("split") == "tuning"]
     heldout = [r for r in rows if r.get("split") == "heldout"]
     q = dict(question)
@@ -217,6 +242,9 @@ def eval_risk(a: argparse.Namespace) -> int:
         return out
 
     report = {"set": "risk", "model": a.model, "when": decide.now(), "asked_now": asked, "n_labeled": len(rows),
+              "failed_calls": sum(1 for r in rows if not r.get("probs")),
+              "note": ("a file passed with --labels is a development set: its numbers steer the work and are not a grade"
+                       if a.labels else "the held-out split is reported with 95% intervals; a handful of positives cannot certify a budget"),
               "params": {"thresholds": q["thresholds"], "platt": q.get("platt") or {}},
               "tuning": dict(metrics(tuning, q), by_category=by_category(tuning)),
               "heldout": dict(metrics(heldout, q), by_category=by_category(heldout)),
@@ -225,9 +253,11 @@ def eval_risk(a: argparse.Namespace) -> int:
               "median_ms": lat[len(lat) // 2] if lat else None}
     path = write_report("risk", report)
     h = report["heldout"]
-    print(f"{a.model}: held-out n={h['n']} recall={h['recall']} false escalations per 100={h['false_escalations_per_100']}; "
+    print(report["note"])
+    print(f"{a.model}: held-out n={h['n']} recall={h['recall']} (95% {h['recall_ci']}) false escalations per 100="
+          f"{h['false_escalations_per_100']} (95% {h['false_escalations_per_100_ci']}); "
           f"tuning n={report['tuning']['n']} recall={report['tuning']['recall']} fe/100={report['tuning']['false_escalations_per_100']}; "
-          f"p95 {report['p95_ms']} ms over {asked} fresh calls")
+          f"failed calls {report['failed_calls']}; p95 {report['p95_ms']} ms over {asked} fresh calls")
     for name, part in (("held-out", h), ("all rows", report["all"])):
         for stratum, m in part["by_stratum"].items():
             print(f"  {name} {stratum}: n={m['n']} recall={m['recall']} fe/100={m['false_escalations_per_100']}")
@@ -242,6 +272,66 @@ def eval_risk(a: argparse.Namespace) -> int:
         current["platt"] = q.get("platt") or {}
         risk_path.write_text(json.dumps(current, indent=2) + "\n")
         print(f"wrote thresholds and platt parameters into {risk_path}")
+    return 0
+
+
+def eval_features(a: argparse.Namespace) -> int:
+    """Score the features judgment on the labeled rows without a model; with --fit, refit the
+    logistic weights on the tuning split first and report both; --write-params writes the
+    fitted weights into references/features.json."""
+    fe = decide.features_module()
+    weights = fe.load_weights()
+    rows = labeled("risk", Path(a.labels) if a.labels else None)
+    for r in rows:
+        r.setdefault("split", "heldout" if hashlib.sha256(str(r.get("session") or r["id"]).encode()).digest()[0] % 5 == 0 else "tuning")
+        r.setdefault("stratum", "organic")
+        st = r.get("state") or {}
+        r["features"] = fe.extract(str(st.get("tool_name", "")), st.get("tool_input") or {}, str(st.get("cwd", "")))
+    tuning = [r for r in rows if r.get("split") == "tuning"]
+    heldout = [r for r in rows if r.get("split") == "heldout"]
+
+    def apply(w):
+        for r in rows:
+            r["flag_by_features"] = fe.score(r["features"], w) >= float(w.get("threshold", weights.get("threshold", 0.5)))
+
+    def by_category(subset):
+        out: dict = {}
+        for r in subset:
+            if r.get("label") == "ask":
+                c = out.setdefault(str(r.get("category", "?")), {"flagged": 0, "n": 0})
+                c["n"] += 1
+                c["flagged"] += bool(r["flag_by_features"])
+        return out
+
+    def section(w):
+        apply(w)
+        return {"tuning": dict(metrics(tuning, {}), by_category=by_category(tuning)),
+                "heldout": dict(metrics(heldout, {}), by_category=by_category(heldout)),
+                "all": dict(metrics(rows, {}), by_category=by_category(rows))}
+
+    report = {"set": "risk", "judgment": "features", "when": decide.now(), "n_labeled": len(rows),
+              "note": ("a file passed with --labels is a development set: its numbers steer the work and are not a grade"
+                       if a.labels else "the held-out split is reported with 95% intervals; a handful of positives cannot certify a budget"),
+              "shipped": section(weights)}
+    fitted = None
+    if a.fit:
+        fitted = dict(fe.fit(tuning, fe.NAMES), threshold=float(weights.get("threshold", 0.5)))
+        report["fitted"] = section(fitted)
+        report["fitted_params"] = fitted
+    path = write_report("risk-features", report)
+    print(report["note"])
+    for name in ("shipped",) + (("fitted",) if fitted else ()):
+        h = report[name]["heldout"]
+        al = report[name]["all"]
+        print(f"features ({name}): held-out n={h['n']} recall={h['recall']} (95% {h['recall_ci']}) fe/100={h['false_escalations_per_100']} "
+              f"(95% {h['false_escalations_per_100_ci']}); all rows n={al['n']} recall={al['recall']} fe/100={al['false_escalations_per_100']}")
+        for cat, c in sorted(al["by_category"].items()):
+            print(f"  all rows category {cat}: {c['flagged']}/{c['n']} flagged")
+    print(f"report {path}")
+    if a.write_params and fitted:
+        out = dict(weights, bias=fitted["bias"], weights=fitted["weights"])
+        (decide.REFS / "features.json").write_text(json.dumps(out, indent=2) + "\n")
+        print(f"wrote fitted weights into {decide.REFS / 'features.json'}")
     return 0
 
 
@@ -292,10 +382,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--model", default=None)
     p.add_argument("--calibrate", action="store_true")
     p.add_argument("--sweep", action="store_true")
-    p.add_argument("--budget", type=float, default=2.0, help="false escalations per 100 calls the sweep may spend")
+    p.add_argument("--budget", type=float, default=0.3, help="false escalations per 100 calls the sweep may spend (the spec's default-mode budget)")
     p.add_argument("--write-params", action="store_true", help="write the fitted thresholds and platt into references/risk.json")
     p.add_argument("--labels", default=None, help="a labeled JSONL file to score instead of the state labels (references/scenarios.jsonl)")
+    p.add_argument("--judgment", choices=["features", "systemone"], default="features",
+                   help="score the deterministic features (default, no model) or the decision model")
+    p.add_argument("--fit", action="store_true", help="features: refit the logistic weights on the tuning split and report both")
     a = p.parse_args(argv)
+    if a.set == "risk" and a.judgment == "features":
+        return eval_features(a)
     if a.set == "risk":
         a.model = a.model or decide.load_config()["model"]
         return eval_risk(a)

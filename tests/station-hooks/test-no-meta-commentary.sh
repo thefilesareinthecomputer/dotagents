@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Tests for the no-meta-commentary pair: no-meta-commentary.sh (PreToolUse) and
 # no-meta-commentary-check.sh (PostToolUse).
-# Target: ~/.claude/hooks/ (seeded from specs/claude-code/hooks/).
+# Target: the repo's hooks/no-meta-commentary.sh and no-meta-commentary-check.sh by default;
+# PRE_UNDER_TEST and POST_UNDER_TEST point the run at station copies under ~/.claude/hooks/.
 # Run: bash tests/station-hooks/test-no-meta-commentary.sh
 #
 # Contract: NEITHER side ever blocks. The pre-side nudges only on incoming text
@@ -13,8 +14,9 @@
 # run here proves the mechanism, not that the list is right.
 set -u
 
-PRE="${PRE_UNDER_TEST:-$HOME/.claude/hooks/no-meta-commentary.sh}"
-POST="${POST_UNDER_TEST:-$HOME/.claude/hooks/no-meta-commentary-check.sh}"
+REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+PRE="${PRE_UNDER_TEST:-$REPO/hooks/no-meta-commentary.sh}"
+POST="${POST_UNDER_TEST:-$REPO/hooks/no-meta-commentary-check.sh}"
 for h in "$PRE" "$POST"; do [ -f "$h" ] || { echo "FATAL: hook not found at $h"; exit 2; }; done
 command -v jq >/dev/null 2>&1 || { echo "FATAL: jq required"; exit 2; }
 

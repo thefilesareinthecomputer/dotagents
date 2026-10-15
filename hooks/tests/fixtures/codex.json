@@ -1,0 +1,182 @@
+{
+ "captured": "codex-cli 0.162.1, headless exec on gpt-6-astra, hooks.json at the Codex home root trusted once through /hooks, 2026-10-13; ids and paths replaced, long strings cut. Codex passes no environment variable of its own to a hook: the one CODEX_HOME seen was the probe's own, so env_keys is empty. PermissionRequest did not fire under exec's bypassPermissions",
+ "env_keys": [],
+ "events": [
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "SessionStart",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "session_id": "SESSION",
+   "source": "startup",
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl"
+  },
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "UserPromptSubmit",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "prompt": "Do these steps in order, one tool call each, no explanations: 1) run the shell command: ls -la  2) use the apply_patch tool to create a new file note2.txt conta...",
+   "session_id": "SESSION",
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl",
+   "turn_id": "TURN"
+  },
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "PreToolUse",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "ls -la"
+   },
+   "tool_name": "Bash",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl",
+   "turn_id": "TURN"
+  },
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "PostToolUse",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "ls -la"
+   },
+   "tool_name": "Bash",
+   "tool_response": "total 8\ndrwxr-xr-x@  4 user  wheel  128 Oct 13 15:13 .\ndrwx------@ 10 user  wheel  320 Oct 13 14:56 ..\ndrwxr-xr-x@  9 user  wheel  288 Oct 13 13:52 .git\n-rw-r--...",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl",
+   "turn_id": "TURN"
+  },
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "PreToolUse",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "*** Begin Patch\n*** Add File: note2.txt\n+hello\n*** End Patch"
+   },
+   "tool_name": "apply_patch",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl",
+   "turn_id": "TURN"
+  },
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "PostToolUse",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "*** Begin Patch\n*** Add File: note2.txt\n+hello\n*** End Patch"
+   },
+   "tool_name": "apply_patch",
+   "tool_response": "Exit code: 0\nWall time: 0 seconds\nOutput:\nSuccess. Updated the following files:\nA note2.txt\n",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl",
+   "turn_id": "TURN"
+  },
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "PreToolUse",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "cat note2.txt"
+   },
+   "tool_name": "Bash",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl",
+   "turn_id": "TURN"
+  },
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "PostToolUse",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "cat note2.txt"
+   },
+   "tool_name": "Bash",
+   "tool_response": "hello\n",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl",
+   "turn_id": "TURN"
+  },
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "PreToolUse",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "*** Begin Patch\n*** Update File: note2.txt\n@@\n-hello\n+hello world\n*** End Patch"
+   },
+   "tool_name": "apply_patch",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl",
+   "turn_id": "TURN"
+  },
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "PostToolUse",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "*** Begin Patch\n*** Update File: note2.txt\n@@\n-hello\n+hello world\n*** End Patch"
+   },
+   "tool_name": "apply_patch",
+   "tool_response": "Exit code: 0\nWall time: 0 seconds\nOutput:\nSuccess. Updated the following files:\nM note2.txt\n",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl",
+   "turn_id": "TURN"
+  },
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "PreToolUse",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "grep -rn hello ."
+   },
+   "tool_name": "Bash",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl",
+   "turn_id": "TURN"
+  },
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "PostToolUse",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "grep -rn hello ."
+   },
+   "tool_name": "Bash",
+   "tool_response": "./note2.txt:1:hello world\n./note.txt:1:hello world\n",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl",
+   "turn_id": "TURN"
+  },
+  {
+   "cwd": "/work/codex-ws",
+   "hook_event_name": "Stop",
+   "last_assistant_message": "done",
+   "model": "gpt-6-astra",
+   "permission_mode": "bypassPermissions",
+   "session_id": "SESSION",
+   "stop_hook_active": false,
+   "transcript_path": "~/.codex/sessions/SESSION.jsonl",
+   "turn_id": "TURN"
+  }
+ ],
+ "harness": "codex"
+}

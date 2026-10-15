@@ -1,6 +1,6 @@
 ---
 name: support-local
-description: Hands one information goal to a goal-bound Haiku 5.5 worker that drives the local models (local-model-task, code-kg, obsidian-kg, a guarded vault's ask) over a named corpus and returns one JSON answer with verified evidence references, so the session never pays frontier tokens to read a large body of files. Use whenever a session needs a question answered from a repo, a folder of documents, an index or a vault - "find out from this codebase how X works", "what does the vault say about Y", "survey these notes for Z" - and for the onboarding that harvests, cleans and fine-tunes the local models on the user's own history (Phase 2). Never reads guarded files itself.
+description: Hands one information goal to a goal-bound Haiku 5.5 worker that drives the local models (local-model-task, code-kg, obsidian-kg, a guarded vault's ask) over a named corpus and returns one JSON answer with verified evidence references, so the session never pays frontier tokens to read a large body of files. Use whenever a session needs a question answered from a repo, a folder of documents, an index or a vault - "find out from this codebase how X works", "what does the vault say about Y", "survey these notes for Z" - and, once Phase 2 is built, for the onboarding that harvests, cleans and fine-tunes the local models on the user's own history. A single summarize, extract or grep call on the local model is local-model-task. Never reads guarded files itself.
 ---
 
 # support-local
@@ -27,13 +27,14 @@ python3 ~/.agents/skills/support-local/scripts/eval_goals.py --report <results.j
 python3 -m unittest discover -s ~/.agents/skills/support-local/tests
 ```
 
-Brief variants: `default` (also `local-first`) forbids Read until a local search has run and says abstention is a correct result; `full` is the longer original; `terse` is a short brief. The 72-run matrix of 2026-10-09 picked the default: 22/24 correct against 18/24 for the others, cheapest, and the only one that abstained on absent goals. `evals/goals.jsonl` keys were drafted by Sonnet readers and are unreviewed until the user signs them off.
+Brief variants: `default` (also `local-first`) forbids Read until a local search has run and says abstention is a correct result; `full` is the longer original; `terse` is a short brief. The 72-run matrix of 2026-10-09 picked the default: 22/24 correct against 18/24 for the others, cheapest, and the only one that abstained on absent goals. `evals/goals.jsonl` keys were drafted by Sonnet readers and are unreviewed until the user signs them off. Goals over the user's own repos sit in the gitignored `evals/goals.local.jsonl` beside it, read when present.
 
 ## Reading the answer
 
-The worker returns `{"goal", "answer", "answerable", "evidence": [{"claim", "ref", "verified"}], "coverage", "local_calls", "stop_reason"}`.
+The worker returns `{"goal", "answer", "answerable", "evidence": [{"claim", "ref", "quote", "verified"}], "coverage", "local_calls", "stop_reason"}`.
 
-- `verify` and `run` re-resolve every `ref` themselves: a `path:line` must exist, a `path` must be a file, and a `vault:<name>#<section>` reference stays unverified because only the vault can confirm it. The worker's own `verified` flag is replaced by the script's.
+- `verify` and `run` check every claim themselves. The `ref` must resolve inside the corpus (a `path:line` or `path`), and the `quote`, at least eight characters long, must sit at that line, or in that file for a file-level claim, ignoring whitespace. A reference to a line that exists is not evidence by itself. A `vault:<name>#<section>` reference stays unverified because only the vault can confirm it. The worker's own `verified` flag is replaced by the script's, and an `answerable: true` with no verified claim is downgraded to `false` with `downgraded` saying so.
+- An index or vault corpus has no path, so pass `--corpus-root <dir>` to `run` or `verify` to say where its files are; without it, no file reference verifies.
 - A claim with no resolvable reference is kept and marked `?? ` in the capsule. Read those before using the answer; do not drop them, and do not trust them.
 - `coverage` says what was searched. An `answerable: false` with a coverage line is a good result; an answer with no evidence is not.
 - `stop_reason` is `answered`, `budget` or `no progress`. A `budget` stop with low coverage means the brief was too wide.

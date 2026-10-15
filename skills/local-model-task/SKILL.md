@@ -1,6 +1,6 @@
 ---
 name: local-model-task
-description: Hands one bounded task from a Claude Code session to a local Ollama model or the user's own OpenAI-compatible gateway and returns a short capsule, with the result kept on disk, while Claude stays the orchestrator and checks the answer. MUST be used whenever the user names the local model, qwen, Ollama or their own gateway as the one to do a task - summarizing, extracting fields to JSON, triaging a list, or finding where something lives in a codebase - instead of doing that task directly; also /local-model-task, /local-model-task list and /local-model-task use. Refuses Ollama cloud models and local servers listening beyond loopback. Not for file edits or for handing work to Codex, which is codex-task.
+description: Hands one bounded task from a Claude Code session to a local Ollama model or the user's own OpenAI-compatible gateway and returns a short capsule, with the result kept on disk, while Claude checks the answer. MUST be used whenever the user names the local model, qwen, Ollama or their own gateway as the one to do a task - summarizing, extracting fields to JSON, triaging a list, or finding where something lives in a codebase - instead of doing that task directly; also /local-model-task, /local-model-task list and /local-model-task use. Refuses Ollama cloud models and local servers listening beyond loopback. One call per task; a goal that needs several local calls and checked evidence is support-local. Not for file edits or for handing work to Codex, which is codex-task.
 ---
 
 # local-model-task
@@ -45,8 +45,17 @@ local_model_task.py search --question <text> --pattern <regex> [--pattern ...] -
   the model only judges what they find.
 - Matches in hidden paths below `--path`, such as `.env`, are dropped before
   anything is sent. A `--path` that is itself hidden is searched as given.
-- A short or empty list does not show that something is absent. Widen the
-  patterns or search yourself before reporting that something does not exist.
+- The matches sent are spread across files round-robin up to `--max-matches`
+  and `--max-bytes`, so a file with hundreds of hits cannot crowd the others
+  out. `matches_capped` in `report.json` says whether anything was left out.
+- `answers_question` in `result.json` and `model_says_absent` in the report hold
+  the model's verdict that none of the matches answers the question. That is
+  the abstention signal; read it before widening the patterns. The capped-list
+  warning is printed only when matches were cut.
+- `--keep-alive <seconds>`, on `run` and `search` alike, leaves a local model
+  loaded after this call, at most 600 seconds, for a caller making a sequence of
+  calls; it is named on each call and there is no ambient setting. The report
+  records `left_loaded_for`. Default is 0, unload.
 
 ### list, use, doctor
 
@@ -67,7 +76,8 @@ prompt (`brief.md`) and `report.json` are under
 `~/.local/state/local-model-task/<run-id>/`, pruned after seven days.
 
 Exit codes: `0` done; `2` bad arguments, config or too little free memory; `3`
-refused by a locality rule; `4` backend error or truncated prompt; `5` timeout;
+refused by a locality rule; `4` backend error, or a prompt the window cannot
+hold, whether truncated or refused up front; `5` timeout;
 `6` reply failed the schema (raw output kept); `130` interrupted by SIGINT or
 SIGTERM (report written).
 
@@ -93,11 +103,13 @@ input itself for any unsupported field.
   `api_key_env`, never from the config file.
 - **Memory:** A local run needs 4 GB free (`--min-free-gb`). After every run
   that reached a local Ollama model, whether it succeeded, failed or received
-  SIGTERM, the script unloads the model unless another local local-model-task run
-  (for any model) is waiting. `report.json` records `unloaded`. A remote
-  Ollama backend is never told to unload. A run killed before it can unload
-  leaves the model loaded for at most one minute.
-- **Concurrency:** Every local local-model-task run by this user shares one lock
+  SIGTERM, the script unloads the model unless another local run (for any
+  model) is waiting or the caller passed `--keep-alive`. `--keep-alive` leaves
+  the model loaded for that many seconds (at most 600), recorded as
+  `left_loaded_for`. `report.json` records `unloaded`. A remote Ollama backend is
+  never told to unload. A run killed before it can unload leaves the model
+  loaded for at most one minute.
+- **Concurrency:** Every local run by this user shares one lock
   under `~/.local/state/local-model-task/locks/`. A run waits up to `--timeout` for
   the lock and exits 5 if it is still held. Other Ollama clients do not take
   that lock. To make Ollama itself serve one model and one request at a time

@@ -250,8 +250,10 @@ def render_brief(task: str, allow: list[str], repo_name: str, read_only: bool) -
 def child_env(tmp: Path) -> dict[str, str]:
     env = {k: os.environ[k] for k in ENV_ALLOW if k in os.environ}
     env["TMPDIR"] = str(tmp)
-    # Test hook only: the fake binaries are configured through FAKE_AGY_* and FAKE_SANDBOX_*.
-    env.update({k: v for k, v in os.environ.items() if k.startswith(("FAKE_AGY_", "FAKE_SANDBOX_"))})
+    # Test hook only: the fake binaries are configured through FAKE_AGY_* and FAKE_SANDBOX_*,
+    # forwarded only under the same opt-in that lets them run at all.
+    if os.environ.get("ANTIGRAVITY_TASK_TEST") == "1":
+        env.update({k: v for k, v in os.environ.items() if k.startswith(("FAKE_AGY_", "FAKE_SANDBOX_"))})
     return env
 
 
@@ -283,22 +285,30 @@ def spawn_agent(argv: list[str], run_dir: Path, timeout: int, env: dict[str, str
         finally:
             for sig, handler in prior.items():
                 signal.signal(sig, handler)
-            if proc.poll() is None:
-                _kill_group(proc)
+            # Every exit, a normal one included: a child the agent started outlives it
+            # in the same group and would keep running in the worktree.
+            _kill_group(proc)
     return proc.returncode, "exited"
 
 
 def _kill_group(proc: subprocess.Popen) -> None:
+    """TERM then KILL the agent's whole process group, waiting on the group rather
+    than the leader, since members outlive a leader that has already exited. macOS
+    answers EPERM for a group whose remaining members have exited but are not yet
+    reaped, which means nothing in it can run any more, so it counts as gone."""
     for sig, wait in ((signal.SIGTERM, 5.0), (signal.SIGKILL, 5.0)):
         try:
             os.killpg(proc.pid, sig)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError):
             return
         end = time.monotonic() + wait
-        while proc.poll() is None and time.monotonic() < end:
+        while time.monotonic() < end:
+            proc.poll()
+            try:
+                os.killpg(proc.pid, 0)
+            except (ProcessLookupError, PermissionError):
+                return
             time.sleep(0.1)
-        if proc.poll() is not None:
-            return
 
 
 def parse_output(run_dir: Path) -> dict:

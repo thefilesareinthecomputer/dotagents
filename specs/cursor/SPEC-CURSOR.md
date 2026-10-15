@@ -5,6 +5,56 @@ customization tree under `~/.cursor/`. Notable here as the **only harness other
 than Claude Code and Gemini CLI that has all three trees**, and the only one that
 picks up this repo's subagents without any extra work.
 
+**Verified on the laptop 2026-10-14:** `cursor-agent 2026.10.01-e373342`, probed
+with `harness_probe.py` in the `agent-cc-configs-sync` skill; the CLI
+self-updates, so the build in the dated observations below (2026.08.25) is
+older than what runs now. The global permissions object holds 17 deny entries.
+
+## Strengths
+
+What this harness is for on this station. Each claim is marked **observed**
+(seen in a run, a bench or a conference here), **doc-derived** (from Cursor's
+documentation) or **impression** (the user's working sense, not yet measured).
+
+- **A reliable second model on reasoning questions - observed.** As the `cursor`
+  member of `agent-conference` on `grok-4.7`, it ranked second of five valid
+  members on 2026-10-13 and second of six on 2026-10-12
+  (`tasks/reviews/*/tally.md`).
+- **Bounded delegation under the operating system - observed.** `cursor-task`
+  runs it headless in a detached worktree under a per-run `sandbox-exec`
+  profile that denies every write outside that worktree, so the bound does not
+  depend on the agent's own flag. It accepts any model from
+  `agent --list-models`.
+- **Many vendors' models through one seat, effort in the model name - observed.**
+  `agent --list-models` on 2026-10-14 lists the Codex 5.3 tiers at low, default,
+  high and xhigh each with a fast variant, GPT-5.2, and the Anthropic and xAI
+  models; a seat that should think harder changes model, not a flag
+  (`../HARNESS-MODELS-AND-EFFORT.md`).
+- **The editor - doc-derived.** The same customization tree serves the IDE's
+  agent mode and the CLI, so skills and project subagents written once reach
+  both; the IDE is where a human pairs with it interactively.
+- **Six-event hooks - doc-derived, partly disproved.** The CLI is reported to
+  send only the shell events, so nothing important depends on a Cursor hook until
+  FEATURE-000053 captures them.
+
+Limits that bound the lane: Cursor-hosted inference whichever model is picked,
+so medium-stakes only (`SPEC.md` invariant 6); the CLI rewrites its own config
+and has reset a tightened mode within an hour (Permissions below).
+
+## Config locations
+
+| Scope | Path | Holds |
+|---|---|---|
+| CLI, global | `~/.cursor/cli-config.json` | the `permissions` object (seeded as a fragment), plus auth cache, model choice and UI state the CLI rewrites |
+| CLI, global | `~/.cursor/hooks.json` | hook wiring (nothing seeded yet) |
+| CLI, global | `~/.cursor/skills-cursor/` | Cursor's own skill folder; this station uses `~/.agents/skills/` |
+| Editor, global | `~/.cursor/permissions.json` | the IDE's permissions, a separate system from the CLI's |
+| Editor, global | `~/.cursor/mcp.json` | MCP servers (absent on this station) |
+| Compatibility | `~/.claude/agents/` | read as a global subagent path by the IDE, not by the CLI |
+| Project | `.cursor/cli.json` | the complete permissions object for that repo, deny list included |
+| Project | `.cursor/agents/`, `.cursor/hooks.json`, `.cursor/mcp.json`, `.cursor/rules/` | subagents (the only level the CLI loads them from), hooks, MCP, rules |
+| Project | `AGENTS.md` at the repo root | rules, read per repo |
+
 ## Skills: nothing to install
 
 Cursor reads **`~/.agents/skills/`** as a user-level location. Cloning this repo

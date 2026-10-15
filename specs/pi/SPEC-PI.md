@@ -4,6 +4,56 @@ The configurable lane: a minimal, hackable terminal harness built to be adapted
 rather than accepted. MIT, TypeScript, extensions in-process. Ships no subagents
 and no plan mode by design.
 
+**Verified on the laptop 2026-10-14:** `pi 1.1.0`, installed by Homebrew,
+probed with `harness_probe.py` in the `agent-cc-configs-sync` skill. Pi has no
+no-login skill listing, and the bench runs it under a fake home, so discovery of
+this repo's skills has not been observed here yet; a print-mode probe in a real
+home is the pending check. Its config home is `~/.pi/agent/`.
+
+## Strengths
+
+What this harness is for on this station. Each claim is marked **observed**
+(seen in a run or a bench here), **doc-derived** (from pi.dev's documentation)
+or **impression** (the user's working sense, not yet measured).
+
+- **The leanest harness on the bench - observed.** On `harness-bench` with
+  `glm-5.3-flash:cloud` at thinking `low`, pi passed 33 of 33 task runs on
+  2026-10-13 and spent 25 to 60 percent fewer input tokens than goose on ten of
+  eleven tasks; its system prompt is about 1,000 tokens smaller. The
+  `long-audit` task is the one exception.
+- **No tool-output cap - observed, double-edged.** pi sent a 258 KB file to the
+  model whole on `long-audit` (172K input tokens, six times goose's), so it is
+  the more expensive harness on long multi-file work and the cheaper one
+  everywhere else.
+- **Minimal and extensible by design - doc-derived.** Pi is a four-tool core
+  (read, write, edit, bash) extended in-process by TypeScript extensions, with a
+  `--tools` allowlist and `--exclude-tools` denylist per run, BYOK across 20+
+  providers and tree-based sessions. It is the harness to adapt when a job needs
+  a tool surface no other harness has.
+- **Skills as the portable surface - doc-derived.** Pi has two global skill
+  roots with different root-file rules (see "The discovery rule that matters"),
+  takes `/skill:name` invocation, and honors `disable-model-invocation`, which
+  is the standard's route for commands.
+- **A provider quirk the bench works around - observed.** pi sends its system prompt as a
+  `developer`-role message, which Ollama's `/v1` drops; the bench adapter sets
+  `compat.supportsDeveloperRole: false` so the prompt reaches the model.
+
+Limits that bound the lane: **no built-in permission system**, so pi runs only
+under an outside sandbox (the bench's `sandbox-exec` profile); whichever provider
+is configured, `SPEC.md` invariant 6 binds.
+
+## Config locations
+
+| Scope | Path | Holds |
+|---|---|---|
+| Global | `~/.pi/agent/config.json` | settings, the `skills` array, `enableSkillCommands`, extensions |
+| Global | `~/.pi/agent/auth.json`, `~/.pi/agent/models-store.json` | provider credentials and the model store; never copied |
+| Global | `~/.pi/agent/skills/` | Pi's own skill root, where a loose root-level `.md` is a skill |
+| Global | `~/.pi/agent/installed-plugins/`, `~/.pi/agent/servers/` | extensions and MCP servers |
+| Global | `~/.pi/agent/session-store.db`, `~/.pi/agent/logs/` | sessions and logs |
+| Project, after trust | `.pi/skills/`, `.agents/skills/` | project skills, in cwd and ancestors |
+| Per run | `--skill <path>`, `--tools`, `--exclude-tools`, `--no-skills` | the run's skill and tool surface |
+
 ## Skills: nothing to install
 
 Pi reads **`~/.agents/skills/`** as one of two global locations. Cloning this repo
@@ -17,8 +67,9 @@ to `~/.agents` is the entire setup.
 | Settings | a `skills` array of files or directories |
 | CLI | `--skill <path>`, repeatable, and additive even under `--no-skills` |
 
-**Not verified here.** Pi is not installed on this machine; the above is from
-pi.dev's documentation as of 2026-07-31.
+The table is from pi.dev's documentation as of 2026-07-31 and is doc-derived
+throughout: pi is installed on the laptop, but discovery of this repo's skills has
+not been observed, because the bench runs pi under a fake home.
 
 ## The discovery rule that matters
 

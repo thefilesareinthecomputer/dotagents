@@ -130,8 +130,23 @@ class TestHelpers(unittest.TestCase):
         self.assertEqual(mt.size_ctx(100, 32768), 4096)
         self.assertEqual(mt.size_ctx(30000, 32768) % 1024, 0)
         self.assertGreater(mt.size_ctx(30000, 32768), 30000 // 3)
-        with self.assertRaises(mt.TaskError):
+        with self.assertRaises(mt.TaskError) as cm:
             mt.size_ctx(200000, 32768)
+        # a prompt the window cannot hold is the same failure class as a truncated one: the caller's rule for
+        # exit 4 is "retry narrower", and that is the right response here too
+        self.assertEqual(cm.exception.code, mt.EXIT_BACKEND)
+
+    def test_spread_matches_interleaves_files_up_to_the_caps(self):
+        raw = [("a.py", i, f"a{i}") for i in range(1, 51)] + [("b.py", i, f"b{i}") for i in range(1, 4)] + [("c.py", 1, "c1")]
+        kept, capped = mt.spread_matches(raw, 8, 10_000)
+        self.assertTrue(capped)
+        self.assertEqual([m[0] for m in kept], ["a.py", "b.py", "c.py", "a.py", "b.py", "a.py", "b.py", "a.py"])
+        self.assertEqual([m for m in kept if m[0] == "a.py"], raw[:4])      # each file keeps its own order
+        kept, capped = mt.spread_matches(raw[:5], 8, 10_000)
+        self.assertEqual((len(kept), capped), (5, False))
+        kept, capped = mt.spread_matches(raw, 400, 30)                      # the byte budget caps too
+        self.assertTrue(capped)
+        self.assertLessEqual(sum(len(f"{p}:{n}:{t}") for p, n, t in kept), 30)
 
     def test_truncation(self):
         self.assertFalse(mt.is_truncated(1000, 8192))
@@ -584,7 +599,61 @@ class TestSearch(Base):
         self.assertEqual(code, 0, err)
         report = json.loads((self.runs()[0] / "report.json").read_text())
         self.assertEqual((report["hits_kept"], report["hits_dropped"]), (0, 1))
-        self.assertIn("No hits.", out)
+        # the model's verdict that nothing answers is the abstention signal: recorded, printed, never folded
+        # into the capped-list warning, which only applies when matches were cut
+        self.assertTrue(report["model_says_absent"])
+        self.assertIs(json.loads((self.runs()[0] / "result.json").read_text())["answers_question"], False)
+        self.assertIn("No hits: the model judged that none of the 3 matches answers the question.", out)
+        self.assertNotIn("not that the target is absent", out)
+
+    def test_search_warns_about_absence_only_when_the_list_was_capped(self):
+        fake = self.serve(reply='{"answers_question": true, "hits": [{"id": 1, "reason": "defines it"}]}')
+        self.write_config({"ollama": backend(fake.url)})
+        code, out, err = self.main("search", "--question", "q", "--pattern", "ENV_ALLOW", "--path", str(self.make_tree()),
+                                   "--min-free-gb", "0")
+        self.assertEqual(code, 0, err)
+        self.assertNotIn("not that the target is absent", out)
+        report = json.loads((self.runs()[0] / "report.json").read_text())
+        self.assertFalse(report["model_says_absent"])
+        self.assertIs(json.loads((self.runs()[0] / "result.json").read_text())["answers_question"], True)
+
+    def test_search_spreads_matches_across_files(self):
+        fake = self.serve(reply='{"answers_question": true, "hits": []}')
+        self.write_config({"ollama": backend(fake.url)})
+        root = self.make_tree()
+        (root / "pkg" / "aaa_many.py").write_text("".join(f"ENV_ALLOW_{i} = {i}\n" for i in range(40)))
+        code, _, err = self.main("search", "--question", "q", "--pattern", "ENV_ALLOW", "--path", str(root),
+                                 "--max-matches", "6", "--min-free-gb", "0")
+        self.assertEqual(code, 0, err)
+        prompt = fake.posts()[0]["body"]["messages"][-1]["content"]
+        self.assertIn("aaa_many.py", prompt)
+        self.assertIn("env.py", prompt)          # not crowded out by the forty lines that sort first
+        self.assertIn("use.py", prompt)
+        self.assertTrue(json.loads((self.runs()[0] / "report.json").read_text())["matches_capped"])
+
+    def test_keep_alive_leaves_the_model_resident_for_a_bounded_time(self):
+        fake = self.serve(reply='{"answers_question": true, "hits": []}')
+        self.write_config({"ollama": backend(fake.url)})
+        root = self.make_tree()
+        code, _, err = self.main("search", "--question", "q", "--pattern", "ENV_ALLOW", "--path", str(root),
+                                 "--min-free-gb", "0", "--keep-alive", "300")
+        self.assertEqual(code, 0, err)
+        chat = [p for p in fake.posts() if p["path"] == "/api/chat"]
+        self.assertEqual(chat[0]["body"]["keep_alive"], "300s")
+        self.assertEqual([p for p in fake.posts() if p["path"] == "/api/generate"], [])     # no unload
+        report = json.loads((self.runs()[0] / "report.json").read_text())
+        self.assertEqual((report["unloaded"], report["left_loaded_for"]), (False, "keep-alive 300s"))
+        code, _, err = self.main("search", "--question", "q", "--pattern", "ENV_ALLOW", "--path", str(root),
+                                 "--min-free-gb", "0", "--keep-alive", "9999")
+        self.assertEqual(code, 2)
+        self.assertIn("keep-alive", err)
+        # no ambient setting: an exported variable changes nothing, and the next call unloads as usual
+        self.env["LOCAL_MODEL_TASK_KEEP_ALIVE"] = "120"
+        code, _, err = self.main("search", "--question", "q", "--pattern", "ENV_ALLOW", "--path", str(root),
+                                 "--min-free-gb", "0")
+        self.assertEqual(code, 0, err)
+        self.assertEqual([p for p in fake.posts() if p["path"] == "/api/chat"][-1]["body"]["keep_alive"], mt.KEEP_ALIVE)
+        self.assertEqual(len([p for p in fake.posts() if p["path"] == "/api/generate"]), 1)
 
     def test_grep_fallback_skips_hidden_files(self):
         fake = self.serve(reply='{"answers_question": false, "hits": []}')

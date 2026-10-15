@@ -65,91 +65,161 @@
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "rtk hook claude" }
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/deny-bash-file-writes.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/guard-rm.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/guard-private.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/reject_bad_commit_message.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "rtk hook claude"
+          }
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Read|Write|Edit|MultiEdit|NotebookEdit|Update|Create|Bash|Grep|Glob",
         "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/deny-bash-file-writes.sh", "timeout": 10 }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/guard-rm.sh", "timeout": 10 }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/guard-private.sh", "timeout": 10 }
-        ]
-      },
-      {
-        "matcher": "Read|Edit|Write|MultiEdit|NotebookEdit|Update|Create|Bash|Grep|Glob",
-        "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/block-env-files.sh" }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
-        "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/ask-before-claude-folder-edits.sh" }
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/read-size-advisory.sh", "timeout": 5 }
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/block-env-files.sh"
+          }
         ]
       },
       {
         "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
         "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/memory-routing.sh", "timeout": 5 }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
-        "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/no-meta-commentary.sh", "timeout": 5 }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
-        "hooks": [
-          { "type": "command", "command": "python3 ~/.claude/hooks/reject_words.py", "timeout": 5 }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
-        "hooks": [
-          { "type": "command", "command": "python3 ~/.claude/hooks/reject_invisibles.py", "timeout": 10 }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
-        "hooks": [
-          { "type": "command", "command": "python3 ~/.claude/hooks/reject_identifiers.py", "timeout": 10 }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
-        "hooks": [
-          { "type": "command", "command": "python3 ~/.claude/hooks/reject_published_copy_edits.py", "timeout": 10 }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          { "type": "command", "command": "python3 ~/.claude/hooks/reject_bad_commit_message.py", "timeout": 10 }
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/reject_words.py",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/reject_invisibles.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/reject_identifiers.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/reject_published_copy_edits.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/no-meta-commentary.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/ask-before-claude-folder-edits.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/memory-routing.sh",
+            "timeout": 5
+          }
         ]
       },
       {
         "matcher": "Bash|Agent|Workflow|mcp__.*",
         "hooks": [
-          { "type": "command", "command": "python3 ~/.claude/hooks/memory_pressure_gate.py", "timeout": 10 }
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/memory_pressure_gate.py",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/read-size-advisory.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/memory_pressure_gate.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/daemon_restart_storm.py",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/agent-mail-check.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/cmon_nudge.py",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/harness_version_check.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/memory_pressure_gate.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/daemon_restart_storm.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/cmon_nudge.py",
+            "timeout": 5
+          }
         ]
       }
     ],
@@ -157,44 +227,21 @@
       {
         "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
         "hooks": [
-          { "type": "command", "command": "python3 ~/.claude/hooks/memory_lint.py", "timeout": 10 }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
-        "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/no-meta-commentary-check.sh", "timeout": 5 }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create",
-        "hooks": [
-          { "type": "command", "command": "python3 ~/.claude/hooks/skill_description_lint.py", "timeout": 10 }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "startup|resume",
-        "hooks": [
-          { "type": "command", "command": "bash ~/.claude/hooks/agent-mail-check.sh", "timeout": 10 },
-          { "type": "command", "command": "python3 ~/.claude/hooks/cmon_nudge.py", "timeout": 5 }
-        ]
-      },
-      {
-        "matcher": "startup|resume|clear|compact",
-        "hooks": [
-          { "type": "command", "command": "python3 ~/.claude/hooks/daemon_restart_storm.py", "timeout": 10 },
-          { "type": "command", "command": "python3 ~/.claude/hooks/memory_pressure_gate.py", "timeout": 10 }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          { "type": "command", "command": "python3 ~/.claude/hooks/daemon_restart_storm.py", "timeout": 10 },
-          { "type": "command", "command": "python3 ~/.claude/hooks/memory_pressure_gate.py", "timeout": 10 },
-          { "type": "command", "command": "python3 ~/.claude/hooks/cmon_nudge.py", "timeout": 5 }
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/skill_description_lint.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/no-meta-commentary-check.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/memory_lint.py",
+            "timeout": 10
+          }
         ]
       }
     ]

@@ -50,6 +50,25 @@ class TestTermList(TermFixture):
             sz.station_terms()
         self.assertEqual(cm.exception.code, 2)
 
+    def test_an_empty_list_refuses_too(self):
+        # a list of comments and blank lines silently disables the backstop; it fails closed instead
+        self.terms_path.write_text("# nothing here\n\n", encoding="utf-8")
+        with self.assertRaises(sz.SanitizeError) as cm:
+            sz.station_terms()
+        self.assertEqual(cm.exception.code, 2)
+        self.assertIn("no terms", str(cm.exception))
+
+    def test_short_terms_match_as_typed_only(self):
+        # an all-caps two-letter term under the any-case rule matches the common word; below the
+        # short-term length a term matches as typed, and the normalized view skips it already
+        counts = {}
+        out = sz.scrub_text("the ab test, AB (DE1) aside, and Ab", {"AB"}, counts)
+        self.assertEqual(out, "the ab test, [ROLE] aside, and Ab")
+        self.assertNotIn("term", counts)
+        self.assertEqual(sz.scrub_text("AB owns it", {"AB"}, {}), "[TERM] owns it")
+        self.assertEqual(sz.scrub_text("ZOR and zor", {"zor"}, {}), "ZOR and [TERM]")
+        self.assertEqual(sz.scrub_text("ZORB and zorb", {"zorb"}, {}), "[TERM] and [TERM]")   # four characters is the floor
+
     def test_single_case_term_matches_any_case(self):
         counts = {}
         out = sz.scrub_text("ZORBULATE and Zorbulate and zorbulate", {"zorbulate"}, counts)
@@ -111,6 +130,23 @@ class TestSecrets(unittest.TestCase):
         out = sz.scrub_text("postgres://user:hunter22@db/x", set(), {})
         self.assertEqual(out, "postgres://user:[SECRET]@db/x")
 
+    def test_encoded_runs_are_checked_for_every_shape_not_terms_only(self):
+        import base64
+        key = base64.b64encode(b"API_TOKEN=abc9defghijklmnop").decode()
+        counts = {}
+        self.assertEqual(sz.scrub_text(f"blob {key} end", set(), counts), "blob [SECRET] end")
+        self.assertEqual(counts, {"secret-encoded": 1})
+        mail = base64.b64encode(b"write to someone@example.test today").decode()
+        counts = {}
+        self.assertEqual(sz.scrub_text(f"blob {mail} end", set(), counts), "blob [EMAIL] end")
+        self.assertEqual(counts, {"email-encoded": 1})
+        hexed = b"-u admin:hunter22x".hex()
+        self.assertEqual(sz.scrub_text(f"x {hexed} y", set(), {}), "x [SECRET] y")
+
+    def test_basic_authorization_is_a_secret_whatever_it_decodes_to(self):
+        out = sz.scrub_text("Authorization: Basic dXNlcjpwYXNzd29yZA==", set(), {})
+        self.assertEqual(out, "Authorization: Basic [SECRET]")
+
     def test_already_masked_value_is_not_counted_twice(self):
         counts = {}
         out = sz.scrub_text("API_TOKEN=[SECRET]", set(), counts)
@@ -165,6 +201,19 @@ class TestAnswerMode(TermFixture):
         self.assertEqual(out.strip(), "withheld: the answer touched a protected term")
         self.assertNotIn("zorbulate", out + err)
 
+    def test_a_term_inside_a_shape_still_withholds(self):
+        # the email pass would replace the whole address first; the term check runs on the original text
+        code, out, err = self.run_cli(["answer"], "mail zorbulate@example.test for access\n")
+        self.assertEqual(code, 3)
+        self.assertNotIn("zorbulate", out + err)
+
+    def test_a_pattern_hit_withholds_too(self):
+        code, out, _ = self.run_cli(["answer", "--patterns", r"PRJ-\d{4}"], "ticket PRJ-1234 is open\n")
+        self.assertEqual(code, 3)
+        self.assertEqual(out.strip(), "withheld: the answer touched a protected pattern")
+        code, out, _ = self.run_cli(["answer", "--patterns", r"PRJ-\d{4}"], "no ticket here\n")
+        self.assertEqual(code, 0)
+
     def test_normalized_term_hit_withholds_too(self):
         code, out, err = self.run_cli(["answer"], "the owner is z o r b u l a t e\n")
         self.assertEqual(code, 3)
@@ -187,7 +236,7 @@ class TestAnswerMode(TermFixture):
         cfg = Path(self.tmp.name) / "corpus.json"
         cfg.write_text(json.dumps({"ban_list": str(ban), "terms": ["grexon"], "patterns": [r"\bQX-\d{4}\b"]}))
         code, out, _ = self.run_cli(["answer", "--config", str(cfg)], "QX-1234 is fine\n")
-        self.assertEqual((code, out), (0, "[PATTERN] is fine\n"))
+        self.assertEqual((code, out), (3, "withheld: the answer touched a protected pattern\n"))   # a pattern the user added is a gate too
         code, out, _ = self.run_cli(["answer", "--config", str(cfg)], "flombix met grexon\n")
         self.assertEqual(code, 3)
 

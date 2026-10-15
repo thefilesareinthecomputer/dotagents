@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Table-driven tests for the block-env-files PreToolUse hook.
-# Target: ~/.claude/hooks/block-env-files.sh (per-machine, seeded from
+# Target: the repo's hooks/block-env-files.sh by default; HOOK_UNDER_TEST points the
+# run at a station copy such as ~/.claude/hooks/block-env-files.sh (per-machine, seeded from
 # SPEC-CLAUDE-CODE.md §8). Run: bash tests/station-hooks/test-block-env-files.sh
 # Exit 0 = all green; nonzero = failures listed.
 #
@@ -10,7 +11,8 @@
 # everything else are silent.
 set -u
 
-HOOK="${HOOK_UNDER_TEST:-$HOME/.claude/hooks/block-env-files.sh}"
+REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+HOOK="${HOOK_UNDER_TEST:-$REPO/hooks/block-env-files.sh}"
 [ -f "$HOOK" ] || { echo "FATAL: hook not found at $HOOK"; exit 2; }
 command -v jq >/dev/null 2>&1 || { echo "FATAL: jq required"; exit 2; }
 

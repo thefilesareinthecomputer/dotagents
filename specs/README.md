@@ -4,7 +4,10 @@ One folder per agent harness: the station spec, plus every file that spec seeds.
 A spec states what a machine's install of that harness needs around these skills, and what it already provides on its own.
 
 `SPEC.md` at the repo root says what this repo IS. These say what a *harness*
-needs around it.
+needs around it. [`HARNESS-PROFILES.md`](HARNESS-PROFILES.md) compares the core
+harnesses side by side - installed version, config home, skills discovery, hooks
+state, models and what each is for - stamped from the probe in the
+`agent-cc-configs-sync` skill.
 
 | Folder | Harness | Skills setup |
 |---|---|---|
@@ -29,6 +32,8 @@ Every harness folder follows the shape `claude-code/` established:
 - **`SPEC-<HARNESS>.md`** is the station spec, and the only required file.
   The filename carries the harness name so a search hit or an open tab is unambiguous on its own.
 - **Seed files** - every file the spec tells a station to install (`CLAUDE.md.example`, `settings.json`, `hooks/`, status lines, keybindings) - live beside the spec as real files rather than code blocks, so they can be diffed, linted and copied directly.
+  A harness folder's `hooks/` holds only that harness's own hooks.
+  The hooks every harness shares live once, in the top-level [`hooks/`](../hooks/AGENTS.md) at the repo root, and the seeder (`seed_hooks.py` in the `agent-cc-configs-sync` skill) reads the manifest in each of the two folders.
   A seed file and the configured station it seeds stay in byte parity: a drift check is a `diff`, not a reading exercise.
 - **Reference docs** that inform a harness beyond this station's own choices sit beside the spec they belong to (e.g. [`claude-code/CLAUDE-CONTEXT-TOPOLOGY-ONTOLOGY-AND-TEAM-HEURISTICS.md`](claude-code/CLAUDE-CONTEXT-TOPOLOGY-ONTOLOGY-AND-TEAM-HEURISTICS.md)).
 - **Same-folder links are bare filenames; cross-folder links are relative** (`../copilot/SPEC-COPILOT.md`).
@@ -55,10 +60,10 @@ deepagents is the odd one out: a library rather than something you install on
 a machine, so its spec covers wiring rather than a station. LangGraph sits
 under it as the runtime and has no skills support of its own.
 
-Claude Code, Codex CLI, goose, GitHub Copilot and opencode have been
-confirmed by direct observation on a real machine. Cursor and Antigravity are
-installed but only partly confirmed, and each says which parts. The rest are
-documentation-derived and each says so.
+Claude Code, Codex CLI, Cursor, goose, GitHub Copilot, opencode and Antigravity
+have been confirmed by direct observation on a real machine, each spec saying
+which parts and on what date. Pi is installed, and its skill discovery is not yet
+observed. The rest are documentation-derived and each says so.
 
 ## What Copilot found that nothing else did
 

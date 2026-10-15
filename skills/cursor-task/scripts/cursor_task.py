@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import fcntl
 import json
 import os
 import re
@@ -30,6 +31,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -220,11 +222,93 @@ def write_profile(run_dir: Path, ws: Path, tmp: Path, read_only: bool = False) -
     # Everything in the state folder that the IDE or the CLI would load later as code or
     # config. An allow-list of the folders the CLI needs is the better shape and waits on
     # a canary per CLI (tasks/todo.md); until then the known loaders are denied by name.
-    for name in ("cli-config.json", "agents", "rules", "plugins", "extensions", "mcp.json", "hooks.json"):
+    # cli-config.json is not in this list: CLI 2026.10.01 rewrites it at startup and exits
+    # under a deny (probed 2026-10-11), so it is allowed and restored byte for byte after
+    # the run instead (see restore_cli_config), which keeps its permissions lists ours.
+    for name in ("agents", "rules", "plugins", "extensions", "mcp.json", "hooks.json"):
         lines.append(f'(deny file-write* (subpath "{_sb_path(home / name)}"))')
     profile = run_dir / "sandbox.sb"
     profile.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return profile
+
+
+CLI_CONFIG = "cli-config.json"
+
+
+def snapshot_cli_config() -> bytes | None:
+    """The CLI's own config file before a run, or None when there is none. The CLI
+    rewrites it at startup; the file also holds its permissions lists, so the run must
+    not be able to leave a change in it."""
+    path = cursor_state_home() / CLI_CONFIG
+    try:
+        return path.read_bytes()
+    except OSError:
+        return None
+
+
+def restore_cli_config(before: bytes | None) -> dict:
+    """Put the config back exactly as it was and say whether the run had changed it. A
+    file that did not exist before is removed if the run created it. The replacement goes
+    through a fresh temp file from mkstemp, written and chmodded on its descriptor, so a
+    link the run planted at a predictable name in the CLI's folder is never followed."""
+    path = cursor_state_home() / CLI_CONFIG
+    try:
+        after = path.read_bytes()
+    except OSError:
+        after = None
+    changed = after != before
+    if changed:
+        if before is None:
+            path.unlink(missing_ok=True)
+        else:
+            fd, tmp = tempfile.mkstemp(prefix=CLI_CONFIG + ".", dir=str(path.parent))
+            try:
+                with os.fdopen(fd, "wb") as fh:
+                    fh.write(before)
+                    os.fchmod(fh.fileno(), 0o600)
+                os.replace(tmp, path)
+            finally:
+                Path(tmp).unlink(missing_ok=True)
+    return {"existed": before is not None, "changed_by_run": changed, "restored": changed}
+
+
+CLI_LOCK = "cli-config.lock"
+
+
+class CliConfigLock:
+    """One Cursor call at a time per user: the snapshot and restore of the CLI's config
+    cannot interleave, or two overlapping runs restore each other's copy. The lock file
+    sits beside the config and agent-review's Cursor runner takes the same one. The wait is
+    bounded by the run's timeout, and under the test opt-in by CURSOR_TASK_LOCK_WAIT."""
+
+    def __init__(self, timeout: float):
+        self.timeout = timeout
+        self.waited = 0.0
+        self.fd: int | None = None
+
+    def __enter__(self) -> "CliConfigLock":
+        path = cursor_state_home() / CLI_LOCK
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self.fd = os.open(path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        wait = float(test_override("CURSOR_TASK_LOCK_WAIT") or self.timeout)
+        start = time.monotonic()
+        while True:
+            try:
+                fcntl.flock(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except OSError:
+                if time.monotonic() - start >= wait:
+                    os.close(self.fd)
+                    self.fd = None
+                    raise TaskError(f"another run held Cursor's config lock ({path}) for the whole wait of {wait:g} s", EXIT_TIMEOUT)
+                time.sleep(0.5)
+        self.waited = round(time.monotonic() - start, 1)
+        return self
+
+    def __exit__(self, *exc) -> None:
+        if self.fd is not None:
+            os.close(self.fd)
+            self.fd = None
 
 
 def model_slug(model: str, effort: str | None) -> str:
@@ -271,8 +355,9 @@ def child_env(tmp: Path) -> dict[str, str]:
     env = {k: os.environ[k] for k in ENV_ALLOW if k in os.environ}
     env["TMPDIR"] = str(tmp)
     # Test hook only: the fake binaries are configured through FAKE_AGENT_* and
-    # FAKE_SANDBOX_*, never set outside the suite; CURSOR_TASK_BIN already gates that path.
-    env.update({k: v for k, v in os.environ.items() if k.startswith(("FAKE_AGENT_", "FAKE_SANDBOX_"))})
+    # FAKE_SANDBOX_*, forwarded only under the same opt-in that lets them run at all.
+    if os.environ.get("CURSOR_TASK_TEST") == "1":
+        env.update({k: v for k, v in os.environ.items() if k.startswith(("FAKE_AGENT_", "FAKE_SANDBOX_"))})
     return env
 
 
@@ -305,22 +390,30 @@ def spawn_agent(argv: list[str], run_dir: Path, timeout: int, env: dict[str, str
         finally:
             for sig, handler in prior.items():
                 signal.signal(sig, handler)
-            if proc.poll() is None:
-                _kill_group(proc)
+            # Every exit, a normal one included: a child the agent started outlives it
+            # in the same group and would keep running in the worktree.
+            _kill_group(proc)
     return proc.returncode, "exited"
 
 
 def _kill_group(proc: subprocess.Popen) -> None:
+    """TERM then KILL the agent's whole process group, waiting on the group rather
+    than the leader, since members outlive a leader that has already exited. macOS
+    answers EPERM for a group whose remaining members have exited but are not yet
+    reaped, which means nothing in it can run any more, so it counts as gone."""
     for sig, wait in ((signal.SIGTERM, 5.0), (signal.SIGKILL, 5.0)):
         try:
             os.killpg(proc.pid, sig)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError):
             return
         end = time.monotonic() + wait
-        while proc.poll() is None and time.monotonic() < end:
+        while time.monotonic() < end:
+            proc.poll()
+            try:
+                os.killpg(proc.pid, 0)
+            except (ProcessLookupError, PermissionError):
+                return
             time.sleep(0.1)
-        if proc.poll() is not None:
-            return
 
 
 def parse_output(run_dir: Path) -> dict:
@@ -461,7 +554,13 @@ def cmd_run(a: argparse.Namespace) -> int:
     (run_dir / "argv.json").write_text(json.dumps(argv[:-1] + ["<brief>"], indent=1), encoding="utf-8")
 
     started = time.time()
-    rc, reason = spawn_agent(argv, run_dir, timeout, child_env(tmp))
+    with CliConfigLock(timeout) as lock:
+        config_before = snapshot_cli_config()
+        try:
+            rc, reason = spawn_agent(argv, run_dir, max(30, int(timeout - lock.waited)), child_env(tmp))
+        finally:
+            cli_config = restore_cli_config(config_before)
+            cli_config["lock_wait_s"] = lock.waited
     elapsed = round(time.time() - started, 1)
     out = parse_output(run_dir)
     try:
@@ -489,7 +588,7 @@ def cmd_run(a: argparse.Namespace) -> int:
         "allowlist": allow, "changed_in_scope": in_scope, "changed_out_of_scope": out_scope,
         "dirty_allowed_files_in_repo": dirty_paths(root, allow),
         "sandbox_profile": str(profile), "sandbox_bin": argv[0], "agent_bin": argv[3],
-        "agent_rc": rc, "exit_reason": reason,
+        "agent_rc": rc, "exit_reason": reason, "cli_config": cli_config,
         "agent_errors": out["errors"], "usage": out["usage"], "session_id": out["session_id"],
         "result": result, "result_text": str(run_dir / "result.md") if out["text"] else None,
         "patch": str(run_dir / "allowed.patch"), "exit_code": code,

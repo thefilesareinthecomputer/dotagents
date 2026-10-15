@@ -72,8 +72,19 @@ def git(args: list[str], cwd: Path, check: bool = True) -> subprocess.CompletedP
                           capture_output=True, check=check, timeout=120)
 
 
+def test_mode() -> bool:
+    """The explicit opt-in under which the binary and home overrides and the FAKE_CODEX_*
+    hooks are honored. Without it a stray export in a shell profile cannot swap the agent
+    or its home out from under a real run."""
+    return os.environ.get("CODEX_TASK_TEST") == "1"
+
+
+def test_override(name: str) -> str | None:
+    return (os.environ.get(name) or None) if test_mode() else None
+
+
 def codex_bin() -> str:
-    return os.environ.get("CODEX_TASK_BIN") or "codex"
+    return test_override("CODEX_TASK_BIN") or "codex"
 
 
 def state_dir() -> Path:
@@ -96,7 +107,7 @@ def isolated_home(sdir: Path) -> tuple[Path, list[str]]:
     """A private CODEX_HOME so a run never writes trust, memories or state into
     ~/.codex. Auth is a symlink to the real auth.json so no second login is
     needed. Returns (home, warnings)."""
-    real = Path(os.environ.get("CODEX_TASK_REAL_HOME") or os.path.expanduser("~/.codex"))
+    real = Path(test_override("CODEX_TASK_REAL_HOME") or os.path.expanduser("~/.codex"))
     home = sdir / "home"
     home.mkdir(parents=True, exist_ok=True)
     link = home / "auth.json"
@@ -215,9 +226,10 @@ def child_env(home: Path) -> dict[str, str]:
     """
     env = {k: os.environ[k] for k in ENV_ALLOW if k in os.environ}
     env["CODEX_HOME"] = str(home)
-    # Test hook only: the fake Codex binary is configured through FAKE_CODEX_*,
-    # which is never set outside the suite. CODEX_TASK_BIN already gates that path.
-    env.update({k: v for k, v in os.environ.items() if k.startswith("FAKE_CODEX_")})
+    # Test hook only: the fake Codex binary is configured through FAKE_CODEX_*, forwarded
+    # only under the same opt-in that lets the fake binary run at all.
+    if test_mode():
+        env.update({k: v for k, v in os.environ.items() if k.startswith("FAKE_CODEX_")})
     return env
 
 
@@ -274,22 +286,30 @@ def spawn_codex(argv: list[str], prompt: str, run_dir: Path, timeout: int,
         finally:
             for sig, handler in prior.items():
                 signal.signal(sig, handler)
-            if proc.poll() is None:
-                _kill_group(proc)
+            # Every exit, a normal one included: a child Codex started outlives it
+            # in the same group and would keep running in the worktree.
+            _kill_group(proc)
     return proc.returncode, "exited"
 
 
 def _kill_group(proc: subprocess.Popen) -> None:
+    """TERM then KILL Codex's whole process group, waiting on the group rather
+    than the leader, since members outlive a leader that has already exited. macOS
+    answers EPERM for a group whose remaining members have exited but are not yet
+    reaped, which means nothing in it can run any more, so it counts as gone."""
     for sig, wait in ((signal.SIGTERM, 5.0), (signal.SIGKILL, 5.0)):
         try:
             os.killpg(proc.pid, sig)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError):
             return
         end = time.monotonic() + wait
-        while proc.poll() is None and time.monotonic() < end:
+        while time.monotonic() < end:
+            proc.poll()
+            try:
+                os.killpg(proc.pid, 0)
+            except (ProcessLookupError, PermissionError):
+                return
             time.sleep(0.1)
-        if proc.poll() is not None:
-            return
 
 
 def parse_events(run_dir: Path) -> dict:

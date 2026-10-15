@@ -5,6 +5,56 @@ user-level configuration root at `~/.copilot/`, so setting up either sets up
 both. This is the station that surfaced the skill-portability problem recorded
 below, and the only one so far to reject any of this repo's skills.
 
+**Verified on the laptop 2026-10-14:** `GitHub Copilot CLI 1.0.81` (npm), probed
+with `harness_probe.py` in the `agent-cc-configs-sync` skill; `copilot skill
+list` names this repo's skills with no sign-in, and that command is the probe's
+discovery canary for this harness.
+
+## Strengths
+
+What this harness is for on this station. Each claim is marked **observed**
+(seen in a run here), **doc-derived** (from GitHub's documentation) or
+**impression** (the user's working sense, not yet measured).
+
+- **The GitHub lane - doc-derived.** Copilot's agent ships with GitHub's own
+  tooling: repository, issue and pull-request operations through its built-in
+  GitHub MCP server and the `gh`-authenticated account, with `gh skill` for
+  installing skills from repositories. For work whose object is a GitHub
+  artifact rather than a local tree, this is the harness that already has the
+  tools.
+- **The strictest `SKILL.md` parser - observed.** It rejected 8 of 24 skills on
+  2026-08-08 that every other harness accepted, and `copilot skill list` names
+  the file and reason for each rejection without authentication. It is the
+  portability check this repo runs before claiming a skill loads everywhere
+  (`skill-authoring`).
+- **One configuration for the editor and the CLI - doc-derived.** Both read
+  `~/.copilot/`, and VS Code reads `~/.claude/CLAUDE.md` when
+  `chat.useClaudeMdFile` is on, so the global rules reach it with one setting.
+- **Effort as a session flag with the widest range - observed.** `--effort`
+  takes `none` through `max`, the only harness with `none` and `minimal`
+  (`../HARNESS-MODELS-AND-EFFORT.md`).
+- **Not yet a conference member or a task lane - observed.** No `copilot-task`
+  skill exists and it sits on no panel, so there is no measured quality figure
+  for it here.
+
+Limits that bound the lane: GitHub-hosted inference fronting several vendors,
+so medium-stakes only (`SPEC.md` invariant 6); content exclusion is an org or
+enterprise setting in GitHub's web UI, with nothing to write in a repo.
+
+## Config locations
+
+| Scope | Path | Holds |
+|---|---|---|
+| CLI and editor, global | `~/.copilot/config.json` | application-managed state; holds no seedable keys on a default install |
+| CLI and editor, global | `~/.copilot/settings.json` | settings, changeable in-session with `/settings KEY VALUE`; absent on a default install |
+| CLI and editor, global | `~/.copilot/mcp-config.json` | MCP servers, not created by default |
+| CLI and editor, global | `~/.copilot/hooks/`, `~/.copilot/agents/`, `~/.copilot/instructions/` | hooks, custom agents (`*.agent.md`), scoped instructions |
+| Credentials | the system keychain | the `/login` device-flow token; a bare `~/.copilot` says nothing about login state |
+| Editor, global | `~/.claude/CLAUDE.md` | read when `chat.useClaudeMdFile` is on |
+| Project | `.github/copilot-instructions.md` | always-on instructions, seeded as a pointer at `AGENTS.md` |
+| Project | `.github/instructions/`, `.github/prompts/`, `.github/agents/`, `.github/hooks/`, `.github/skills/` | scoped instructions, prompt files, agents, hooks, project skills |
+| Project | `AGENTS.md` at the repo root | rules, read per repo |
+
 ## Skills: nothing to install
 
 Copilot reads **`~/.agents/skills/`** as a personal skill location. Cloning this

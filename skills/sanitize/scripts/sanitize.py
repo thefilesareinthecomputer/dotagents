@@ -28,6 +28,8 @@ import fnmatch
 import json
 import os
 import re
+import secrets
+import shutil
 import sys
 from pathlib import Path
 
@@ -54,7 +56,7 @@ SECRET_PATTERNS = [
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
     re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
     re.compile(r"(?:^|\s)--?(?:password|passwd|pwd|token|secret|api[-_]?key)[=\s]+[\"']?([^\s\"'`;&|]{6,})", re.I),
-    re.compile(r"\s-u\s+[^\s:]+:([^\s\"'`;&|]+)"),
+    re.compile(r"(?<!\S)-u\s+[^\s:]+:([^\s\"'`;&|]+)"),
     re.compile(r"\s-p([^\s\"'`;&|-]{6,})"),
     re.compile(r"\bsk-(?:ant-)?[A-Za-z0-9_-]{16,}\b"),
     re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}\b|\bgithub_pat_[A-Za-z0-9_]{20,}\b"),
@@ -66,12 +68,33 @@ SECRET_PATTERNS = [
     re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),
     re.compile(r"\b[a-z][a-z0-9+.-]*://[^/\s:@]+:([^/\s@]+)@", re.I),
     re.compile(r"\bbearer\s+([A-Za-z0-9._~+/=-]{16,})", re.I),
+    # HTTP basic credentials are a secret whatever the decoded pair looks like
+    re.compile(r"\bauthorization\s*[:=]\s*[\"']?basic\s+([A-Za-z0-9+/=_-]{8,})", re.I),
     re.compile(r"\b(?:authorization|x-api-key|api[-_]?key)\s*[:=]\s*[\"']?((?=[A-Za-z0-9._~+/=-]*\d)[A-Za-z0-9._~+/=-]{12,})(?![\w(])", re.I),
     # A key-like name assigned a credential-shaped value: 12 or more key characters holding at
     # least one digit, so `key = parts[0]`, `tokens = text.split()` and `TOKEN = "[SECRET]"`
     # in code are left alone while `API_TOKEN=9f3k...` is caught.
     re.compile(r"\b[A-Za-z0-9_]*(?:key|token|secret|password|passwd|pwd|credential)[A-Za-z0-9_]*\s*[=:]\s*[\"']?((?=[A-Za-z0-9_\-+/=~]*\d)[A-Za-z0-9_\-+/=~]{12,})(?![\w(.\[])", re.I),
 ]
+
+# A parsed file hands the scrubber a key and a value apart, so `{"password": "..."}` never
+# reaches the assignment rule as `password=...`. Field-aware scrubbing rejoins them.
+CREDENTIAL_KEY_RE = re.compile(r"(?:key|token|secret|password|passwd|pwd|credential|authorization)", re.I)
+KEY_VALUE_RULE = SECRET_PATTERNS[-1]
+
+
+def scrub_field(key: str, value: str, counts: dict, scrub) -> str:
+    """A string value under a credential-shaped key is judged as the assignment `key=value`
+    would be: a credential-shaped value becomes [SECRET] whole; anything else goes through
+    the ordinary scrub."""
+    if isinstance(key, str) and isinstance(value, str) and value and CREDENTIAL_KEY_RE.search(key):
+        probe = f"{key}={value}"
+        m = KEY_VALUE_RULE.search(probe)
+        if m and m.group(1) == value:
+            counts["secret"] = counts.get("secret", 0) + 1
+            return SECRET
+    return scrub(value, counts)
+
 
 # ---------------------------------------------------------------- custom shape checks
 # (class, placeholder, pattern). Group 1, when present, is the part replaced.
@@ -109,17 +132,28 @@ def station_terms() -> set[str]:
     """The station term list, failing closed: a missing or unreadable list is a refusal."""
     path = terms_file()
     try:
-        return read_term_file(path)
+        terms = read_term_file(path)
     except OSError as exc:
         raise SanitizeError(f"station term list not readable at {path}: {exc.strerror or exc}; "
                             "pass --no-station-terms to run without it on purpose", 2)
+    if not terms:
+        # comments and blank lines only: the backstop would be silently off
+        raise SanitizeError(f"station term list at {path} holds no terms; "
+                            "pass --no-station-terms to run without it on purpose", 2)
+    return terms
+
+
+SHORT_TERM = 4   # below this length a term matches as typed only; the normalized view skips it already
 
 
 def term_pattern(term: str) -> re.Pattern:
     """The identifier hook's rule: a single-case term matches any case, a mixed-case term
     matches as typed, and the edges are 'no word character on either side' so a
-    symbol-edged term still matches whole."""
-    flags = re.I if (term == term.upper() or term == term.lower()) else 0
+    symbol-edged term still matches whole. A term shorter than SHORT_TERM matches as
+    typed whatever its case: an all-caps two-letter term under the any-case rule is the
+    common word it spells."""
+    short = len(term) < SHORT_TERM
+    flags = re.I if (not short and (term == term.upper() or term == term.lower())) else 0
     return re.compile(r"(?<!\w)" + re.escape(term) + r"(?!\w)", flags)
 
 
@@ -168,6 +202,32 @@ def _term_pass(text: str, terms: set[str], counts: dict, cls: str) -> str:
     return nz.replace_spans(text, taken, TERM) if taken else text
 
 
+def _encoded_shape_pass(text: str, counts: dict) -> str:
+    """An encoded run whose decoded text holds a secret or a custom shape is replaced whole
+    by that class's placeholder (counted as `<class>-encoded`). Without this, a base64 key
+    or email survives every view, since the term pass decodes runs for terms only."""
+    taken: list[tuple[int, int, str, str]] = []
+    for s, e, decoded in nz.encoded_runs(text):
+        if any(regex.search(decoded) for regex in SECRET_PATTERNS):
+            taken.append((s, e, SECRET, "secret-encoded"))
+            continue
+        for cls, placeholder, regex in CUSTOM_CHECKS:
+            if regex.search(decoded):
+                taken.append((s, e, placeholder, f"{cls}-encoded"))
+                break
+    if not taken:
+        return text
+    kept: list[tuple[int, int, str, str]] = []
+    for s, e, placeholder, key in sorted(taken, key=lambda c: (-(c[1] - c[0]), c[0])):
+        if any(s < te and ts < e for ts, te, _, _ in kept):
+            continue
+        kept.append((s, e, placeholder, key))
+        counts[key] = counts.get(key, 0) + 1
+    for s, e, placeholder, _ in sorted(kept, reverse=True):
+        text = text[:s] + placeholder + text[e:]
+    return text
+
+
 def term_hit(counts: dict) -> bool:
     """True when any term-list or ban-list class fired, in any view."""
     return any(v for k, v in counts.items() if k.split("-")[0] in ("term", "ban"))
@@ -186,6 +246,7 @@ def scrub_text(text: str, terms: set[str], counts: dict | None = None, *,
         text = _sub_counting(regex, text, SECRET, counts, "secret")
     for cls, placeholder, regex in CUSTOM_CHECKS:
         text = _sub_counting(regex, text, placeholder, counts, cls)
+    text = _encoded_shape_pass(text, counts)
     text = _term_pass(text, set(terms or ()), counts, "term")
     text = _term_pass(text, set(extra_terms or ()), counts, "ban")
     for pat in extra_patterns or ():
@@ -201,6 +262,7 @@ class Options:
 
     def __init__(self, args: argparse.Namespace):
         self.terms: set[str] = set() if args.no_station_terms else station_terms()
+        self.docx: bool = bool(getattr(args, "include_docx", False))
         self.extra_terms: set[str] = set()
         self.extra_patterns: list[str] = []
         config = self._load_config(getattr(args, "config", None))
@@ -236,6 +298,9 @@ class Options:
     def scrub(self, text: str, counts: dict) -> str:
         return scrub_text(text, self.terms, counts, extra_terms=self.extra_terms, extra_patterns=self.extra_patterns)
 
+    def field(self, key: str, value: str, counts: dict) -> str:
+        return scrub_field(key, value, counts, self.scrub)
+
 
 def add_common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--no-station-terms", action="store_true", help="run without the station term list, on purpose")
@@ -243,6 +308,8 @@ def add_common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--terms", help="comma-separated extra terms for this run; visible in the process list, so prefer --ban-list or --config for protected values")
     p.add_argument("--patterns", nargs="*", help="extra regexes for this run")
     p.add_argument("--config", help="a per-corpus JSON config with ban_list, terms and patterns")
+    p.add_argument("--include-docx", action="store_true",
+                   help="scan Word files with the best-effort text-node pass; by default they are skipped as uninspected, since that pass misses attributes, CDATA and a term split across runs")
 
 
 # ---------------------------------------------------------------- modes
@@ -251,10 +318,21 @@ def add_common(p: argparse.ArgumentParser) -> None:
 def cmd_answer(args: argparse.Namespace) -> int:
     opts = Options(args)
     text = sys.stdin.read()
+    # The term check runs on the original text: a term inside an address or a path would
+    # otherwise be replaced by a shape pass first and never counted.
+    probe: dict = {}
+    _term_pass(text, opts.terms, probe, "term")
+    _term_pass(text, opts.extra_terms, probe, "ban")
+    if term_hit(probe):
+        print("withheld: the answer touched a protected term")
+        return 3
     counts: dict = {}
     out = opts.scrub(text, counts)
     if term_hit(counts):
         print("withheld: the answer touched a protected term")
+        return 3
+    if counts.get("pattern"):
+        print("withheld: the answer touched a protected pattern")
         return 3
     sys.stdout.write(out)
     return 0
@@ -277,7 +355,8 @@ def tracked_files(src: Path) -> list[Path]:
     try:
         res = subprocess.run(["git", "-C", str(src), "ls-files", "-z"], capture_output=True, check=True)
     except (OSError, subprocess.CalledProcessError) as exc:
-        raise SanitizeError(f"--tracked needs a git repository at {src}: {exc}", 2)
+        # the path and git's own message are not repeated: either may hold a listed term
+        raise SanitizeError(f"--tracked needs a git repository at the path given ({type(exc).__name__})", 2)
     return [Path(p) for p in res.stdout.decode("utf-8", "surrogateescape").split("\0") if p]
 
 
@@ -307,15 +386,19 @@ class Report:
         self.files_changed: list = []
         self.skipped: list = []
         self.withheld = 0
+        self.verified: bool | None = None   # the release verifier's verdict on a copy; None when it did not run
 
     def add_counts(self, counts: dict) -> None:
         for k, v in counts.items():
             self.removed[k] = self.removed.get(k, 0) + v
 
     def as_dict(self) -> dict:
-        return {"mode": self.mode, "files": self.files, "removed": dict(sorted(self.removed.items())),
-                "recall_layer": "off", "files_changed": self.files_changed, "skipped": self.skipped,
-                "withheld": self.withheld}
+        out = {"mode": self.mode, "files": self.files, "removed": dict(sorted(self.removed.items())),
+               "recall_layer": "off", "files_changed": self.files_changed, "skipped": self.skipped,
+               "withheld": self.withheld}
+        if self.mode == "copy":
+            out["verified"] = self.verified
+        return out
 
 
 def scan_one(path: Path, rel: Path, opts: "Options", report: Report, max_bytes: int):
@@ -327,13 +410,19 @@ def scan_one(path: Path, rel: Path, opts: "Options", report: Report, max_bytes: 
     for k, v in path_counts.items():
         counts["path"] = counts.get("path", 0) + v
     clean_rel = Path(*clean_parts)
-    size = path.stat().st_size
-    if size > max_bytes:
-        report.skipped.append({"path": str(clean_rel), "why": "too-large"})
+    try:
+        size = path.stat().st_size
+        if size > max_bytes:
+            report.skipped.append({"path": str(clean_rel), "why": "too-large"})
+            report.add_counts(counts)
+            return clean_rel, None, "too-large"
+        data = path.read_bytes()
+    except OSError:
+        # a file this user cannot read is a reported skip, never a traceback holding its path
+        report.skipped.append({"path": str(clean_rel), "why": "unreadable"})
         report.add_counts(counts)
-        return clean_rel, None, "too-large"
-    data = path.read_bytes()
-    out, why = ft.sanitize_bytes(path.name, data, opts.scrub, counts)
+        return clean_rel, None, "unreadable"
+    out, why = ft.sanitize_bytes(path.name, data, opts.scrub, counts, opts.field, docx=opts.docx)
     report.add_counts(counts)
     if why:
         report.skipped.append({"path": str(clean_rel), "why": why})
@@ -341,72 +430,175 @@ def scan_one(path: Path, rel: Path, opts: "Options", report: Report, max_bytes: 
     report.files += 1
     removed = sum(counts.values())
     if removed:
-        origin = rel.parts[0] if len(rel.parts) > 1 else rel.name
+        # the report names files by their clean paths only; the origin is the clean top folder
+        origin = clean_parts[0] if len(clean_parts) > 1 else clean_rel.name
         report.files_changed.append({"path": str(clean_rel), "origin": origin, "removed": removed,
                                      "classes": dict(sorted(counts.items()))})
     return clean_rel, out, None
 
 
-def write_private(path: Path, data: bytes) -> None:
+REPORT_NAME = "sanitize-report.json"
+UNINSPECTED = ("pdf", "docx", "too-large", "unreadable", "undecodable")   # skip reasons for files that could hold text
+
+
+def write_private(path: Path, data: bytes, root: Path | None = None) -> None:
+    """Create `path` as a new 0600 file under `root`, parents made 0700 as needed. Never
+    follows a link and never overwrites: the copy is built in a fresh staging folder, so an
+    existing file at the name means two sources cleaned to one path."""
+    if root is not None:
+        try:
+            path.resolve().relative_to(root.resolve())
+        except ValueError:
+            raise SanitizeError("a clean path left the output folder; nothing was written", 2)
     for parent in reversed(path.parents):
+        if root is not None and root not in parent.parents and parent != root:
+            continue
+        if parent.is_symlink():
+            raise SanitizeError("a folder on the output path is a link; nothing was written", 2)
         if not parent.exists():
             parent.mkdir(mode=0o700)
-    if path.exists():
-        path.unlink()
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    except FileExistsError:
+        raise SanitizeError("two source files clean to the same clean path; rename one and rerun", 2)
     with os.fdopen(fd, "wb") as fh:
         fh.write(data)
 
 
-def resolve_out(src: Path, out_arg: str | None) -> Path:
+def _replace_tree(staging: Path, out: Path) -> None:
+    """Move the finished staging folder onto `out`, removing what was there. The copy
+    appears whole or not at all, and `--force` never overlays stale files. Only an earlier
+    copy is ever removed: a folder without a report at its top is somebody's data, and the
+    run refuses rather than delete it."""
+    if out.exists():
+        if not (out / REPORT_NAME).is_file():
+            raise SanitizeError("the output path given holds something other than an earlier copy (no report at its top); "
+                                "choose another destination rather than replacing it", 2)
+        shutil.rmtree(out)
+    os.replace(staging, out)
+
+
+def resolve_out(src: Path, out_arg: str | None, opts: "Options") -> Path:
+    """The destination: `--out` as given, else a `-clean` sibling named from the source's
+    scrubbed name, so a term in the source's own name never lands in the output path."""
     if out_arg:
-        return Path(out_arg).expanduser().resolve()
-    if src.is_file():
-        return src.with_name(f"{src.stem}-clean{src.suffix}")
-    return src.with_name(f"{src.name}-clean")
+        given = Path(out_arg).expanduser().absolute()
+        if given.is_symlink():
+            raise SanitizeError("the output path given is a link; nothing was written", 2)
+        return given.resolve()
+    stem = opts.scrub(src.stem if src.is_file() else src.name, {})
+    return src.with_name(f"{stem}-clean{src.suffix}" if src.is_file() else f"{stem}-clean")
 
 
 def cmd_copy(args: argparse.Namespace) -> int:
     opts = Options(args)
     src = Path(args.src).expanduser().resolve()
     if not src.exists():
-        raise SanitizeError(f"source does not exist: {src}", 2)
-    out = resolve_out(src, args.out)
+        raise SanitizeError("the source path given does not exist", 2)
+    out = resolve_out(src, args.out, opts)
+    if out.is_symlink():
+        raise SanitizeError("the output path given is a link; nothing was written", 2)
     if out == src or src in out.parents or (src.is_dir() and out in src.parents):
         raise SanitizeError("the output path must sit outside the source", 2)
     if out.exists() and (out.is_file() or any(out.iterdir())) and not args.force:
-        raise SanitizeError(f"output already exists: {out}; pass --force to write into it", 2)
+        raise SanitizeError("the output path given already exists; pass --force to replace it", 2)
     max_bytes = int(args.max_mb * 1024 * 1024)
     report = Report("copy")
-    for path, rel in iter_files(src, DEFAULT_EXCLUDES + (args.exclude or [])):
-        clean_rel, data, why = scan_one(path, rel, opts, report, max_bytes)
-        dst = out if src.is_file() else out / clean_rel
-        if data is None:
-            if why in ("binary", "pdf") and args.include_binary:
-                write_private(dst, path.read_bytes())
-                report.skipped[-1]["copied"] = True
-            else:
-                report.skipped[-1]["copied"] = False
-            continue
-        write_private(dst, data)
-    report_path = Path(str(out) + ".sanitize-report.json") if src.is_file() else out / "sanitize-report.json"
-    body = json.dumps(report.as_dict(), indent=2) + "\n"
-    write_private(report_path, body.encode("utf-8"))
+    # Everything is written into a fresh staging folder beside the destination and moved
+    # onto it in one rename at the end, so a refused or failed run leaves nothing behind
+    # and --force replaces the old copy rather than overlaying it.
+    out.parent.mkdir(parents=True, exist_ok=True)
+    staging = out.parent / f".{out.name}.sanitize-{secrets.token_hex(4)}"
+    staging.mkdir(mode=0o700)
+    try:
+        for path, rel in iter_files(src, DEFAULT_EXCLUDES + (args.exclude or [])):
+            if not src.is_file() and rel == Path(REPORT_NAME):
+                raise SanitizeError(f"a source file uses the reserved report name {REPORT_NAME}; rename it and rerun", 2)
+            clean_rel, data, why = scan_one(path, rel, opts, report, max_bytes)
+            dst = staging / (out.name if src.is_file() else clean_rel)
+            if data is None:
+                if why in ("binary", "pdf") and args.include_binary:
+                    write_private(dst, path.read_bytes(), staging)
+                    report.skipped[-1]["copied"] = True
+                else:
+                    report.skipped[-1]["copied"] = False
+                continue
+            write_private(dst, data, staging)
+        if not args.no_verify:
+            run_verifier(staging, opts, args.include_binary, report)
+        body = json.dumps(report.as_dict(), indent=2) + "\n"
+        if src.is_file():
+            write_private(staging / (out.name + "." + REPORT_NAME), body.encode("utf-8"), staging)
+            if out.exists() or out.is_symlink():
+                if not Path(str(out) + "." + REPORT_NAME).is_file():
+                    raise SanitizeError("the output path given exists and is not an earlier copy (no report beside it); "
+                                        "choose another destination rather than replacing it", 2)
+                out.unlink()
+            os.replace(staging / out.name, out)
+            report_path = Path(str(out) + "." + REPORT_NAME)
+            if report_path.exists():
+                report_path.unlink()
+            os.replace(staging / (out.name + "." + REPORT_NAME), report_path)
+            staging.rmdir()
+        else:
+            write_private(staging / REPORT_NAME, body.encode("utf-8"), staging)
+            _replace_tree(staging, out)
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
     print(body, end="")
     return 0
+
+
+def run_verifier(target: Path, opts: "Options", allow_binary: bool, report: Report | None) -> None:
+    """The independent pass over what was written (`verify.py`): flat text, every zip member,
+    every path, every matcher, no parser shared with the engine. A residual hit or a part it
+    could not inspect is a refusal, so a parser gap can never ship a copy as clean."""
+    import verify as vf
+    result = vf.verify_tree(target, opts, allow_binary=allow_binary, skip_names=(REPORT_NAME,))
+    if report is not None:
+        report.verified = result["ok"]
+    if not result["ok"]:
+        what = []
+        if result["hits"]:
+            what.append(f"{len(result['hits'])} file(s) with residual hits: "
+                        + "; ".join(f"{h['path']} {h['classes']}" for h in result["hits"][:5]))
+        if result["uninspected"]:
+            what.append(f"{len(result['uninspected'])} part(s) not inspected: "
+                        + "; ".join(f"{u['path']} ({u['why']})" for u in result["uninspected"][:5]))
+        raise SanitizeError("the verifier refused the copy: " + " | ".join(what), 5)
+
+
+def cmd_verify(args: argparse.Namespace) -> int:
+    opts = Options(args)
+    target = Path(args.src).expanduser().resolve()
+    if not target.exists():
+        raise SanitizeError("the path given does not exist", 2)
+    import verify as vf
+    result = vf.verify_tree(target, opts, allow_binary=args.allow_binary, skip_names=(REPORT_NAME,))
+    print(json.dumps(result, indent=2))
+    if result["hits"]:
+        return 1
+    return 4 if result["uninspected"] else 0
 
 
 def cmd_tree(args: argparse.Namespace) -> int:
     opts = Options(args)
     src = Path(args.src).expanduser().resolve()
     if not src.exists():
-        raise SanitizeError(f"path does not exist: {src}", 2)
+        raise SanitizeError("the path given does not exist", 2)
     max_bytes = int(args.max_mb * 1024 * 1024)
     report = Report("tree")
     for path, rel in iter_files(src, DEFAULT_EXCLUDES + (args.exclude or []), tracked=args.tracked):
         scan_one(path, rel, opts, report, max_bytes)
     print(json.dumps(report.as_dict(), indent=2))
-    return 1 if any(report.removed.values()) else 0
+    if any(report.removed.values()):
+        return 1
+    # a file that could hold text and was not inspected is not a clean verdict; a known
+    # binary type is not text and does not count
+    if any(s["why"] in UNINSPECTED for s in report.skipped):
+        return 4
+    return 0
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
@@ -414,8 +606,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     try:
         terms = station_terms()
         print(f"station term list: present ({len(terms)} terms)")
-    except SanitizeError:
-        print(f"station term list: missing at {terms_file()}")
+    except SanitizeError as exc:
+        print("station term list: " + ("holds no terms" if "no terms" in str(exc) else "missing") + f" at {terms_file()}")
         code = 2
     sample = "zоrbulаte"  # Cyrillic o and a inside an invented word
     norm, _ = nz.normalized_view("z o r b " + sample[4:])
@@ -438,6 +630,7 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--out", help="destination (default: a -clean sibling)")
     c.add_argument("--force", action="store_true", help="write into an existing destination")
     c.add_argument("--include-binary", action="store_true", help="copy binaries and PDFs through unchanged")
+    c.add_argument("--no-verify", action="store_true", help="skip the independent verifier pass over the copy; recorded as verified null")
     c.add_argument("--max-mb", type=float, default=50, help="skip files over this size (default 50)")
     c.add_argument("--exclude", nargs="*", help=f"path-component globs to skip, added to {' '.join(DEFAULT_EXCLUDES)}")
     add_common(c)
@@ -450,6 +643,12 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--tracked", action="store_true", help="scan only the files git tracks under the path")
     add_common(t)
     t.set_defaults(fn=cmd_tree)
+
+    v = sub.add_parser("verify", help="the parser-free pass over a written copy: flat text, zip members and paths against every matcher; exit 1 on a hit, 4 on an uninspected part")
+    v.add_argument("src")
+    v.add_argument("--allow-binary", action="store_true", help="binaries were copied through on purpose; do not count them as uninspected")
+    add_common(v)
+    v.set_defaults(fn=cmd_verify)
 
     d = sub.add_parser("doctor", help="station list present, normalization self-test, masker status")
     d.set_defaults(fn=cmd_doctor)
@@ -467,6 +666,10 @@ def main(argv: list[str] | None = None) -> int:
     except SanitizeError as exc:
         print(f"sanitize: {exc}", file=sys.stderr)
         return exc.code
+    except OSError as exc:
+        # strerror only: the filename on the exception may hold a listed term
+        print(f"sanitize: a file operation failed: {exc.strerror or type(exc).__name__}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

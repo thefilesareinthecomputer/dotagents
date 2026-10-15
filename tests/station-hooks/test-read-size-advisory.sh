@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Table-driven tests for the read-size-advisory PreToolUse hook.
-# Target: ~/.claude/hooks/read-size-advisory.sh (per-machine, seeded from
+# Target: the repo's specs/claude-code/hooks/read-size-advisory.sh by default; HOOK_UNDER_TEST
+# points the run at a station copy such as ~/.claude/hooks/read-size-advisory.sh (per-machine, seeded from
 # SPEC-CLAUDE-CODE.md §8). Run: bash tests/station-hooks/test-read-size-advisory.sh
 # Exit 0 = all green; nonzero = failures listed.
 #
@@ -9,7 +10,8 @@
 # It must fire ONLY on a whole-file Read of a file over the byte threshold.
 set -u
 
-HOOK="${HOOK_UNDER_TEST:-$HOME/.claude/hooks/read-size-advisory.sh}"
+REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+HOOK="${HOOK_UNDER_TEST:-$REPO/specs/claude-code/hooks/read-size-advisory.sh}"
 [ -f "$HOOK" ] || { echo "FATAL: hook not found at $HOOK"; exit 2; }
 command -v jq >/dev/null 2>&1 || { echo "FATAL: jq required"; exit 2; }
 

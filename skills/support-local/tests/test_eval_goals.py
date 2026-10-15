@@ -49,6 +49,13 @@ class TestGrade(unittest.TestCase):
     def test_answerable_goal_answered_as_absent_is_wrong(self):
         self.assertFalse(eg.grade(answer("", answerable=False), {"answerable": True, "must": []})["correct"])
 
+    def test_an_answerable_goal_with_key_refs_needs_a_covered_ref_to_be_correct(self):
+        key = {"must": ["EXIT_OK"], "refs": ["scripts/a.py:33"]}
+        self.assertFalse(eg.grade(answer("EXIT_OK is the code", refs=[]), key)["correct"])
+        self.assertFalse(eg.grade(answer("EXIT_OK is the code", refs=["scripts/other.py:1"]), key)["correct"])
+        self.assertTrue(eg.grade(answer("EXIT_OK is the code", refs=["scripts/a.py:33"]), key)["correct"])
+        self.assertTrue(eg.grade(answer("EXIT_OK is the code", refs=[]), {"must": ["EXIT_OK"]})["correct"])  # no refs in the key
+
     def test_ref_line_must_match_when_the_key_gives_one(self):
         g = eg.grade(answer("x", refs=["scripts/a.py:34"]), {"must": [], "refs": ["scripts/a.py:33"]})
         self.assertEqual(g["refs_covered"], 0)

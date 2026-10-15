@@ -1,4 +1,4 @@
-You are reviewing on behalf of another agent, which will read your answer and act on it. The files named below are the whole of the material; they sit in your current directory and nothing else does. {{TOOLS}}
+You are reviewing on behalf of another agent, which will read your answer and act on it. The files named below are the whole of the material. {{TOOLS}} {{REDACTION}}
 
 # What to review
 

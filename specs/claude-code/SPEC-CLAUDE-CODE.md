@@ -12,6 +12,43 @@ Edits under `~/.claude` will trigger an "ask" permission prompt by design (see �
 **No personal constants.** This spec (and everything it seeds) contains no names, emails, handles, personal repo URLs, or device-specific paths. 
 Anything personal (env, `git config`, session context, etc.) is derived per user at runtime or asked of the user live. Keep this file that way when editing.
 
+**Verified on the laptop 2026-10-14:** `claude 2.1.280`, with `~/.claude/skills/`
+symlinked into this repo, probed with `harness_probe.py` in the
+`agent-cc-configs-sync` skill. The hook wiring was applied by `seed_hooks.py`
+the same day (26 bindings in the ledger).
+
+## Strengths
+
+What this harness is for on this station. Each claim is marked **observed**
+(seen in a run, a bench or a conference here), **doc-derived** (from Anthropic's
+documentation) or **ruling** (a decision in `SPEC.md`, not a measurement).
+
+- **The whole station - observed.** It is the only harness here with every tree
+  in use: skills, subagents, slash commands, hooks on four events, plugins and
+  the claude-mem memory daemon. Everything in this spec seeds it; every other
+  harness seeds a subset.
+- **The delegating end of every task skill - observed.** `codex-task`,
+  `cursor-task` and `antigravity-task` run from a Claude Code session and hand
+  the diff back here for review; `agent-conference` chairs from here. No other
+  harness drives the others.
+- **Anthropic-direct, so the only lane for work that matters - ruling.**
+  `SPEC.md` invariant 6 bounds hosted third-party lanes to medium stakes; this
+  is the lane that is not bounded.
+- **Effort as a session flag - observed.** `--effort low|medium|high|xhigh|max`
+  (`../HARNESS-MODELS-AND-EFFORT.md`), plus per-subagent model pins in the
+  frontmatter of `agents/*.md`.
+- **Enforcement at the hook layer - observed.** PreToolUse guards (`rm`,
+  private paths, `.env` files, shell writes) run before a tool call; this is the
+  station's only enforcement point and it is knowingly hook-level
+  (`tasks/plan.md`, enforcement points compose).
+- **As an answerer, not the top of the panel - observed.** On `agent-conference`
+  questions `claude-fable-5-1` ranked third of five on 2026-10-13 and fourth of
+  six on 2026-10-12; its role there is the chair's synthesis.
+
+Where its files live: the global table is §1 and the project level is
+`CLAUDE.md`, `.claude/settings.json`, `.claude/settings.local.json`,
+`.claude/agents/`, `.claude/skills/` and `.claude/commands/` at a repo root.
+
 ---
 
 ## 0. The templates
@@ -22,7 +59,7 @@ Every file this spec seeds lives beside it in this folder as a real file rather 
 |---|---|---|
 | [`CLAUDE.md.example`](CLAUDE.md.example) | `~/.claude/CLAUDE.md` | [5](#5-global-claudeclaudemd-template) |
 | [`settings.json`](settings.json) | `~/.claude/settings.json` | [7](#7-global-claudesettingsjson---rules-in-principle-then-the-template) |
-| [`hooks/`](hooks) | `~/.claude/hooks/` | [8](#8-hook-scripts-claudehooks) |
+| [`hooks/`](hooks) and the repository's [`hooks/`](../../hooks) | `~/.claude/hooks/`, flat | [8](#8-hook-scripts-claudehooks) |
 | [`statusline.sh`](statusline.sh) | `~/.claude/statusline.sh` | [9](#9-status-lines-claudestatuslinesh--subagent-statuslinesh) |
 | [`keybindings.json`](keybindings.json) | `~/.claude/keybindings.json` | [10](#10-keybindings-claudekeybindingsjson--terminal-setup) |
 
@@ -35,7 +72,7 @@ For the general standard behind these placements - which mechanism carries which
 
 Keep the two in parity **per the Seeding table below**, not blanket. `COPY` rows
 match byte for byte, so their drift check is a `diff` rather than a reading
-exercise; the `hooks/` diff excludes generated artifacts. `settings.json` is a
+exercise; the `hooks/` diff excludes manifests, tests and generated artifacts. `settings.json` is a
 `FRAGMENT` and is compared only on the keys the seed owns - a whole-file diff
 there will never come back clean, because a working station carries its own model
 and theme pins that the seed has no opinion about.
@@ -53,8 +90,8 @@ this table uses no others.
 | Subagents | `LINK` | `~/.claude/agents/` | same script; the only harness reading this tree natively, and Cursor's compatibility path |
 | Commands | `LINK` | `~/.claude/commands/` | markdown; does not port to any other harness |
 | Rules | `POINTER` | `~/.claude/CLAUDE.md` | from `CLAUDE.md.example`, byte parity; the single line `@~/.agents/AGENTS.md`, so the rules body is read from the repo and never copied |
-| Permissions and settings | `FRAGMENT` | `~/.claude/settings.json` | seeded keys ONLY: `permissions`, `hooks`, `env`, `statusLine`, `subagentStatusLine`, `enabledPlugins`, `extraKnownMarketplaces`, `disableRemoteControl`, `attribution`, `autoUpdatesChannel`. Station-owned and never touched: `model`, `effortLevel`, `modelSettings`, `theme`, `tui`, `disableDeepLinkRegistration` |
-| Hooks | `COPY` | `~/.claude/hooks/` | scripts referenced by `settings.json`; parity per file, excluding generated artifacts such as `__pycache__/` |
+| Permissions and settings | `FRAGMENT` | `~/.claude/settings.json` | seeded keys ONLY: `permissions`, `env`, `statusLine`, `subagentStatusLine`, `enabledPlugins`, `extraKnownMarketplaces`, `disableRemoteControl`, `attribution`, `autoUpdatesChannel`, plus the managed entries of `hooks`. Station-owned and never touched: `model`, `effortLevel`, `modelSettings`, `theme`, `tui`, `disableDeepLinkRegistration` |
+| Hooks | `COPY` | `~/.claude/hooks/` | scripts from the repository's `hooks/` and this folder's `hooks/`, flat; parity per file, seeded by `seed_hooks.py` |
 | Status lines | `COPY` | `~/.claude/statusline.sh`, `subagent-statusline.sh` | parity |
 | Keybindings | `COPY` | `~/.claude/keybindings.json` | parity |
 | MCP servers | `FRAGMENT` | `~/.claude.json` | one key: `mcpServers`, holding the pinned Playwright entry from §3.2 and nothing else. Never a `COPY` - the same file carries the OAuth account, per-project history and feature caches. Account-level connectors list in every session while being declared nowhere in this file, so the inventory is taken with `claude mcp list` rather than by reading the key. Placement rules: [`../MCP-PLACEMENT.md`](../MCP-PLACEMENT.md) |
@@ -69,6 +106,14 @@ them while the parity check never came clean. The direction matters too: never
 copy a station file back into the repo, because that file can hold `apiKeyHelper`,
 `awsAuthRefresh` or secrets in `env`. Seeding is one-way, key-scoped, and
 approved.
+
+Hooks are seeded by `skills/agent-cc-configs-sync/scripts/seed_hooks.py` in
+both rows. The scripts in `~/.claude/hooks/` come from the repository's
+`hooks/` (cross-harness) and this folder's `hooks/` (Claude Code's own), flat
+in one station folder, and their parity check excludes manifests, tests and
+generated artifacts such as `__pycache__/`. The `hooks` key of `settings.json`
+is a `FRAGMENT` of managed entries: the seeder writes the entries the two hook
+manifests name and leaves every other entry in place.
 
 Deliberately absent: `~/.claude.json` and anything under `~/.claude/projects/`,
 which are per-machine state rather than seeded config.
@@ -391,12 +436,29 @@ use. The canonical list and the honest per-tool header conventions live in
 
 ## 8. Hook scripts (`~/.claude/hooks/`)
 
-Twenty wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
+The hook scripts live in two repository folders and are copied flat into
+`~/.claude/hooks/`. The repository's `hooks/`, with `hooks/manifest.json`,
+holds the sixteen scripts that enforce rules about the repository, the machine
+or the content (every guard, gate and content check this section lists, the
+chat-register pair included) and their four companion files, `_require.sh`,
+`reject-words.toml`, `no-meta-commentary.patterns` and the published-copy
+example list, which are copied but never wired. This folder's `hooks/`, with
+its own `manifest.json`, holds the five that enforce rules about Claude Code
+itself (`ask-before-claude-folder-edits.sh`, `read-size-advisory.sh`,
+`memory-routing.sh`, `memory_lint.py` and `cmon_nudge.py`), and that manifest
+also names the `rtk hook claude` entry. The test that sorts a hook: if Codex
+wrote the file or ran the command, should the hook fire. `seed_hooks.py seed` generates the `hooks`
+key of [`settings.json`](settings.json) from the two manifests, and
+`seed_hooks.py apply --harness claude-code` writes the station's key, managed
+entries only. The build plan and the hook-input captures are in
+`tasks/SPEC-HARNESS-SEEDING.md`.
+
+Twenty-one wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
 `guard-rm.sh`, `block-env-files.sh`), the `~/.claude`-edit prompt
 (`ask-before-claude-folder-edits.sh`), the SessionStart inbox check
 (`agent-mail-check.sh`), the reply-length nudge (`cmon_nudge.py`), the
-large-file read advisory
-(`read-size-advisory.sh`), the two memory-write guards
+daily harness-release notice (`harness_version_check.py`), the large-file
+read advisory (`read-size-advisory.sh`), the two memory-write guards
 (`memory-routing.sh` advisory-routing + `memory_lint.py` post-write lint),
 the skill-description lint (`skill_description_lint.py`, post-write),
 the chat-register pair (`no-meta-commentary.sh` pre-write +
@@ -411,8 +473,8 @@ instead), the two identifier guards (`reject_identifiers.py` pre-write,
 (`reject_published_copy_edits.py`, reading a station
 `published-copy-paths.txt` seeded from the `.example.txt`), and the two
 resource gates (`memory_pressure_gate.py`, `daemon_restart_storm.py`).
-Six are advisory/non-blocking (`read-size-advisory`,
-`cmon_nudge`, both `no-meta-commentary` sides,
+Seven are advisory/non-blocking (`read-size-advisory`,
+`cmon_nudge`, `harness_version_check`, both `no-meta-commentary` sides,
 `memory_lint`'s judgment checks, and `reject_identifiers`), and
 `memory-routing` is advisory until a memory folder reaches its cap;
 the rest can block.
@@ -634,6 +696,33 @@ edit.
 
 Script: [`claude-code/hooks/cmon_nudge.py`](hooks/cmon_nudge.py).
 
+### `harness_version_check.py`
+
+SessionStart (matcher `startup` only) - advisory, never blocks. It tells the user once a
+day when an agent harness the bench uses has a newer release. It fires only in the
+repository that holds the `harness-bench` skill: the session's `CLAUDE_PROJECT_DIR` must
+equal that repository's root, which the hook derives from the skill's own path. In any
+other project it exits at once without touching the stamp. The user wants the hook in
+this repo only, and this repo's `.claude/` is gitignored, so the definition stays in this
+station seed. In the right repo it then compares the date in its stamp file
+(`~/.local/state/harness-bench/version-check.stamp`) with today and exits silently on a
+match, so every session after the first that day costs one file read and no network
+call. On the first session of the day it writes the stamp, then runs the
+`harness-bench` skill's `versions --quiet`. That command compares the installed goose,
+pi, dsh and deepagents-code against their latest published release (Homebrew, npm's
+`latest` tag, PyPI), never follows alpha or beta tracks, accepts only well-formed
+version strings, and prints one line only when something is newer. The hook passes that
+line to the user as a `systemMessage` and to the model as `additionalContext`, with
+non-printable characters stripped and the length capped. It never upgrades: an upgrade
+is the user's call, followed by a re-run of the egress audit and a new pinned version
+for the bench. The release list and the check live in the skill
+(`skills/harness-bench/scripts/harness_bench.py`, `RELEASES`) rather than in the hook,
+so any harness can run the same command. A missing skill, a timeout or a network
+failure is silent, and the hook does not retry until the next day. Tests at
+`tests/station-hooks/test-harness-version-check.py` (8 cases).
+
+Script: [`claude-code/hooks/harness_version_check.py`](hooks/harness_version_check.py).
+
 ### `memory-routing.sh`
 
 PreToolUse hook (matcher `Write|Edit|MultiEdit|NotebookEdit|Update|Create`,
@@ -736,9 +825,11 @@ Fail-open on every path; the quiet path touches no disk. Tests:
 never-blocks contract, path scoping, quoted and fenced text, the one-shot flag
 and session isolation).
 
-Scripts: [`claude-code/hooks/no-meta-commentary.sh`](hooks/no-meta-commentary.sh),
-[`claude-code/hooks/no-meta-commentary-check.sh`](hooks/no-meta-commentary-check.sh),
-[`claude-code/hooks/no-meta-commentary.patterns`](hooks/no-meta-commentary.patterns).
+Scripts: [`hooks/no-meta-commentary.sh`](../../hooks/no-meta-commentary.sh),
+[`hooks/no-meta-commentary-check.sh`](../../hooks/no-meta-commentary-check.sh),
+[`hooks/no-meta-commentary.patterns`](../../hooks/no-meta-commentary.patterns)
+in the repository's shared folder (moved 2026-10-13: the register rule binds any
+agent writing a file).
 
 ### `reject_words.py` + `reject-words.toml`
 

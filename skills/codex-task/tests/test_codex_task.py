@@ -42,7 +42,7 @@ class Base(unittest.TestCase):
         self.real_home.mkdir()
         (self.real_home / "auth.json").write_text('{"fake": true}')
         (self.real_home / "config.toml").write_text('model = "x"\n')
-        self.env = dict(os.environ, CODEX_TASK_BIN=str(FAKE), CODEX_TASK_STATE=str(self.state),
+        self.env = dict(os.environ, CODEX_TASK_TEST="1", CODEX_TASK_BIN=str(FAKE), CODEX_TASK_STATE=str(self.state),
                         CODEX_TASK_REAL_HOME=str(self.real_home),
                         TMPDIR="/nonexistent-tmpdir-for-tests", FAKE_CODEX_ARGV=str(self.tmp / "argv.json"))
 
@@ -212,6 +212,14 @@ class TestValidation(Base):
 
 
 class TestProcessControl(Base):
+    def test_normal_exit_kills_a_surviving_child(self):
+        tag = f"codex-task-orphan-{os.getpid()}-{time.time_ns()}"
+        self.env["FAKE_CODEX_ORPHAN"] = tag
+        r = self.run_task()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        out = subprocess.run(["pgrep", "-f", tag], capture_output=True, text=True)
+        self.assertEqual(out.stdout.strip(), "", "a child outlived the agent's normal exit")
+
     def test_timeout_kills_process_group(self):
         r = self.run_task(mode="child-sleep", extra=["--timeout", "30"])
         # --timeout minimum is 30 s; shorten via the fake's own clock instead.
@@ -346,6 +354,40 @@ class TestArgv(Base):
 
 class TestBoundaryHardening(Base):
     """Reproductions for the five findings from the 2026-09-20 security review."""
+
+    def test_overrides_are_ignored_without_the_test_opt_in(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("codex_task", SCRIPT)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"CODEX_TASK_BIN": "/nope/codex", "CODEX_TASK_REAL_HOME": "/nope/home",
+                                          "FAKE_CODEX_MODE": "clean"}, clear=False):
+            os.environ.pop("CODEX_TASK_TEST", None)
+            self.assertEqual(mod.codex_bin(), "codex")
+            self.assertNotIn("FAKE_CODEX_MODE", mod.child_env(self.tmp / "home"))
+            os.environ["CODEX_TASK_TEST"] = "1"
+            self.assertEqual(mod.codex_bin(), "/nope/codex")
+            self.assertIn("FAKE_CODEX_MODE", mod.child_env(self.tmp / "home"))
+
+    def test_the_real_home_override_is_ignored_without_the_test_opt_in(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("codex_task", SCRIPT)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"CODEX_TASK_REAL_HOME": str(self.real_home)}, clear=False):
+            os.environ.pop("CODEX_TASK_TEST", None)
+            real_auth = Path(os.path.expanduser("~/.codex")) / "auth.json"
+            if real_auth.exists():
+                home, _ = mod.isolated_home(self.tmp / "sdir")
+                self.assertEqual(Path(os.readlink(home / "auth.json")), real_auth)
+            else:
+                with self.assertRaises(mod.TaskError):
+                    mod.isolated_home(self.tmp / "sdir")
+            os.environ["CODEX_TASK_TEST"] = "1"
+            home, _ = mod.isolated_home(self.tmp / "sdir2")
+            self.assertEqual(Path(os.readlink(home / "auth.json")), self.real_home / "auth.json")
 
     def test_pathspec_magic_filename_does_not_abort_the_run(self):
         # Codex creates ':(exclude)sneaky.txt'. Harvest passes changed names to

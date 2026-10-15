@@ -38,6 +38,7 @@ REF_RE = re.compile(r"^(?P<path>[^:#]+?)(?::(?P<line>\d+)(?:-(?P<end>\d+))?)?$")
 VAULT_REF_RE = re.compile(r"^vault:[A-Za-z0-9._-]+#\S+$")
 MAX_GOAL = 2000
 MAX_RESULT = 4 << 20
+MIN_QUOTE = 8   # a shorter quote matches too easily to count as evidence
 
 
 class TaskError(Exception):
@@ -114,49 +115,86 @@ def check_schema(obj: object, schema: dict) -> list[str]:
     return problems
 
 
-def resolve(ref: object, corpus: Path | None) -> tuple[bool, str]:
-    """Can the script itself see this reference? A vault reference is only resolvable by the vault, so it stays unverified here."""
+def corpus_root(corpus: str, root: str | None) -> Path | None:
+    """The directory evidence references resolve against: `--corpus-root` when given, else the corpus itself when it
+    is a directory. An index or vault corpus with no root has none, and then no file reference can be verified."""
+    if root:
+        return Path(root).expanduser()
+    p = Path(corpus).expanduser()
+    return p if p.is_dir() else None
+
+
+def resolve(ref: object, corpus: Path | None) -> tuple[Path | None, int | None, int | None, str]:
+    """Where a reference points, as (path, line, end, why): a path the script can read inside the corpus, or
+    (None, None, None, reason). A vault reference is only resolvable by the vault, so it stays unverified here."""
     if not isinstance(ref, str) or not ref.strip():
-        return False, "no reference"
+        return None, None, None, "no reference"
     ref = ref.strip()
     if VAULT_REF_RE.match(ref):
-        return False, "vault reference; only the vault can confirm it"
+        return None, None, None, "vault reference; only the vault can confirm it"
     m = REF_RE.match(ref)
     if not m:
-        return False, "unrecognized reference shape"
+        return None, None, None, "unrecognized reference shape"
     path = Path(m.group("path")).expanduser()
+    if corpus is None:
+        return None, None, None, "no corpus root to resolve against; pass --corpus-root for an index or vault corpus"
     if not path.is_absolute():
-        if corpus is None:
-            return False, "relative path with no --corpus to resolve against"
         path = corpus / path
-    if corpus is not None:
-        try:
-            path.resolve().relative_to(corpus.resolve())
-        except ValueError:
-            return False, "outside the corpus"
+    try:
+        path.resolve().relative_to(corpus.resolve())
+    except ValueError:
+        return None, None, None, "outside the corpus"
     if not path.is_file():
-        return False, "file not found"
+        return None, None, None, "file not found"
     if m.group("line") is None:
-        return True, "file exists"
+        return path, None, None, "file exists"
     line = int(m.group("line"))
     end = int(m.group("end")) if m.group("end") else line
     if end < line:
-        return False, "line range runs backwards"
+        return None, None, None, "line range runs backwards"
     try:
         with open(path, encoding="utf-8", errors="replace") as f:
-            for n, _ in enumerate(f, 1):
-                if n == end:
-                    return True, "line exists" if end == line else "line range exists"
+            total = sum(1 for _ in f)
+    except OSError:
+        return None, None, None, "file unreadable"
+    if end > total:
+        return None, None, None, f"line {end} is past the end of the file"
+    return path, line, end, "line exists" if end == line else "line range exists"
+
+
+def _norm(text: str) -> str:
+    """Whitespace removed, so a quote the worker re-spaced still matches the line it came from."""
+    return "".join(text.split())
+
+
+def quote_found(path: Path, line: int | None, end: int | None, quote: object) -> tuple[bool, str]:
+    """Does the quoted text sit at the cited line (or range), whitespace aside, or anywhere in the file for a
+    file-level reference? A line existing is not evidence; the text the worker relied on has to be there."""
+    if not isinstance(quote, str) or not quote.strip():
+        return False, "no quote to check against the cited line" if line else "no quote to check against the file"
+    q = _norm(quote)
+    if len(q) < MIN_QUOTE:
+        return False, f"quote shorter than {MIN_QUOTE} characters"
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return False, "file unreadable"
-    return False, f"line {end} is past the end of the file"
+    if line is None:
+        return (True, "quote found in the file") if q in _norm(text) else (False, "quote not found in the file")
+    span = text.splitlines()[line - 1:end]
+    if q in _norm("\n".join(span)):
+        return True, "quote found at the cited line"
+    return False, "quote not found at the cited line"
 
 
 def accept(claim: dict, corpus: Path | None) -> dict:
-    """A claim enters the answer only with a reference the script could resolve; otherwise it is kept and marked unsupported."""
-    ok, why = resolve(claim.get("ref"), corpus)
-    claim["verified"] = ok
-    claim["check"] = why
+    """A claim is verified only when its reference resolves inside the corpus and its quote is at that reference;
+    otherwise it is kept and marked unsupported, with the reason."""
+    path, line, end, why = resolve(claim.get("ref"), corpus)
+    if path is None:
+        claim["verified"], claim["check"] = False, why
+        return claim
+    claim["verified"], claim["check"] = quote_found(path, line, end, claim.get("quote"))
     return claim
 
 
@@ -170,10 +208,16 @@ def verify_answer(obj: object, corpus: Path | None) -> dict:
         if not isinstance(claim, dict):
             evidence.append({"claim": str(claim)[:300], "ref": None, "verified": False, "check": "claim is not an object"})
             continue
-        evidence.append(accept({"claim": str(claim.get("claim", ""))[:1000], "ref": claim.get("ref")}, corpus))
+        quote = claim.get("quote")
+        evidence.append(accept({"claim": str(claim.get("claim", ""))[:1000], "ref": claim.get("ref"),
+                                "quote": quote[:500] if isinstance(quote, str) else None}, corpus))
     obj["evidence"] = evidence
     obj["verified_count"] = sum(1 for c in evidence if c["verified"])
     obj["unsupported_count"] = len(evidence) - obj["verified_count"]
+    if obj["answerable"] and obj["verified_count"] == 0:
+        # an answer nothing supports is not an answer; the worker's claims stay in the record as unsupported
+        obj["answerable"] = False
+        obj["downgraded"] = "answerable set to false: no claim verified"
     return obj
 
 
@@ -212,7 +256,7 @@ def parse_json_object(text: str) -> object:
 
 
 def cmd_verify(a: argparse.Namespace) -> int:
-    obj = verify_answer(read_answer(a.answer), Path(a.corpus).expanduser() if a.corpus else None)
+    obj = verify_answer(read_answer(a.answer), corpus_root(a.corpus or "", a.corpus_root) if (a.corpus or a.corpus_root) else None)
     print(capsule(obj))
     return EXIT_OK
 
@@ -320,7 +364,7 @@ def attempt(goal: str, corpus: str, brief: str, model: str, budget_turns: int, t
 
 def run_goal(goal: str, corpus: str, complete: str, out_of_scope: str, budget_turns: int, budget_calls: int, model: str | None,
              timeout: int, variant: str = "default", effort: str | None = None, autocompact: str | None = None,
-             retries: int = 1) -> tuple[dict, dict]:
+             retries: int = 1, root: str | None = None) -> tuple[dict, dict]:
     """Run the worker on one goal and return (verified answer, run record). Shared by `run` and the goal evals.
 
     A worker that dies, times out or returns no JSON is salvaged into an `answerable: false` answer with the reason in
@@ -328,7 +372,7 @@ def run_goal(goal: str, corpus: str, complete: str, out_of_scope: str, budget_tu
     Every attempt's tokens and cost are summed into the record; nothing vanishes."""
     model = model or agent_model()
     started = now()
-    corpus_path = Path(corpus).expanduser()
+    corpus_path = corpus_root(corpus, root)
     attempts: list[dict] = []
     prior = ""
     obj = result = None
@@ -352,7 +396,7 @@ def run_goal(goal: str, corpus: str, complete: str, out_of_scope: str, budget_tu
             break
         prior = str(obj.get("coverage") or "")[:1500]
         turns = max(5, turns // 2)
-    obj = verify_answer(obj, corpus_path if corpus_path.exists() else None)
+    obj = verify_answer(obj, corpus_path)
     usage = result.get("usage") or {}
     used = next((m for a in attempts for m in a["per_model"]), model)
     per_model: dict = {}
@@ -383,7 +427,7 @@ def run_goal(goal: str, corpus: str, complete: str, out_of_scope: str, budget_tu
 
 def cmd_run(a: argparse.Namespace) -> int:
     obj, record = run_goal(a.goal, a.corpus, a.complete, a.out_of_scope, a.budget_turns, a.budget_calls, a.model, a.timeout,
-                           a.variant, a.effort, a.autocompact, a.retries)
+                           a.variant, a.effort, a.autocompact, a.retries, a.corpus_root)
     out = state_dir() / "runs.jsonl"
     fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
     with os.fdopen(fd, "a", encoding="utf-8") as f:
@@ -456,6 +500,7 @@ def cmd_doctor(a: argparse.Namespace) -> int:
 def add_brief_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--goal", required=True)
     p.add_argument("--corpus", required=True, help="a path, a code-kg or obsidian-kg index name, or vault:<name>")
+    p.add_argument("--corpus-root", default=None, help="the directory evidence references resolve against when --corpus is an index name; a path corpus is its own root")
     p.add_argument("--complete", default="", help="what a complete answer contains")
     p.add_argument("--out-of-scope", default="")
     p.add_argument("--budget-turns", type=int, default=30)
@@ -480,6 +525,7 @@ def main(argv: list[str] | None = None) -> int:
     v = sub.add_parser("verify")
     v.add_argument("--answer", required=True, help="a file, or - for stdin")
     v.add_argument("--corpus", default=None)
+    v.add_argument("--corpus-root", default=None)
     v.set_defaults(fn=cmd_verify)
     d = sub.add_parser("doctor")
     d.set_defaults(fn=cmd_doctor)

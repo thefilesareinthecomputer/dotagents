@@ -40,8 +40,8 @@ if mode == "max_turns":
     sys.exit(0)
 answer = os.environ.get("FAKE_CLAUDE_RESULT") or json.dumps({
     "goal": "where is the exit code table", "answer": "In the script header.", "answerable": True,
-    "evidence": [{"claim": "EXIT_OK is defined", "ref": "a.py:1", "verified": True},
-                 {"claim": "a claim with a bad line", "ref": "a.py:999", "verified": True}],
+    "evidence": [{"claim": "EXIT_OK is defined", "ref": "a.py:1", "quote": "EXIT_OK = 0", "verified": True},
+                 {"claim": "a claim with a bad line", "ref": "a.py:999", "quote": "EXIT_OK = 0", "verified": True}],
     "coverage": "searched a.py", "local_calls": 2, "stop_reason": "answered"})
 print("[some warning line the CLI may print]")
 print(json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": answer, "num_turns": 3, "duration_ms": 4200,

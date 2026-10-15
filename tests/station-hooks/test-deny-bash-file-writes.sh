@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Table-driven tests for the deny-bash-file-writes PreToolUse hook.
-# Target: ~/.claude/hooks/deny-bash-file-writes.sh (per-machine, seeded from
+# Target: the repo's hooks/deny-bash-file-writes.sh by default; HOOK_UNDER_TEST points
+# the run at a station copy such as ~/.claude/hooks/deny-bash-file-writes.sh (per-machine, seeded from
 # SPEC-CLAUDE-CODE.md §8). Run: bash tests/station-hooks/test-deny-bash-file-writes.sh
 # Exit 0 = all green; nonzero = failures listed.
 set -u
 
-HOOK="${HOOK_UNDER_TEST:-$HOME/.claude/hooks/deny-bash-file-writes.sh}"
+REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+HOOK="${HOOK_UNDER_TEST:-$REPO/hooks/deny-bash-file-writes.sh}"
 [ -f "$HOOK" ] || { echo "FATAL: hook not found at $HOOK"; exit 2; }
 
 pass=0; fail=0

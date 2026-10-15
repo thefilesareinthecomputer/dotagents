@@ -35,9 +35,13 @@ def scrub(text, counts):
     return sz.scrub_text(text, T, counts)
 
 
-def run(name, data):
+def field(key, value, counts):
+    return sz.scrub_field(key, value, counts, scrub)
+
+
+def run(name, data, docx=True):
     counts = {}
-    out, why = ft.sanitize_bytes(name, data, scrub, counts)
+    out, why = ft.sanitize_bytes(name, data, scrub, counts, field, docx=docx)
     return out, why, counts
 
 
@@ -66,10 +70,11 @@ class TestText(unittest.TestCase):
         self.assertIsNone(why)
         self.assertEqual(counts, {"term": 1})
 
-    def test_undecodable_text_extension_is_skipped_as_binary(self):
+    def test_undecodable_text_extension_is_skipped_as_undecodable(self):
+        # a text type that did not decode was not inspected, which a tree scan reports apart from a known binary
         out, why, _ = run("a.txt", b"\xff\xfe\x00\x01" * 10)
         self.assertIsNone(out)
-        self.assertEqual(why, "binary")
+        self.assertEqual(why, "undecodable")
 
 
 class TestJson(unittest.TestCase):
@@ -103,6 +108,35 @@ class TestJson(unittest.TestCase):
         self.assertEqual(json.loads(lines[1]), {"a": "fine"})
         self.assertEqual(lines[2], "not json [TERM]")
         self.assertEqual(counts, {"term": 2})
+
+
+class TestFieldContext(unittest.TestCase):
+    """A credential split into a key and a value by the parser must still meet the
+    assignment rule: `{"password": "..."}` is `password=...` to a reader."""
+
+    def test_json_credential_value_under_a_key_like_name_is_masked(self):
+        out, _, counts = run("cfg.json", json.dumps({"password": "Hunter2Hunter2x9", "name": "zorbulate"}).encode())
+        self.assertEqual(json.loads(out), {"password": "[SECRET]", "name": "[TERM]"})
+        self.assertEqual((counts["secret"], counts["term"]), (1, 1))
+        nested = {"db": {"api_key": "AbCdEf123456GhIjK", "host": "db.internal"}, "tokens": ["x", {"token": "k9k9k9k9k9k9k9"}]}
+        out, _, counts = run("cfg.json", json.dumps(nested).encode())
+        self.assertEqual(json.loads(out), {"db": {"api_key": "[SECRET]", "host": "db.internal"}, "tokens": ["x", {"token": "[SECRET]"}]})
+        self.assertEqual(counts["secret"], 2)
+
+    def test_short_or_wordlike_values_under_a_key_like_name_are_left_alone(self):
+        out, _, counts = run("cfg.json", json.dumps({"password": "abc", "token": "[SECRET]", "key": "parts[0]"}).encode())
+        self.assertEqual(json.loads(out), {"password": "abc", "token": "[SECRET]", "key": "parts[0]"})
+        self.assertNotIn("secret", counts)
+
+    def test_jsonl_rows_and_csv_columns_get_the_same_context(self):
+        rows = [json.dumps({"user": "u1", "secret": "s3cr3ts3cr3ts3"}), json.dumps({"user": "u2", "secret": "short"})]
+        out, _, counts = run("rows.jsonl", "\n".join(rows).encode())
+        self.assertEqual([json.loads(l)["secret"] for l in out.decode().splitlines()], ["[SECRET]", "short"])
+        csv_text = "user,api_key,note\nu1,ZxZxZxZx1234ZxZx,fine\nu2,nope,zorbulate\n"
+        out, _, counts = run("t.csv", csv_text.encode())
+        got = list(csv.reader(io.StringIO(out.decode())))
+        self.assertEqual(got, [["user", "api_key", "note"], ["u1", "[SECRET]", "fine"], ["u2", "nope", "[TERM]"]])
+        self.assertEqual((counts["secret"], counts["term"]), (1, 1))
 
 
 class TestCsv(unittest.TestCase):
@@ -172,6 +206,25 @@ class TestDocx(unittest.TestCase):
         out, why, _ = run("memo.docx", b"not a zip at all")
         self.assertIsNone(out)
         self.assertEqual(why, "binary")
+
+    def test_docx_is_refused_unless_asked_for_and_document_properties_are_scanned_when_it_is(self):
+        # the text-node parser misses attributes, CDATA and a term split across runs, so a Word file
+        # is skipped as uninspected until the caller opts into the best-effort pass
+        out, why, counts = run("memo.docx", make_docx(DOC), docx=False)
+        self.assertIsNone(out)
+        self.assertEqual((why, counts), ("docx", {}))
+        props = '<cp:coreProperties xmlns:cp="urn:x"><dc:creator>zorbulate</dc:creator></cp:coreProperties>'
+        out, why, counts = run("memo.docx", make_docx(DOC.replace("zorbulate", "x"), {"docProps/core.xml": props}))
+        self.assertIsNone(why)
+        self.assertEqual(counts, {"term": 1})
+        with zipfile.ZipFile(io.BytesIO(out)) as z:
+            self.assertIn("<dc:creator>[TERM]</dc:creator>", z.read("docProps/core.xml").decode())
+
+    def test_a_docx_whose_parts_inflate_past_the_bound_is_skipped(self):
+        big = make_docx(DOC, {"word/pad.xml": "<x>" + "a" * (ft.DOCX_MAX_INFLATED + 10) + "</x>"})
+        out, why, _ = run("memo.docx", big)
+        self.assertIsNone(out)
+        self.assertEqual(why, "too-large")
 
 
 class TestSkipped(unittest.TestCase):

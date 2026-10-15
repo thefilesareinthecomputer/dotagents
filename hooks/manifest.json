@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "about": "Cross-harness hooks: rules about the repository, the machine or the content. The test for this folder: if Codex wrote this file or ran this command, the hook should still fire. Each entry is one script with its bindings (one per event); seed_hooks.py writes each harness's native wiring from this file plus the harness's own specs/<harness>/hooks/manifest.json. Matcher classes: shell, file-write, file-read, search, agent, mcp; omitted means every tool. SessionStart bindings name sources instead. 'harnesses' lists the harnesses whose hook input this script is tested against; a script is never wired into a harness missing from it.",
+  "entries": [
+    {
+      "script": "deny-bash-file-writes.sh",
+      "harnesses": ["claude-code"],
+      "requires": ["jq", "perl"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["shell"], "timeout": 10}]
+    },
+    {
+      "script": "guard-rm.sh",
+      "harnesses": ["claude-code"],
+      "requires": ["jq", "perl"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["shell"], "timeout": 10}]
+    },
+    {
+      "script": "guard-private.sh",
+      "harnesses": ["claude-code"],
+      "requires": ["jq"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["shell"], "timeout": 10}]
+    },
+    {
+      "script": "block-env-files.sh",
+      "harnesses": ["claude-code"],
+      "requires": ["jq"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["file-read", "file-write", "shell", "search"]}]
+    },
+    {
+      "script": "reject_words.py",
+      "harnesses": ["claude-code"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["file-write"], "timeout": 5}]
+    },
+    {
+      "script": "reject_invisibles.py",
+      "harnesses": ["claude-code"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["file-write"], "timeout": 10}]
+    },
+    {
+      "script": "reject_identifiers.py",
+      "harnesses": ["claude-code"],
+      "advisory": true,
+      "bindings": [{"event": "PreToolUse", "matcher": ["file-write"], "timeout": 10}]
+    },
+    {
+      "script": "reject_published_copy_edits.py",
+      "harnesses": ["claude-code"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["file-write"], "timeout": 10}]
+    },
+    {
+      "script": "no-meta-commentary.sh",
+      "harnesses": ["claude-code"],
+      "requires": ["jq"],
+      "advisory": true,
+      "bindings": [{"event": "PreToolUse", "matcher": ["file-write"], "timeout": 5}]
+    },
+    {
+      "script": "reject_bad_commit_message.py",
+      "harnesses": ["claude-code"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["shell"], "timeout": 10}]
+    },
+    {
+      "script": "memory_pressure_gate.py",
+      "harnesses": ["claude-code"],
+      "bindings": [
+        {"event": "PreToolUse", "matcher": ["shell", "agent", "mcp"], "timeout": 10},
+        {"event": "SessionStart", "sources": ["startup", "resume", "clear", "compact"], "timeout": 10},
+        {"event": "UserPromptSubmit", "timeout": 10}
+      ]
+    },
+    {
+      "script": "skill_description_lint.py",
+      "harnesses": ["claude-code"],
+      "bindings": [{"event": "PostToolUse", "matcher": ["file-write"], "timeout": 10}]
+    },
+    {
+      "script": "no-meta-commentary-check.sh",
+      "harnesses": ["claude-code"],
+      "requires": ["jq"],
+      "advisory": true,
+      "bindings": [{"event": "PostToolUse", "matcher": ["file-write"], "timeout": 5}]
+    },
+    {
+      "script": "agent-mail-check.sh",
+      "harnesses": ["claude-code"],
+      "requires": ["jq"],
+      "bindings": [{"event": "SessionStart", "sources": ["startup", "resume"], "timeout": 10}]
+    },
+    {
+      "script": "harness_version_check.py",
+      "harnesses": ["claude-code"],
+      "advisory": true,
+      "gate": "fires only in the repository that holds the harness-bench skill; the script checks that itself",
+      "bindings": [{"event": "SessionStart", "sources": ["startup"], "timeout": 15}]
+    },
+    {
+      "script": "daemon_restart_storm.py",
+      "harnesses": ["claude-code"],
+      "bindings": [
+        {"event": "SessionStart", "sources": ["startup", "resume", "clear", "compact"], "timeout": 10},
+        {"event": "UserPromptSubmit", "timeout": 10}
+      ]
+    }
+  ]
+}

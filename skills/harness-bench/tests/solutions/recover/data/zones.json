@@ -1,0 +1,5 @@
+[
+  {"name": "north", "capacity": 120, "units": "lpm"},
+  {"name": "south", "capacity": 80, "units": "lpm"},
+  {"name": "east", "capacity": 95, "units": "lpm"}
+]

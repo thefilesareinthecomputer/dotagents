@@ -4,6 +4,57 @@ The open-source lane: fully OSS, desktop GUI, mature governance under the Agenti
 AI Foundation. Used here for text operations and for running `teach-me` over
 existing research artifacts.
 
+**Verified on the laptop 2026-10-14:** `goose 1.54.0`, installed by Homebrew
+(`block-goose-cli`), probed with `harness_probe.py` in the `agent-cc-configs-sync`
+skill; `goose skills list` names this repo's skills with no sign-in, and that
+command is the probe's discovery canary for this harness.
+
+## Strengths
+
+What this harness is for on this station. Each claim is marked **observed**
+(seen in a run or a bench here), **doc-derived** (from goose's documentation,
+`_RESEARCH/goose-docs-2026-10-11/findings.md`) or **impression** (the user's
+working sense, not yet measured).
+
+- **The open-source lane that completes the bench - observed.** On
+  `harness-bench` with `glm-5.3-flash:cloud` at thinking `low`, goose passed
+  33 of 33 task runs (eleven tasks, three reps) on 2026-10-13; the result table is
+  in `tasks/SPEC-HARNESS-BENCH.md`.
+- **Keeps large tool output in check - observed.** goose truncates large tool
+  output where pi does not: 26K against 98K input tokens on the bench's
+  `long-audit` task, which made goose the cheaper harness on the long multi-file
+  tasks.
+- **Recipes as the repeatable unit - doc-derived.** A YAML recipe holds the
+  instructions or prompt, the model and temperature settings, `max_turns`, the
+  extensions it may load (and when it declares them, only those load) and
+  `sub_recipes`, which is goose's lead-and-worker pattern. `goose run --recipe
+  <file>.yaml --params key=value` runs one headless, so a recurring job is a
+  file in the repo rather than a prompt someone remembers.
+- **Extensions are MCP - doc-derived.** goose takes stdio, builtin, platform
+  and streamable-http extensions with an optional `available_tools` allowlist,
+  so the tool surface of a run is declared rather than inherited.
+- **Relocatable state - observed.** `GOOSE_PATH_ROOT` moves config, data and
+  state under one root, which is how the bench gives each run a fake home.
+- **Hooks in Claude Code's event shape - doc-derived.** `PreToolUse` and `Stop`
+  can block; hook plugins load from `<scope>/.agents/plugins/<name>/hooks/`.
+  FEATURE-000053 captures them before anything depends on them.
+
+Limits that bound the lane: the configured model is an Ollama `:cloud` tag, so
+hosted and medium-stakes only (`SPEC.md` invariant 6); global hints loaded from
+a source the research pass could not find (findings, section 2).
+
+## Config locations
+
+| Scope | Path | Holds |
+|---|---|---|
+| Global | `~/.config/goose/config.yaml` | provider, model, extensions and settings |
+| Global | `~/.config/goose/.goosehints`, `~/.config/goose/AGENTS.md` | the documented global context files (neither exists on the laptop) |
+| Global | `~/.config/goose/memory/` | the memory extension's store |
+| Relocation | `GOOSE_PATH_ROOT` | moves `config/`, `data/sessions/` and `state/logs/` under one root |
+| Project | `.goosehints`, `AGENTS.md`, from the working directory up to the repo root | context files, local wins |
+| Project | `.goose/skills/`, `.agents/plugins/<name>/hooks/` | project skills and hook plugins |
+| Recipes | any path passed to `goose run --recipe` | the repeatable job definition |
+
 ## Skills: nothing to install
 
 goose reads **`~/.agents/skills/`** directly, which is its own recommended global

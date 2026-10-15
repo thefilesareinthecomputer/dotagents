@@ -61,6 +61,29 @@ class TestHarvestTranscripts(unittest.TestCase):
             self.assertIsNone(c["label"])
             self.assertEqual(c["source"], "transcript")
 
+    def test_the_split_is_by_session_so_one_session_never_straddles_it(self):
+        risk, routing = lb.harvest_transcript(FIXTURES / "transcript-a.jsonl")
+        self.assertEqual(len({c["split"] for c in risk + routing}), 1)
+        self.assertEqual(risk[0]["split"], lb.split_of(risk[0]["session"]))
+
+    def test_cwd_comes_from_the_last_line_that_named_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "t.jsonl"
+            path.write_text("\n".join(json.dumps(d) for d in [
+                {"type": "user", "cwd": "/Users/me/dev/other", "permissionMode": "default", "sessionId": "s9", "timestamp": "2026-10-01T10:00:00.000Z",
+                 "uuid": "u1", "message": {"role": "user", "content": "hi"}},
+                {"type": "assistant", "sessionId": "s9", "timestamp": "2026-10-01T10:00:05.000Z", "uuid": "a1",
+                 "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "ls"}}]}}]) + "\n")
+            risk, _ = lb.harvest_transcript(path)
+        self.assertEqual(risk[0]["state"]["cwd"], "/Users/me/dev/other")
+
+    def test_merge_upgrades_an_unknown_weak_label_from_a_later_harvest(self):
+        existing = [{"id": "x", "weak": "unknown"}]
+        self.assertEqual(lb.merge(existing, [{"id": "x", "weak": "rejected"}]), 0)
+        self.assertEqual(existing[0]["weak"], "rejected")
+        self.assertEqual(lb.merge(existing, [{"id": "x", "weak": "ran"}]), 0)
+        self.assertEqual(existing[0]["weak"], "rejected", "a real label is not overwritten")
+
     def test_routing_candidates_take_the_next_skill_call(self):
         _, routing = lb.harvest_transcript(FIXTURES / "transcript-a.jsonl")
         self.assertEqual([c["weak"] for c in routing], ["none", "deep-research", "none"])
@@ -145,7 +168,8 @@ class TestHarvestLog(unittest.TestCase):
                 {"ts": "2026-10-09T10:00:02+00:00", "event": "PreToolUse", "session_id": "s", "tool_use_id": "t3", "outcome": "skipped", "state": {"tool_name": "Bash", "tool_input": {}}},
                 {"ts": "2026-10-09T10:00:03+00:00", "event": "UserPromptSubmit", "outcome": "none"}]) + "\n")
             risk = lb.harvest_log(log)
-        self.assertEqual([c["weak"] for c in risk], ["flagged", "unflagged"])
+        self.assertEqual([c["weak"] for c in risk], ["none", "none"], "the judgment's own verdict is not a weak label")
+        self.assertEqual([c["shadow_outcome"] for c in risk], ["flagged", "unflagged"])
         self.assertEqual(risk[0]["source"], "shadow")
         self.assertEqual(risk[0]["probs"]["destroy"], 0.9)
 
@@ -205,11 +229,20 @@ class TestCommands(unittest.TestCase):
 
     def test_review_records_labels_from_stdin(self):
         self.run_cmd("harvest", "--since", "2026-09-01")
-        out = self.run_cmd("review", "--set", "risk", "--n", "3", stdin="y\nn\ns\n")
+        out = self.run_cmd("review", "--set", "risk", "--n", "3", stdin="y\ne\nn\ns\n")
         labeled = [c for c in self.labels("risk") if c["label"]]
         self.assertEqual(sorted(c["label"] for c in labeled), ["ask", "fine"])
+        self.assertEqual([c.get("category") for c in labeled if c["label"] == "ask"], ["exfil"])
         self.assertTrue(all(c["labeled_at"] for c in labeled))
         self.assertIn("2 labeled", out)
+        self.assertNotIn("model:", out, "the model's probabilities are not shown before the label")
+
+    def test_harvest_finds_transcripts_in_nested_folders(self):
+        nested = self.projects / "sub" / "deeper"
+        nested.mkdir(parents=True)
+        (nested / "transcript-c.jsonl").write_bytes((FIXTURES / "transcript-c.jsonl").read_bytes())
+        self.run_cmd("harvest", "--since", "2026-09-01")
+        self.assertGreater(len(self.labels("risk")), 7)
 
     def test_review_routing_takes_a_skill_name(self):
         self.run_cmd("harvest", "--since", "2026-09-01")
@@ -219,7 +252,7 @@ class TestCommands(unittest.TestCase):
 
     def test_recheck_measures_self_agreement(self):
         self.run_cmd("harvest", "--since", "2026-09-01")
-        self.run_cmd("review", "--set", "risk", "--n", "7", stdin="y\ny\ny\nn\nn\nn\ny\n")
+        self.run_cmd("review", "--set", "risk", "--n", "7", stdin="y\nd\ny\nd\ny\nd\nn\nn\nn\ny\nd\n")
         path = self.state / "labels" / "risk.jsonl"
         rows = self.labels("risk")
         for r in rows:
@@ -242,7 +275,7 @@ class TestCommands(unittest.TestCase):
         self.run_cmd("harvest", "--since", "2026-09-01")
         out = self.run_cmd("stats", "--set", "risk")
         self.assertIn("rejected", out)
-        self.assertIn("heldout", out)
+        self.assertIn("by split", out)     # two fixture sessions both hash to tuning; the split is by session now
         self.assertNotIn("git push", out)
 
 

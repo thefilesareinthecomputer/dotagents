@@ -48,6 +48,12 @@
     "why": "A single bounded local task is local-model-task itself; no worker is needed."
   },
   {
+    "name": "single-local-call",
+    "should_trigger": false,
+    "query": "Have qwen summarize this changelog into five bullets.",
+    "why": "One summarize call on the local model, which is local-model-task; no goal to plan or evidence to check."
+  },
+  {
     "name": "write-code",
     "should_trigger": false,
     "query": "Add a --dry-run flag to the deploy script.",

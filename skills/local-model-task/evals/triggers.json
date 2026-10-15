@@ -42,6 +42,12 @@
     "why": "Advice about models, not a task to delegate."
   },
   {
+    "name": "multi-call-goal",
+    "query": "Use the local model to work out how the sync client decides when to stop retrying; it's spread across several modules and I want the evidence checked.",
+    "should_trigger": false,
+    "why": "Names the local model, but the goal needs several calls and checked evidence, which is support-local."
+  },
+  {
     "name": "ollama-setup",
     "query": "my ollama server won't start after the update, can you look at the logs",
     "should_trigger": false,

@@ -13,6 +13,8 @@ Behavior is selected by FAKE_AGENT_MODE:
   readonly    write nothing, answer in the result text
 
 FAKE_AGENT_ARGV, if set, receives the argv, the environment and the cwd as JSON.
+FAKE_AGENT_ORPHAN, if set, starts a sleeping child tagged with its value that outlives
+the fake (tests the process-group kill after a normal exit).
 """
 
 import json
@@ -43,6 +45,14 @@ def main():
         Path(os.environ["FAKE_AGENT_ARGV"]).write_text(
             json.dumps({"argv": sys.argv, "env": dict(os.environ), "cwd": os.getcwd()}))
     ws = Path(arg_after("--workspace") or ".")
+    if os.environ.get("FAKE_AGENT_WRITE_CONFIG"):
+        # The real CLI rewrites its config at startup through a temp file and a rename.
+        target = Path(os.environ["FAKE_AGENT_WRITE_CONFIG"])
+        tmp = target.with_name(target.name + ".fake.tmp")
+        tmp.write_text('{"permissions": {"allow": ["Shell(rm)"]}, "version": 2}\n')
+        os.replace(tmp, target)
+    if os.environ.get("FAKE_AGENT_ORPHAN"):
+        subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)", os.environ["FAKE_AGENT_ORPHAN"]])
 
     if mode == "sleep":
         time.sleep(float(os.environ.get("FAKE_AGENT_SLEEP", "60")))

@@ -15,8 +15,10 @@ from __future__ import annotations
 
 import base64
 import binascii
+import html
 import re
 import unicodedata
+import urllib.parse
 
 # Characters with no width that hide inside a word: zero-width space, non-joiner,
 # joiner, word joiner, byte-order mark, soft hyphen, Mongolian vowel separator.
@@ -41,8 +43,15 @@ CONFUSABLES = {
 
 MIN_NORMALIZED_TERM = 4
 
-BASE64_RUN = re.compile(r"(?<![A-Za-z0-9+/=])[A-Za-z0-9+/]{16,}={0,2}(?![A-Za-z0-9+/=])")
-HEX_RUN = re.compile(r"(?<![0-9A-Fa-f])(?:[0-9A-Fa-f]{2}){8,}(?![0-9A-Fa-f])")
+# Encoded runs. The base64 lookbehind admits a preceding `=` so `KEY=<base64>` is decoded;
+# the alphabet takes the url-safe `-` and `_` too. Floors are low (a 9-byte payload) because
+# every decoded run is gated by a hit test, so a false decode costs CPU and nothing else.
+BASE64_RUN = re.compile(r"(?<![A-Za-z0-9+/_-])[A-Za-z0-9+/_-]{12,}={0,2}(?![A-Za-z0-9+/_=-])")
+HEX_RUN = re.compile(r"(?<![0-9A-Fa-f])(?:[0-9A-Fa-f]{2}){6,}(?![0-9A-Fa-f])")
+# A run of URL-encoded text with at least two escapes, and a run of HTML character references.
+# Both anchor on a lookbehind so a long plain run is scanned once, not from every offset.
+PERCENT_RUN = re.compile(r"(?<![A-Za-z0-9._~+%-])[A-Za-z0-9._~+-]*(?:%[0-9A-Fa-f]{2}[A-Za-z0-9._~+-]*){2,}")
+ENTITY_RUN = re.compile(r"(?<![A-Za-z0-9])(?:[A-Za-z0-9]*&(?:#\d{1,7}|#[xX][0-9A-Fa-f]{1,6}|[A-Za-z][A-Za-z0-9]{1,30});)+[A-Za-z0-9]*")
 
 
 def fold_char(ch: str) -> str:
@@ -134,27 +143,40 @@ def _printable_text(raw: bytes) -> str | None:
     return s if printable / len(s) >= 0.9 else None
 
 
-def decode_run(run: str) -> str | None:
-    """The text inside a base64 or hex run, or None when it is not text."""
-    if HEX_RUN.fullmatch(run):
+def decode_run(run: str, kind: str = "base64") -> str | None:
+    """The text inside an encoded run, or None when it is not text. `kind` is hex, base64
+    (standard or url-safe), percent or entity."""
+    if kind == "hex":
         try:
             return _printable_text(bytes.fromhex(run))
         except ValueError:
             return None
+    if kind == "percent":
+        decoded = urllib.parse.unquote(run, errors="replace")
+        return decoded if decoded != run and "�" not in decoded else None
+    if kind == "entity":
+        decoded = html.unescape(run)
+        return decoded if decoded != run else None
     padded = run + "=" * (-len(run) % 4)
     try:
+        if "-" in run or "_" in run:
+            return _printable_text(base64.urlsafe_b64decode(padded))
         return _printable_text(base64.b64decode(padded, validate=True))
     except (binascii.Error, ValueError):
         return None
 
 
-def encoded_hits(text: str, hit_test) -> list[tuple[int, int]]:
-    """Spans of base64 or hex runs whose decoded text satisfies hit_test(decoded).
-    The decoded text is scanned once; nested encodings are not followed."""
-    spans: list[tuple[int, int]] = []
-    for regex in (HEX_RUN, BASE64_RUN):
+def encoded_runs(text: str):
+    """(start, end, decoded text) for every hex, base64, percent-encoded or HTML-entity run
+    in the text that decodes to text. Each run is decoded once; nested encodings are not
+    followed."""
+    for kind, regex in (("hex", HEX_RUN), ("base64", BASE64_RUN), ("percent", PERCENT_RUN), ("entity", ENTITY_RUN)):
         for m in regex.finditer(text):
-            decoded = decode_run(m.group(0))
-            if decoded is not None and hit_test(decoded):
-                spans.append((m.start(), m.end()))
-    return merge_spans(spans)
+            decoded = decode_run(m.group(0), kind)
+            if decoded is not None:
+                yield m.start(), m.end(), decoded
+
+
+def encoded_hits(text: str, hit_test) -> list[tuple[int, int]]:
+    """Spans of encoded runs whose decoded text satisfies hit_test(decoded)."""
+    return merge_spans([(s, e) for s, e, decoded in encoded_runs(text) if hit_test(decoded)])

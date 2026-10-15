@@ -18,26 +18,55 @@ Every command runs as `python3 ~/.agents/skills/sanitize/scripts/sanitize.py ...
 ### copy (alias: corpus)
 
 ```
-sanitize.py copy <file-or-folder> [--out <path>] [--force] [--include-binary] [--max-mb 50]
-                 [--exclude <glob>...] [--terms a,b] [--patterns <regex>...] [--ban-list <file>]
+sanitize.py copy <file-or-folder> [--out <path>] [--force] [--include-binary] [--include-docx] [--no-verify]
+                 [--max-mb 50] [--exclude <glob>...] [--terms a,b] [--patterns <regex>...] [--ban-list <file>]
                  [--config <corpus.json>] [--no-station-terms]
 ```
 
 - Writes a cleaned copy at `--out`, or beside the source as `<name>-clean`. Folders
   are 0700 and files 0600; the original is never touched. The destination must sit
-  outside the source, and an existing non-empty destination needs `--force`.
+  outside the source. An existing non-empty destination needs `--force`, which
+  replaces it whole rather than overlaying it, and only when it is an earlier copy
+  (a report at its top, or beside it for a single file); anything else is refused.
 - File names and folder names go through the engine too, so a folder named after a
   client comes out as `[TERM]`; the report counts these under `path`.
 - JSON is parsed and every key and string value cleaned, so a term behind a
-  `\uXXXX` escape is found. JSONL goes line by line, CSV and TSV cell by cell, a
-  `.docx` is rezipped with its `word/*.xml` text cleaned and every other part
-  byte-identical. Everything else that decodes as UTF-8 is cleaned as text.
+  `\uXXXX` escape is found, and a string value keeps its key's context, so a
+  credential under a key-like name is judged as the assignment `key=value` would
+  be. JSONL goes line by line, CSV and TSV cell by cell with the header naming each
+  column. A JSON file with a duplicate key is counted (`json_duplicate_key`) and
+  cleaned as text, since a parse would drop the earlier value unscanned.
+  Everything else that decodes as UTF-8 is cleaned as text.
+- A `.docx` is skipped as uninspected unless `--include-docx` is passed, because
+  the text-node pass misses attributes, CDATA and a term split across runs; with
+  the flag its `word/*.xml` and `docProps/*.xml` text is cleaned and every other
+  part kept byte-identical, and a zip whose parts inflate past 64 MB is skipped.
+- Encoded runs (base64, url-safe base64, hex, percent-encoding, HTML character
+  references) are decoded once and checked against every detector, not the term
+  list alone; a run holding a secret or a shape is replaced whole as
+  `<class>-encoded`.
+- A term shorter than four characters matches as typed only; the any-case rule
+  would make an all-caps two-letter term match the common word it spells.
 - PDFs and binaries are skipped and listed in the report with a reason;
   `--include-binary` copies them through unchanged. Files over `--max-mb` are
   skipped as `too-large`. `.git`, `node_modules`, `.venv` and the usual caches are
   excluded by default; `--exclude` adds path-component globs.
 - The report lands as `sanitize-report.json` in the copy (or `<out>.sanitize-report.json`
   for a single file) and is printed to stdout.
+
+### verify
+
+```
+sanitize.py verify <copy-path> [--allow-binary] [--terms ...] [--patterns ...] [--config ...]
+```
+
+- `verify` is the release verifier, a second pass that shares no parser with the engine.
+  It reads every file in the copy as flat text, every member of a zip the same way, and
+  every path, and runs every matcher over them. Any hit exits `1`; any part it could not
+  decode exits `4` (pass `--allow-binary` when binaries were copied through on purpose).
+- `copy` runs it over the staging folder before the copy lands and refuses (exit
+  `5`) on either outcome, so a gap in a parser can never ship a copy as clean. The
+  report records `verified`; `--no-verify` skips the pass and records `null`.
 
 ### tree
 
@@ -46,8 +75,9 @@ sanitize.py tree <path> [--tracked] [--exclude <glob>...] [--terms ...] [--patte
 ```
 
 - Tree mode only reports and writes nothing. It exits `1` when anything would have
-  been replaced and `0` when clean. `--tracked` limits the scan to the files git
-  tracks under the path, which is the right scope before a publish.
+  been replaced, `4` when a text-bearing file was left uninspected, and `0` when
+  clean. `--tracked` limits the scan to the files git tracks under the path, which
+  is the right scope before a publish.
 
 ### answer
 
@@ -56,13 +86,14 @@ sanitize.py answer [--config <vault.json>] < answer.txt
 ```
 
 - Answer mode reads text on stdin and writes text to stdout. Secrets and personal
-  shapes are replaced; a hit on the station list or a ban list withholds the whole
-  answer and exits `3`. This is the local vault's gate before an answer goes to a
-  cloud agent.
+  shapes are replaced; a hit on the station list, a ban list or a per-run pattern
+  withholds the whole answer and exits `3`. The term check runs on the original
+  text, so a term inside an address or a path is still a hit. This is the local
+  vault's gate before an answer goes to a cloud agent.
 
 ### doctor
 
-Prints whether the station term list is present (its count, never its contents),
+`doctor` prints whether the station term list is present (its count, never its contents),
 runs a normalization self-test, and states that the recall layer is off. Exits `2`
 when the list is missing.
 
@@ -94,13 +125,20 @@ the run; `files_changed` lists each file that lost content with its relative pat
 top-level `origin` folder and its per-class counts, so a whole source can be dropped
 from a training set; `skipped` lists binaries, PDFs and oversized files. No field
 holds a matched value. Terms shorter than four characters are matched on raw text
-only, and a two-character term on the station list will fire on prose; if `term`
-counts look high, check the list before the files.
+only and as typed, so an all-caps two-character term no longer fires on the common
+word it spells; if `term` counts still look high, check the list before the files.
 
 ## Exit codes
 
-`0` clean or copied; `1` tree found hits; `2` bad arguments, config, or a missing
-station term list; `3` answer withheld; `4` self-test or masker failure.
+`0` clean or copied; `1` tree or verify found hits; `2` bad arguments, config, a missing
+station term list, or a copy refused before anything was written (a destination
+that is a link, two sources cleaning to one path, a source file named like the
+report, a destination `--force` may not replace); `3` answer withheld; `4` tree left
+a text-bearing file uninspected (a PDF, a Word file without `--include-docx`, an
+oversized, unreadable or undecodable file; known binary types do not count in tree
+mode), or verify could not decode a file or a zip member (every one counts unless
+`--allow-binary`, media members aside), or the self-test failed; `5` the verifier
+refused a copy, which was then not written.
 
 ## Boundaries
 

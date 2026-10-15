@@ -16,5 +16,6 @@ This `specs/` folder contains one folder per harness, each containing its statio
 - **Links.**
   Same-folder links are bare filenames; cross-folder links are relative (`../copilot/SPEC-COPILOT.md`).
   Assets shared by several harnesses stay at `specs/` level.
+- **Hook scripts under a harness folder are seeded too** and follow [`../hooks/AGENTS.md`](../hooks/AGENTS.md): plain POSIX ERE, named in that folder's `manifest.json`, never wired into a harness without a test.
 - **Specs describe current state.**
   Session records and retired feature specs go to `tasks/completed/`, never here, and a claim that is doc-derived rather than confirmed by observation says so.

@@ -30,7 +30,7 @@ class TestSelfGuard(unittest.TestCase):
         # The tests plant invented shapes on purpose, and this table names exactly which
         # file holds how many of each class; any hit beyond it, any term-list, ban or path
         # hit anywhere, and any skipped file is an offender.
-        expected = {"tests/test_terms.py": {"secret": 4, "email": 1, "phone": 1, "role_code": 1, "catalog": 1},
+        expected = {"tests/test_terms.py": {"secret": 6, "email": 3, "phone": 1, "role_code": 2, "catalog": 1},
                     "tests/test_modes.py": {"email": 3}}
         offenders = []
         for entry in report["files_changed"]:

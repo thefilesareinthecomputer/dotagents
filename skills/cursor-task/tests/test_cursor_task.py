@@ -63,11 +63,11 @@ class Base(unittest.TestCase):
         return subprocess.run([sys.executable, str(SCRIPT), *args], env=env, text=True,
                               capture_output=True, timeout=timeout or 60)
 
-    def run_task(self, allow=("src/allowed.py", "src/new_allowed.py"), mode="clean", extra=()):
+    def run_task(self, allow=("src/allowed.py", "src/new_allowed.py"), mode="clean", extra=(), env_extra=None):
         args = ["run", "--repo", str(self.repo), "--brief", str(self.brief), *extra]
         for a in allow:
             args += ["--allow", a]
-        return self.run_cmd(*args, mode=mode)
+        return self.run_cmd(*args, mode=mode, env_extra=env_extra)
 
     def report(self):
         runs = sorted(p for p in self.state.iterdir() if p.is_dir())
@@ -232,6 +232,13 @@ class TestProcessControl(Base):
         out = subprocess.run(["pgrep", "-f", "fake_agent.py"], capture_output=True, text=True)
         self.assertEqual(out.stdout.strip(), "", "a child survived the timeout")
 
+    def test_normal_exit_kills_a_surviving_child(self):
+        tag = f"cursor-task-orphan-{os.getpid()}-{time.time_ns()}"
+        r = self.run_task(env_extra={"FAKE_AGENT_ORPHAN": tag})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        out = subprocess.run(["pgrep", "-f", tag], capture_output=True, text=True)
+        self.assertEqual(out.stdout.strip(), "", "a child outlived the agent's normal exit")
+
     def test_agent_error_exit_four(self):
         r = self.run_task(mode="error")
         self.assertEqual(r.returncode, 4, r.stderr)
@@ -348,9 +355,10 @@ class TestBoundaryHardening(Base):
         spec.loader.exec_module(mod)
         from unittest import mock
         with mock.patch.dict(os.environ, {"CURSOR_TASK_BIN": "/nope/agent", "CURSOR_TASK_SANDBOX_BIN": "/nope/sb",
-                                          "CURSOR_TASK_CURSOR_HOME": "/nope/home"}, clear=False):
+                                          "CURSOR_TASK_CURSOR_HOME": "/nope/home", "FAKE_AGENT_MODE": "clean"}, clear=False):
             os.environ.pop("CURSOR_TASK_TEST", None)
             self.assertEqual(mod.agent_bin(), "agent")
+            self.assertNotIn("FAKE_AGENT_MODE", mod.child_env(self.tmp))
             self.assertEqual(mod.cursor_state_home(), Path(os.path.expanduser("~/.cursor")).resolve())
             if Path("/usr/bin/sandbox-exec").exists():
                 self.assertEqual(mod.sandbox_bin(), "/usr/bin/sandbox-exec")
@@ -391,13 +399,64 @@ class TestBoundaryHardening(Base):
             with self.assertRaises(mod.TaskError):
                 mod._sb_path(self.tmp / bad)
 
-    def test_profile_allows_the_user_temp_root_not_the_folders_root_and_denies_the_config(self):
+    def test_profile_allows_the_user_temp_root_not_the_folders_root_and_denies_the_loaders(self):
         self.assertEqual(self.run_task().returncode, 0)
         profile = (self.tmp / "profile.sb").read_text()
         self.assertNotIn('(subpath "/private/var/folders")', profile)
-        for name in ("cli-config.json", "extensions", "mcp.json", "hooks.json"):
+        for name in ("agents", "rules", "plugins", "extensions", "mcp.json", "hooks.json"):
             self.assertIn(f'(deny file-write* (subpath "{(self.cursor_home / name).resolve()}"))', profile)
+        # the CLI rewrites its own config at startup, so that one write is allowed and undone after
+        self.assertNotIn("cli-config.json", profile)
         self.assertLess(profile.index("(allow file-write* (subpath"), profile.index("(deny file-write* (subpath"))
+
+    def test_cli_config_is_restored_byte_for_byte_after_the_run(self):
+        cfg = self.cursor_home / "cli-config.json"
+        cfg.write_text('{"permissions": {"allow": []}, "version": 1}\n')
+        before = cfg.read_bytes()
+        write = {"FAKE_AGENT_WRITE_CONFIG": str(cfg)}
+        r = self.run_task(allow=(), mode="readonly", extra=["--read-only"], env_extra=write)
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+        rpt, run_dir = self.report()
+        self.assertEqual(rpt["cli_config"], {"existed": True, "changed_by_run": True, "restored": True, "lock_wait_s": 0.0})
+        self.assertEqual(cfg.read_bytes(), before)
+        self.assertEqual([p.name for p in cfg.parent.iterdir() if p.name.startswith("cli-config.json.")], [])
+        # a link planted at a predictable temp name inside the CLI's folder is never followed
+        victim = self.tmp / "victim.txt"
+        victim.write_text("keep me\n")
+        (cfg.parent / "cli-config.json.restore").symlink_to(victim)
+        shutil.rmtree(self.report()[1])
+        r = self.run_task(allow=(), mode="readonly", extra=["--read-only"], env_extra=write)
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+        self.assertEqual(cfg.read_bytes(), before)
+        self.assertEqual(victim.read_text(), "keep me\n")
+        (cfg.parent / "cli-config.json.restore").unlink()
+        shutil.rmtree(self.report()[1])
+        r = self.run_task(allow=(), mode="readonly", extra=["--read-only"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rpt, run_dir = self.report()
+        self.assertEqual(rpt["cli_config"], {"existed": True, "changed_by_run": False, "restored": False, "lock_wait_s": 0.0})
+        shutil.rmtree(run_dir)
+        cfg.unlink()
+        r = self.run_task(allow=(), mode="readonly", extra=["--read-only"], env_extra=write)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.report()[0]["cli_config"], {"existed": False, "changed_by_run": True, "restored": True, "lock_wait_s": 0.0})
+        self.assertFalse(cfg.exists())
+
+    def test_two_cursor_runs_take_turns_on_the_config_lock(self):
+        import fcntl
+        self.cursor_home.mkdir(exist_ok=True)
+        held = os.open(self.cursor_home / "cli-config.lock", os.O_CREAT | os.O_RDWR, 0o600)
+        fcntl.flock(held, fcntl.LOCK_EX)       # another run, or agent-review's Cursor member, is mid-call
+        r = self.run_task(allow=(), mode="readonly", extra=["--read-only"], env_extra={"CURSOR_TASK_LOCK_WAIT": "1"})
+        self.assertEqual(r.returncode, 5, r.stderr + r.stdout)
+        self.assertIn("Cursor's config lock", r.stderr)
+        os.close(held)
+        for d in self.state.iterdir():       # the refused run left its record; clear it so report() finds one
+            if d.is_dir():
+                shutil.rmtree(d)
+        r = self.run_task(allow=(), mode="readonly", extra=["--read-only"], env_extra={"CURSOR_TASK_LOCK_WAIT": "1"})
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+        self.assertEqual(self.report()[0]["cli_config"]["lock_wait_s"], 0.0)
 
     def test_report_names_the_binaries_and_prints_the_anchored_line(self):
         r = self.run_task()

@@ -12,10 +12,10 @@ available to Claude Code (and other skill-aware agents) on every device.
 Third-party/upstream skills are **not** published here - they are consumed from
 installed plugins (e.g. `agent-skills@addy-agent-skills`), which auto-update and
 expose namespaced `plugin:skill` entries. This repo carries only what the user
-authors or forks (**31 skills** `a-little-help-from-my-friends`, `agent-cc-configs-sync`,
+authors or forks (**32 skills** `agent-conference`, `agent-cc-configs-sync`,
 `agent-mail`, `agent-review`, `ai-engineering`, `ai-slop-magic-eraser`,
 `antigravity-task`, `cmon`, `code-kg`, `codex-task`, `cover-me`, `cursor-task`,
-`deep-research`, `frontend-aesthetics`, `hi`, `local-model-task`, `meta-loop`,
+`deep-research`, `frontend-aesthetics`, `harness-bench`, `hi`, `local-model-task`, `meta-loop`,
 `my-security-review-checklist`, `notes`, `obsidian`, `obsidian-kg`,
 `plugin-update`, `project-knowledge-vault`, `reflect`, `repo-device-sync`,
 `sanitize`, `skill-authoring`, `sprint-board`, `support-local`, `teach-me`,
@@ -102,7 +102,9 @@ assembly step, so:
   CLI or the local Ollama daemon.
 - Maintain [`specs/claude-code/SPEC-CLAUDE-CODE.md`](specs/claude-code/SPEC-CLAUDE-CODE.md) - the standing
   seed spec for the full Claude Code station around this repo: required plugins,
-  CLI deps, and the global `CLAUDE.md` pointer, `settings.json` and hook templates.
+  CLI deps, and the global `CLAUDE.md` pointer, `settings.json` and that harness's
+  own hooks. Hooks every harness shares live once in `hooks/` with a manifest, and
+  the seeder in `agent-cc-configs-sync` writes each harness's wiring from both.
   Keep it in sync with the live station; it contains no personal constants by
   rule (`my-security-review-checklist` §8).
 

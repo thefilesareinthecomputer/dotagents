@@ -51,7 +51,9 @@ def grade(answer: dict, key: dict) -> dict:
     if not want_answerable:
         correct = not got_answerable
     else:
-        correct = got_answerable and len(hits) == len(musts)
+        # keyword presence is not correctness: when the key names the lines, one of them must be covered by a
+        # claim the script verified
+        correct = got_answerable and len(hits) == len(musts) and (not key_refs or covered > 0)
     return {"correct": correct, "answerable_ok": got_answerable == want_answerable, "must_hit": len(hits), "must_n": len(musts),
             "refs_covered": covered, "refs_n": len(key_refs), "missed": [m for m in musts if norm(m) not in text]}
 

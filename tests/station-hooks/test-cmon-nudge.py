@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests for the cmon_nudge.py SessionStart/UserPromptSubmit hook.
-Target: ~/.claude/hooks/cmon_nudge.py (seeded from SPEC-CLAUDE-CODE.md §8).
+Target: the repo's specs/claude-code/hooks/cmon_nudge.py by default; HOOK_UNDER_TEST points
+the run at a station copy such as ~/.claude/hooks/cmon_nudge.py (seeded per SPEC-CLAUDE-CODE.md §8).
 Run: python3 tests/station-hooks/test-cmon-nudge.py   (or via unittest discover)
 
 Contract: advisory only, exit 0 on every path. SessionStart always injects the
@@ -17,9 +18,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-HOOK = Path.home() / ".claude" / "hooks" / "cmon_nudge.py"
-SEED = Path(__file__).resolve().parent.parent.parent / "specs" / "claude-code" / "hooks" / "cmon_nudge.py"
-TARGET = HOOK if HOOK.is_file() else SEED
+TARGET = Path(os.environ.get("HOOK_UNDER_TEST") or Path(__file__).resolve().parents[2] / "specs" / "claude-code" / "hooks" / "cmon_nudge.py")
 
 
 def row(kind: str, content, sidechain: bool = False) -> str:

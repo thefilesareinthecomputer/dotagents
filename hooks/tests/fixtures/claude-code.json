@@ -1,0 +1,250 @@
+{
+ "captured": "claude-code 2.1.280, headless on claude-haiku-4-5-20251001, 2026-10-13; ids and paths replaced, long strings cut; the model ran grep and glob through Bash, so Grep and Glob events are absent",
+ "env_keys": [
+  "CLAUDECODE",
+  "CLAUDE_CODE_CHILD_SESSION",
+  "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY",
+  "CLAUDE_CODE_ENTRYPOINT",
+  "CLAUDE_CODE_EXECPATH",
+  "CLAUDE_CODE_MESSAGING_SOCKET",
+  "CLAUDE_CODE_MESSAGING_TOKEN",
+  "CLAUDE_CODE_SESSION_ATTENDED",
+  "CLAUDE_CODE_SESSION_ID",
+  "CLAUDE_EFFORT",
+  "CLAUDE_ENV_FILE",
+  "CLAUDE_PID",
+  "CLAUDE_PROJECT_DIR"
+ ],
+ "events": [
+  {
+   "cwd": "/work/cc-ws",
+   "hook_event_name": "SessionStart",
+   "session_id": "SESSION",
+   "source": "startup",
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  },
+  {
+   "cwd": "/work/cc-ws",
+   "hook_event_name": "UserPromptSubmit",
+   "permission_mode": "acceptEdits",
+   "prompt": "Do these steps in order, one tool call each, no explanations: 1) run the Bash command: ls -la  2) use the Write tool to create note.txt containing the single li...",
+   "prompt_id": "PROMPT",
+   "session_id": "SESSION",
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  },
+  {
+   "cwd": "/work/cc-ws",
+   "hook_event_name": "PreToolUse",
+   "permission_mode": "acceptEdits",
+   "prompt_id": "PROMPT",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "ls -la",
+    "description": "List files in current directory with details"
+   },
+   "tool_name": "Bash",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  },
+  {
+   "cwd": "/work/cc-ws",
+   "duration_ms": 184,
+   "hook_event_name": "PostToolUse",
+   "permission_mode": "acceptEdits",
+   "prompt_id": "PROMPT",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "ls -la",
+    "description": "List files in current directory with details"
+   },
+   "tool_name": "Bash",
+   "tool_response": {
+    "interrupted": false,
+    "isImage": false,
+    "noOutputExpected": false,
+    "stderr": "",
+    "stdout": "total 0\ndrwxr-xr-x@ 2 user  wheel   64 Oct 13 13:52 .\ndrwx------@ 7 user  wheel  224 Oct 13 13:52 .."
+   },
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  },
+  {
+   "cwd": "/work/cc-ws",
+   "hook_event_name": "PreToolUse",
+   "permission_mode": "acceptEdits",
+   "prompt_id": "PROMPT",
+   "session_id": "SESSION",
+   "tool_input": {
+    "content": "hello",
+    "file_path": "/work/cc-ws/note.txt"
+   },
+   "tool_name": "Write",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  },
+  {
+   "cwd": "/work/cc-ws",
+   "duration_ms": 2,
+   "hook_event_name": "PostToolUse",
+   "permission_mode": "acceptEdits",
+   "prompt_id": "PROMPT",
+   "session_id": "SESSION",
+   "tool_input": {
+    "content": "hello",
+    "file_path": "/work/cc-ws/note.txt"
+   },
+   "tool_name": "Write",
+   "tool_response": {
+    "content": "hello",
+    "filePath": "/work/cc-ws/note.txt",
+    "originalFile": null,
+    "structuredPatch": [],
+    "type": "create",
+    "userModified": false
+   },
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  },
+  {
+   "cwd": "/work/cc-ws",
+   "hook_event_name": "PreToolUse",
+   "permission_mode": "acceptEdits",
+   "prompt_id": "PROMPT",
+   "session_id": "SESSION",
+   "tool_input": {
+    "file_path": "/work/cc-ws/note.txt"
+   },
+   "tool_name": "Read",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  },
+  {
+   "cwd": "/work/cc-ws",
+   "duration_ms": 1,
+   "hook_event_name": "PostToolUse",
+   "permission_mode": "acceptEdits",
+   "prompt_id": "PROMPT",
+   "session_id": "SESSION",
+   "tool_input": {
+    "file_path": "/work/cc-ws/note.txt"
+   },
+   "tool_name": "Read",
+   "tool_response": {
+    "file": {
+     "content": "hello",
+     "filePath": "/work/cc-ws/note.txt",
+     "numLines": 1,
+     "startLine": 1,
+     "totalLines": 1
+    },
+    "type": "text"
+   },
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  },
+  {
+   "cwd": "/work/cc-ws",
+   "hook_event_name": "PreToolUse",
+   "permission_mode": "acceptEdits",
+   "prompt_id": "PROMPT",
+   "session_id": "SESSION",
+   "tool_input": {
+    "file_path": "/work/cc-ws/note.txt",
+    "new_string": "hello world",
+    "old_string": "hello",
+    "replace_all": false
+   },
+   "tool_name": "Edit",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  },
+  {
+   "cwd": "/work/cc-ws",
+   "duration_ms": 2,
+   "hook_event_name": "PostToolUse",
+   "permission_mode": "acceptEdits",
+   "prompt_id": "PROMPT",
+   "session_id": "SESSION",
+   "tool_input": {
+    "file_path": "/work/cc-ws/note.txt",
+    "new_string": "hello world",
+    "old_string": "hello",
+    "replace_all": false
+   },
+   "tool_name": "Edit",
+   "tool_response": {
+    "filePath": "/work/cc-ws/note.txt",
+    "newString": "hello world",
+    "oldString": "hello",
+    "originalFile": "hello",
+    "replaceAll": false,
+    "structuredPatch": [
+     {
+      "lines": [
+       "-hello",
+       "\\ No newline at end of file",
+       "+hello world",
+       "\\ No newline at end of file"
+      ],
+      "newLines": 1,
+      "newStart": 1,
+      "oldLines": 1,
+      "oldStart": 1
+     }
+    ],
+    "userModified": false
+   },
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  },
+  {
+   "cwd": "/work/cc-ws",
+   "hook_event_name": "PreToolUse",
+   "permission_mode": "acceptEdits",
+   "prompt_id": "PROMPT",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "grep -r \"hello\" .",
+    "description": "Search for the word hello in current directory"
+   },
+   "tool_name": "Bash",
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  },
+  {
+   "cwd": "/work/cc-ws",
+   "duration_ms": 14,
+   "hook_event_name": "PostToolUse",
+   "permission_mode": "acceptEdits",
+   "prompt_id": "PROMPT",
+   "session_id": "SESSION",
+   "tool_input": {
+    "command": "grep -r \"hello\" .",
+    "description": "Search for the word hello in current directory"
+   },
+   "tool_name": "Bash",
+   "tool_response": {
+    "interrupted": false,
+    "isImage": false,
+    "noOutputExpected": false,
+    "stderr": "",
+    "stdout": "note.txt:hello world"
+   },
+   "tool_use_id": "TOOLUSE",
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  },
+  {
+   "background_tasks": [],
+   "cwd": "/work/cc-ws",
+   "hook_event_name": "Stop",
+   "last_assistant_message": "done",
+   "permission_mode": "acceptEdits",
+   "prompt_id": "PROMPT",
+   "session_crons": [],
+   "session_id": "SESSION",
+   "stop_hook_active": false,
+   "transcript_path": "~/.claude/projects/-work-cc-ws/SESSION.jsonl"
+  }
+ ],
+ "harness": "claude-code"
+}

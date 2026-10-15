@@ -71,7 +71,11 @@ def default_config() -> dict:
     modes = {"PreToolUse": {m: "shadow" for m in PERMISSION_MODES},
              "UserPromptSubmit": {m: "off" for m in PERMISSION_MODES}}   # routing missed its Phase 0 gate; opt in
     modes["PreToolUse"]["bypassPermissions"] = "off"   # there an ask would become an allow
+    # `judgment`: features (deterministic call features and one logistic score, no model, the
+    # default), systemone (the decision model on /v1/systemone), or both (features first, the
+    # model only when the features do not flag).
     return {"base_url": "http://127.0.0.1:11434", "model": "tev1:0.8b", "embed_model": "embeddinggemma",
+            "judgment": "features",
             "keep_alive": "10m", "client_timeout_s": 1.5, "warm_timeout_s": 15, "escalation_cap": 5,
             "budget_path": str(Path.home() / ".config" / "local-models" / "budget.json"), "modes": modes}
 
@@ -398,6 +402,17 @@ def load_question() -> dict:
     return json.loads((REFS / "risk.json").read_text())
 
 
+def features_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("features", HERE / "features.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+JUDGMENTS = ("features", "systemone", "both")
+
+
 def scrubbed(state: dict) -> dict:
     """The state as it is logged: secrets by shape and the station term list masked. The model gets the raw state;
     the log on disk never holds a value the labeler would have to scrub later."""
@@ -418,31 +433,45 @@ def pre_tool_use(payload: dict, cfg: dict) -> dict | None:
     if mode == "off" or not WATCHED_TOOLS.match(tool):
         return None
     session = str(payload.get("session_id", ""))
+    judgment = str(cfg.get("judgment") or "features")
+    if judgment not in JUDGMENTS:
+        judgment = "features"
+    start = time.monotonic()   # the clock starts before the state is built, so the latency is the hook's whole cost
     state = build_state(payload)
     record = {"ts": now(), "event": "PreToolUse", "session_id": session, "tool_use_id": payload.get("tool_use_id"),
-              "permission_mode": payload.get("permission_mode"), "mode": mode, "tool_name": tool,
-              "model": cfg["model"], "state": scrubbed(state), "outcome": "none", "reason": "", "flag": None,
-              "probs": None, "latency_ms": None}
-    start = time.monotonic()
+              "permission_mode": payload.get("permission_mode"), "mode": mode, "tool_name": tool, "judgment": judgment,
+              "model": cfg["model"] if judgment != "features" else None, "state": scrubbed(state), "outcome": "none",
+              "reason": "", "flag": None, "category": None, "score": None, "features": None, "probs": None, "latency_ms": None}
     output = None
     try:
-        question = load_question()
-        client = Client(cfg["base_url"], start + float(cfg["client_timeout_s"]))
-        check_slot(client, cfg, cfg["model"], loaded_models(client))
-        reply = client.call("POST", "/v1/systemone",
-                            {"model": cfg["model"], "state": state, "keep_alive": cfg["keep_alive"],
-                             "questions": {question["name"]: question["question"]}})
-        record["probs"] = parse_probabilities(reply, question["name"])
-        hit = decide_risk(record["probs"], question)
+        hit = None   # (flag, probability or score, description)
+        if judgment in ("features", "both"):
+            # features are read from the raw input, before the cut and the scrub, so a long or
+            # masked command is judged on what will run
+            fe = features_module()
+            verdict = fe.judge(tool, payload.get("tool_input"), str(payload.get("cwd", "")), fe.load_weights())
+            record["score"], record["features"] = verdict["score"], verdict["features"]
+            if verdict["flag"]:
+                hit = (verdict["category"] or "risk", verdict["score"], "features: " + ", ".join(verdict["features"][:4]))
+        if hit is None and judgment in ("systemone", "both"):
+            question = load_question()
+            client = Client(cfg["base_url"], start + float(cfg["client_timeout_s"]))
+            check_slot(client, cfg, cfg["model"], loaded_models(client))
+            reply = client.call("POST", "/v1/systemone",
+                                {"model": cfg["model"], "state": state, "keep_alive": cfg["keep_alive"],
+                                 "questions": {question["name"]: question["question"]}})
+            record["probs"] = parse_probabilities(reply, question["name"])
+            model_hit = decide_risk(record["probs"], question)
+            if model_hit:
+                hit = (model_hit[0], model_hit[1], describe(model_hit[0], question))
         if hit:
-            record["flag"] = hit[0]
+            record["flag"], record["category"] = hit[0], hit[0]
             if session_count(session) >= int(cfg["escalation_cap"]):
                 record["outcome"] = "capped"
             else:
                 record["outcome"] = "ask"
                 session_count(session, bump=True)
-                output = hook_output("PreToolUse", True,
-                                     f"decision-hook: {hit[0]} (p={hit[1]:.2f}) - {describe(hit[0], question)}; review this call")
+                output = hook_output("PreToolUse", True, f"decision-hook: {hit[0]} (p={hit[1]:.2f}) - {hit[2]}; review this call")
     except HookError as e:
         record["outcome"], record["reason"] = e.outcome, str(e)
     record["latency_ms"] = round((time.monotonic() - start) * 1000)
@@ -563,6 +592,8 @@ def cmd_doctor() -> int:
 
     cfg = load_config()
     say(True, f"config {'at ' + str(config_path()) if config_path().exists() else 'is the built-in default'}")
+    judgment = str(cfg.get("judgment") or "features")
+    say(judgment in JUDGMENTS, f"judgment {judgment}" + (" (deterministic call features, no model on the hot path)" if judgment == "features" else ""))
     for event, table in cfg["modes"].items():
         active = [m for m, v in table.items() if v == "active"]
         print(f"     {event}: " + ", ".join(f"{m}={v}" for m, v in table.items()))

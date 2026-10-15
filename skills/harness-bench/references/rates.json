@@ -1,0 +1,13 @@
+{
+  "note": "Dollars per million tokens, input / cached input / output, from the Ollama cloud library pages as recorded in the authoring repo on 2026-10-10. The proxy does not see cached counts, so cost uses the input rate for every prompt token and is an upper bound.",
+  "rates": {
+    "glm-5.3-flash:cloud": [0.15, 0.03, 0.50],
+    "glm-5.3:cloud": [1.40, 0.26, 4.40],
+    "deepseek-v4.1-flash:cloud": [0.30, 0.006, 1.20],
+    "deepseek-v4-pro:cloud": [1.32, 0.044, 3.96],
+    "nemotron-3-ultra:cloud": [0.10, 0.10, 3.00],
+    "nemotron-3-super:cloud": [0.015, 0.015, 0.60],
+    "kimi-k3:cloud": [3.00, 0.30, 15.00],
+    "mistral-large-4:cloud": [0.68, 0.07, 2.09]
+  }
+}

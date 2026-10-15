@@ -1,7 +1,8 @@
 """Tests for hooks/reject_words.py: list loading and matching against an
 invented list, the shipped list's shape, then the script run the way the
 harness runs it, payload on stdin, with state and list redirected to a temp dir.
-Target: ~/.claude/hooks/reject_words.py (seeded from SPEC-CLAUDE-CODE.md §8).
+Target: the repo's hooks/reject_words.py by default; HOOK_UNDER_TEST points the run at a
+station copy such as ~/.claude/hooks/reject_words.py (seeded per SPEC-CLAUDE-CODE.md §8).
 Run: python3 tests/station-hooks/test-reject-words.py
 """
 import importlib.util
@@ -14,7 +15,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-HOOK = Path.home() / ".claude" / "hooks" / "reject_words.py"
+HOOK = Path(os.environ.get("HOOK_UNDER_TEST") or Path(__file__).resolve().parents[2] / "hooks" / "reject_words.py")
 SHIPPED = HOOK.with_name("reject-words.toml")
 spec = importlib.util.spec_from_file_location("reject_words", HOOK)
 rw = importlib.util.module_from_spec(spec)

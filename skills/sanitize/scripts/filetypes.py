@@ -21,6 +21,7 @@ from pathlib import PurePath
 from typing import Callable
 
 Scrub = Callable[[str, dict], str]
+Field = Callable[[str, str, dict], str]   # (key, value, counts) -> value, for a value a parser split from its key
 
 TEXT_EXT = {
     ".txt", ".md", ".markdown", ".rst", ".log", ".py", ".js", ".ts", ".tsx", ".jsx", ".sh", ".zsh",
@@ -102,36 +103,59 @@ def _text(data: bytes, scrub: Scrub, counts: dict) -> bytes | None:
     return scrub(text, counts).encode("utf-8")
 
 
-def _walk_json(value, scrub: Scrub, counts: dict):
+def _walk_json(value, scrub: Scrub, counts: dict, field: Field | None = None):
     if isinstance(value, str):
         return scrub(value, counts)
     if isinstance(value, dict):
-        return {scrub(k, counts) if isinstance(k, str) else k: _walk_json(v, scrub, counts) for k, v in value.items()}
+        out = {}
+        for k, v in value.items():
+            ck = scrub(k, counts) if isinstance(k, str) else k
+            # a string value keeps its key's context, so a credential under a key-like name is judged as one
+            out[ck] = field(k, v, counts) if field and isinstance(k, str) and isinstance(v, str) else _walk_json(v, scrub, counts, field)
+        return out
     if isinstance(value, list):
-        return [_walk_json(v, scrub, counts) for v in value]
+        return [_walk_json(v, scrub, counts, field) for v in value]
     return value
 
 
-def _json_text(text: str, scrub: Scrub, counts: dict) -> str | None:
+class _DuplicateKey(Exception):
+    pass
+
+
+def _pairs_hook(pairs):
+    keys = [k for k, _ in pairs]
+    if len(set(keys)) != len(keys):
+        raise _DuplicateKey()
+    return dict(pairs)
+
+
+def _json_text(text: str, scrub: Scrub, counts: dict, field: Field | None = None) -> str | None:
+    """The document re-serialized with every key and string value scrubbed, or None when it
+    is not JSON or holds a duplicate key. A parse keeps only the last of duplicate keys, so
+    the earlier value would never be scanned and the original would pass a tree scan; such a
+    file is counted (json_duplicate_key) and scrubbed as text, which sees every value."""
     try:
-        value = json.loads(text)
+        value = json.loads(text, object_pairs_hook=_pairs_hook)
     except ValueError:
         return None
+    except _DuplicateKey:
+        counts["json_duplicate_key"] = counts.get("json_duplicate_key", 0) + 1
+        return None
     indent = 2 if "\n" in text.strip() else None
-    return json.dumps(_walk_json(value, scrub, counts), ensure_ascii=False, indent=indent)
+    return json.dumps(_walk_json(value, scrub, counts, field), ensure_ascii=False, indent=indent)
 
 
-def _json(data: bytes, scrub: Scrub, counts: dict) -> bytes | None:
+def _json(data: bytes, scrub: Scrub, counts: dict, field: Field | None = None) -> bytes | None:
     text = _decode(data)
     if text is None:
         return None
-    out = _json_text(text, scrub, counts)
+    out = _json_text(text, scrub, counts, field)
     if out is None:
         return scrub(text, counts).encode("utf-8")
     return (out + ("\n" if text.endswith("\n") else "")).encode("utf-8")
 
 
-def _jsonl(data: bytes, scrub: Scrub, counts: dict) -> bytes | None:
+def _jsonl(data: bytes, scrub: Scrub, counts: dict, field: Field | None = None) -> bytes | None:
     text = _decode(data)
     if text is None:
         return None
@@ -140,12 +164,12 @@ def _jsonl(data: bytes, scrub: Scrub, counts: dict) -> bytes | None:
         if not line.strip():
             lines.append(line)
             continue
-        out = _json_text(line, scrub, counts)
+        out = _json_text(line, scrub, counts, field)
         lines.append(out if out is not None else scrub(line, counts))
     return "\n".join(lines).encode("utf-8")
 
 
-def _csv(name: str, data: bytes, scrub: Scrub, counts: dict) -> bytes | None:
+def _csv(name: str, data: bytes, scrub: Scrub, counts: dict, field: Field | None = None) -> bytes | None:
     text = _decode(data)
     if text is None:
         return None
@@ -153,13 +177,20 @@ def _csv(name: str, data: bytes, scrub: Scrub, counts: dict) -> bytes | None:
     rows = list(csv.reader(io.StringIO(text), delimiter=delimiter))
     buf = io.StringIO()
     writer = csv.writer(buf, delimiter=delimiter, lineterminator="\n")
-    for row in rows:
-        writer.writerow([scrub(cell, counts) for cell in row])
+    header = rows[0] if rows else []
+    for i, row in enumerate(rows):
+        if i == 0 or not field:
+            writer.writerow([scrub(cell, counts) for cell in row])
+        else:
+            # the header names each column, so a cell is judged under its column's name
+            writer.writerow([field(header[j], cell, counts) if j < len(header) else scrub(cell, counts)
+                             for j, cell in enumerate(row)])
     return buf.getvalue().encode("utf-8")
 
 
 XML_TEXT_NODE = re.compile(r">([^<]+)<")
-WORD_PARTS = re.compile(r"^word/(document|header\d*|footer\d*|footnotes|endnotes|comments|commentsExtended)\.xml$")
+WORD_PARTS = re.compile(r"^(?:word/(?:document|header\d*|footer\d*|footnotes|endnotes|comments|commentsExtended)|docProps/(?:core|app|custom))\.xml$")
+DOCX_MAX_INFLATED = 64 * 1024 * 1024   # a zip whose parts inflate past this is not read
 
 
 def _scrub_xml(xml: str, scrub: Scrub, counts: dict) -> str:
@@ -177,6 +208,9 @@ def _docx(data: bytes, scrub: Scrub, counts: dict) -> bytes | None:
         src = zipfile.ZipFile(io.BytesIO(data))
     except zipfile.BadZipFile:
         return None
+    if sum(info.file_size for info in src.infolist()) > DOCX_MAX_INFLATED:
+        src.close()
+        return "too-large"
     buf = io.BytesIO()
     with src, zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as dst:
         for info in src.infolist():
@@ -189,24 +223,34 @@ def _docx(data: bytes, scrub: Scrub, counts: dict) -> bytes | None:
     return buf.getvalue()
 
 
-def sanitize_bytes(name: str, data: bytes, scrub: Scrub, counts: dict) -> tuple[bytes | None, str | None]:
+def sanitize_bytes(name: str, data: bytes, scrub: Scrub, counts: dict, field: Field | None = None,
+                   docx: bool = False) -> tuple[bytes | None, str | None]:
     """(sanitized bytes, None) for a handled file, or (None, why) when it is skipped:
-    why is 'pdf' or 'binary'. counts is tallied by class as scrub reports."""
+    why is 'pdf', 'binary', 'docx', 'too-large' or 'undecodable'. counts is tallied by
+    class as scrub reports. `field`, when given, judges a string value a parser split from
+    its key (JSON members, CSV columns). A Word file is skipped unless `docx` is set: the
+    text-node pass misses attributes, CDATA and a term split across runs, so it is opt-in."""
     kind = classify(name, data[:SNIFF_BYTES])
     if kind == "pdf":
         return None, "pdf"
     if kind == "binary":
         return None, "binary"
+    if kind == "docx" and not docx:
+        return None, "docx"
     if kind == "json":
-        out = _json(data, scrub, counts)
+        out = _json(data, scrub, counts, field)
     elif kind == "jsonl":
-        out = _jsonl(data, scrub, counts)
+        out = _jsonl(data, scrub, counts, field)
     elif kind == "csv":
-        out = _csv(name, data, scrub, counts)
+        out = _csv(name, data, scrub, counts, field)
     elif kind == "docx":
         out = _docx(data, scrub, counts)
+        if out == "too-large":
+            return None, "too-large"
     else:
         out = _text(data, scrub, counts)
     if out is None:
-        return None, "binary"
+        # a text-bearing type that did not decode is not inspected, which is a different fact
+        # from a known binary type
+        return None, "undecodable" if kind != "docx" else "binary"
     return out, None

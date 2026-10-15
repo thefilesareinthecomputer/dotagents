@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "harness": "claude-code",
+  "about": "Hooks that enforce rules about Claude Code itself: the ~/.claude folder, its memory tree, its Read tool and its transcript. The test for this folder: if Codex wrote this file or ran this command, the hook should not fire. Same schema as hooks/manifest.json; a 'command' entry is a third-party hook wired by its literal command rather than a script this folder holds.",
+  "entries": [
+    {
+      "command": "rtk hook claude",
+      "requires": ["rtk"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["shell"]}]
+    },
+    {
+      "script": "ask-before-claude-folder-edits.sh",
+      "requires": ["jq"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["file-write"]}]
+    },
+    {
+      "script": "read-size-advisory.sh",
+      "requires": ["jq"],
+      "advisory": true,
+      "bindings": [{"event": "PreToolUse", "matcher": ["file-read"], "timeout": 5}]
+    },
+    {
+      "script": "memory-routing.sh",
+      "requires": ["jq"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["file-write"], "timeout": 5}]
+    },
+    {
+      "script": "memory_lint.py",
+      "bindings": [{"event": "PostToolUse", "matcher": ["file-write"], "timeout": 10}]
+    },
+    {
+      "script": "cmon_nudge.py",
+      "advisory": true,
+      "bindings": [
+        {"event": "SessionStart", "sources": ["startup", "resume"], "timeout": 5},
+        {"event": "UserPromptSubmit", "timeout": 5}
+      ]
+    }
+  ]
+}

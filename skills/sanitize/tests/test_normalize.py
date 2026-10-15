@@ -105,6 +105,37 @@ class TestEncodedRuns(unittest.TestCase):
         out = sz.scrub_text(f"blob {enc} end", T, {})
         self.assertEqual(out, f"blob {enc} end")
 
+    def test_a_run_after_an_equals_sign_is_decoded(self):
+        enc = base64.b64encode(b"the zorbulate file is here").decode()
+        self.assertEqual(sz.scrub_text(f"BLOB={enc}", T, {}), "BLOB=[TERM]")
+        # under a key-like name the same run is a credential-shaped value first, and that pass wins
+        self.assertEqual(sz.scrub_text(f"KEY={enc}", T, {}), "KEY=[SECRET]")
+
+    def test_url_safe_base64_and_short_runs_are_decoded(self):
+        enc = base64.urlsafe_b64encode(b"zorbulate?>>>~~~").decode().rstrip("=")
+        self.assertIn("-", enc + "_")
+        self.assertEqual(sz.scrub_text(f"x {enc} y", T, {}), "x [TERM] y")
+        short = base64.b64encode(b"zorbulate").decode()      # 12 characters
+        self.assertEqual(sz.scrub_text(f"x {short} y", T, {}), "x [TERM] y")
+
+    def test_percent_encoding_and_html_entities_are_decoded(self):
+        counts = {}
+        self.assertEqual(sz.scrub_text("see z%6Frbul%61te here", T, counts), "see [TERM] here")
+        self.assertEqual(counts, {"term-encoded": 1})
+        self.assertEqual(sz.scrub_text("see z&#111;rbul&#97;te here", T, {}), "see [TERM] here")
+        self.assertEqual(sz.scrub_text("see z&#x6F;rbul&#x61;te here", T, {}), "see [TERM] here")
+        for lead in ("x;", "a=1;", "&", "x "):      # a run straight after a semicolon or an ampersand is still a run
+            self.assertEqual(sz.scrub_text(f"{lead}z&#111;rbul&#97;te", T, {}), f"{lead}[TERM]", lead)
+        plain = "100%20 of users, &amp; more"
+        self.assertEqual(sz.scrub_text(plain, T, {}), plain)
+
+    def test_long_plain_runs_do_not_slow_the_encoded_pass(self):
+        import time
+        for text in ("a" * 200_000, "0123456789abcdef" * 12_500, "&amp;" * 40_000, "x%41" * 50_000):
+            t = time.monotonic()
+            list(nz.encoded_runs(text))
+            self.assertLess(time.monotonic() - t, 1.0, "the encoded pass must stay linear on a long run")
+
     def test_decoded_text_is_rescanned_once_not_recursively(self):
         inner = base64.b64encode(b"zorbulate").decode()
         outer = base64.b64encode(f"wrapped {inner} twice".encode()).decode()

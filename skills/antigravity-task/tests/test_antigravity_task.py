@@ -208,6 +208,14 @@ class TestValidation(Base):
 
 
 class TestProcessControl(Base):
+    def test_normal_exit_kills_a_surviving_child(self):
+        tag = f"antigravity-task-orphan-{os.getpid()}-{time.time_ns()}"
+        self.env["FAKE_AGY_ORPHAN"] = tag
+        r = self.run_task()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        out = subprocess.run(["pgrep", "-f", tag], capture_output=True, text=True)
+        self.assertEqual(out.stdout.strip(), "", "a child outlived the agent's normal exit")
+
     def test_timeout_kills_process_group(self):
         r = self.run_task(mode="child-sleep", extra=["--timeout", "30"])
         self.assertEqual(r.returncode, 5, r.stderr)
@@ -299,9 +307,11 @@ class TestBoundaryHardening(Base):
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         from unittest import mock
-        with mock.patch.dict(os.environ, {"ANTIGRAVITY_TASK_BIN": "/nope/agy", "ANTIGRAVITY_TASK_AGENT_HOME": "/nope"}, clear=False):
+        with mock.patch.dict(os.environ, {"ANTIGRAVITY_TASK_BIN": "/nope/agy", "ANTIGRAVITY_TASK_AGENT_HOME": "/nope",
+                                          "FAKE_AGY_MODE": "clean"}, clear=False):
             os.environ.pop("ANTIGRAVITY_TASK_TEST", None)
             self.assertEqual(mod.agent_bin(), "agy")
+            self.assertNotIn("FAKE_AGY_MODE", mod.child_env(self.tmp))
             self.assertEqual(mod.agent_state_home(), Path(os.path.expanduser("~/.gemini")).resolve())
             if Path("/usr/bin/sandbox-exec").exists():
                 os.environ["ANTIGRAVITY_TASK_SANDBOX_BIN"] = "/nope/sb"

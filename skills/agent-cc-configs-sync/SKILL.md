@@ -53,11 +53,38 @@ If it errors on a parent-level symlink, follow the message it prints.
 
 ## Phase 2 - Seed-file parity
 
-For each row of the spec's section 0 table (CLAUDE.md.example, which is the
-one-line pointer to `~/.agents/AGENTS.md`,
-`hooks/`, statusline.sh, subagent-statusline.sh, keybindings.json - everything
-except settings.json, which gets Phase 3's treatment), diff the seed against
-its station path:
+First, see what is installed:
+
+```bash
+python3 ~/.agents/skills/agent-cc-configs-sync/scripts/harness_probe.py          # --json for scripts, --skill <name> for another canary
+```
+
+It prints one row per core harness (Claude Code, Codex, Cursor, Copilot, goose,
+pi, Antigravity) with the installed version, the config home, and whether the
+harness lists one of this repo's skills where a no-login listing exists. Stamp a station spec's
+version line from this output, never from memory.
+
+Then hooks, which the seeder handles. Their scripts come from two folders
+(the repository's `hooks/` and `specs/claude-code/hooks/`), and the `hooks` key
+of `settings.json` is generated from their manifests, so neither is a plain
+file diff.
+
+```bash
+python3 ~/.agents/skills/agent-cc-configs-sync/scripts/seed_hooks.py plan --harness claude-code
+python3 ~/.agents/skills/agent-cc-configs-sync/scripts/seed_hooks.py apply --harness claude-code   # after the user approves the plan
+```
+
+`plan` lists each file to copy or update, each wiring entry to add or retire,
+every entry it leaves alone because the user added it by hand, and every
+manifest entry it skipped with the reason. `apply` writes exactly that and
+records what it installed in `~/.claude/hooks/.seed-hooks.json`, so a later
+rename or retirement is reported rather than left running. A wiring diff that
+changes only grouping is not applied.
+
+Then, for each remaining row of the spec's section 0 table (CLAUDE.md.example,
+which is the one-line pointer to `~/.agents/AGENTS.md`, statusline.sh,
+subagent-statusline.sh, keybindings.json - everything except settings.json,
+which gets Phase 3's treatment), diff the seed against its station path:
 
 - **Identical** - skip, report in sync.
 - **Missing on station** - copy the seed verbatim (Write tool, not shell).
@@ -72,9 +99,9 @@ one prompt per file.
 ## Phase 3 - settings.json (per-key, never whole-file)
 
 `~/.claude/settings.json` mixes spec-owned keys with machine-local ones, so a
-whole-file overwrite is always wrong. Compare the seed and the station
-key by key (top-level keys, and per-entry inside `permissions`, `hooks`, and
-`enabledPlugins`):
+whole-file overwrite is always wrong. The seeder wrote the `hooks` key in Phase
+2, so this phase skips it. Compare the seed and the station key by key
+(top-level keys, and per-entry inside `permissions` and `enabledPlugins`):
 
 - Keys only on the station: leave them; they are device-local by design.
 - Keys only in the seed, or differing: list each with both values and ask

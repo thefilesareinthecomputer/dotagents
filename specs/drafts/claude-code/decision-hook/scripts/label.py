@@ -63,8 +63,14 @@ def stratum_of(state: dict) -> str:
     return "organic"
 
 
-def split_of(candidate_id: str) -> str:
-    return "heldout" if hashlib.sha256(candidate_id.encode()).digest()[0] % 5 == 0 else "tuning"
+def split_of(group: str) -> str:
+    """A stable fifth held out by the hash of the group key. Callers pass the session, not the
+    call id: a command repeated within one session would otherwise land on both sides of the
+    split and the held-out numbers would read better than they are."""
+    return "heldout" if hashlib.sha256(group.encode()).digest()[0] % 5 == 0 else "tuning"
+
+
+CATEGORIES = {"d": "destroy", "e": "exfil", "c": "creds", "f": "config", "i": "install", "o": "other"}
 
 
 def make_id(*parts: str) -> str:
@@ -142,6 +148,7 @@ def harvest_transcript(path: Path) -> tuple[list[dict], list[dict]]:
     risk: list[dict] = []
     routing: list[dict] = []
     mode = ""
+    cwd = ""
     pending_prompt: dict | None = None
     for d in lines:
         kind = d.get("type")
@@ -150,6 +157,8 @@ def harvest_transcript(path: Path) -> tuple[list[dict], list[dict]]:
         session = str(d.get("sessionId") or d.get("session_id") or path.stem)
         ts = str(d.get("timestamp") or "")
         content = (d.get("message") or {}).get("content")
+        if d.get("cwd"):
+            cwd = str(d["cwd"])   # the most recent line that named one; not every line kind does
         if kind == "user":
             if d.get("permissionMode"):
                 mode = str(d["permissionMode"])
@@ -159,7 +168,7 @@ def harvest_transcript(path: Path) -> tuple[list[dict], list[dict]]:
                     pending_prompt = {"id": make_id(session, str(d.get("uuid") or ts)), "ts": ts, "session": session,
                                       "source": "transcript", "prompt": clean(text[:PROMPT_CUT]), "weak": "none",
                                       "split": None, "label": None, "labeled_at": None, "rechecks": []}
-                    pending_prompt["split"] = split_of(pending_prompt["id"])
+                    pending_prompt["split"] = split_of(session)
                     routing.append(pending_prompt)
             continue
         for b in content if isinstance(content, list) else []:
@@ -172,12 +181,12 @@ def harvest_transcript(path: Path) -> tuple[list[dict], list[dict]]:
             if not decide.WATCHED_TOOLS.match(name):
                 continue
             tool_id = str(b.get("id") or "")
-            state = clean(decide.build_state({"tool_name": name, "tool_input": b.get("input"), "cwd": d.get("cwd", ""),
+            state = clean(decide.build_state({"tool_name": name, "tool_input": b.get("input"), "cwd": cwd,
                                               "permission_mode": mode}))
             cid = make_id(session, tool_id or json.dumps(state, sort_keys=True))
             risk.append({"id": cid, "ts": ts, "session": session, "source": "transcript", "state": state,
                          "weak": classify_result(results[tool_id]) if tool_id in results else "unknown",
-                         "stratum": stratum_of(state), "split": split_of(cid), "label": None, "labeled_at": None,
+                         "stratum": stratum_of(state), "split": split_of(session), "label": None, "labeled_at": None,
                          "rechecks": []})
     return risk, routing
 
@@ -187,10 +196,14 @@ def harvest_log(path: Path) -> list[dict]:
     for r in read_lines(path):
         if r.get("event") != "PreToolUse" or r.get("outcome") not in ("ask", "none", "capped") or not isinstance(r.get("state"), dict):
             continue
-        cid = make_id(str(r.get("session_id") or ""), str(r.get("tool_use_id") or json.dumps(r["state"], sort_keys=True)))
-        out.append({"id": cid, "ts": str(r.get("ts") or ""), "session": str(r.get("session_id") or ""), "source": "shadow",
-                    "state": clean(r["state"]), "weak": "flagged" if r["outcome"] in ("ask", "capped") else "unflagged",
-                    "stratum": stratum_of(r["state"]), "split": split_of(cid), "label": None, "labeled_at": None,
+        session = str(r.get("session_id") or "")
+        cid = make_id(session, str(r.get("tool_use_id") or json.dumps(r["state"], sort_keys=True)))
+        # the shadow verdict is the judgment's own output, not a weak label: it rides along as
+        # shadow_outcome and never counts as evidence about the call
+        out.append({"id": cid, "ts": str(r.get("ts") or ""), "session": session, "source": "shadow",
+                    "state": clean(r["state"]), "weak": "none",
+                    "shadow_outcome": "flagged" if r["outcome"] in ("ask", "capped") else "unflagged",
+                    "stratum": stratum_of(r["state"]), "split": split_of(session), "label": None, "labeled_at": None,
                     "rechecks": [], "probs": r.get("probs")})
     return out
 
@@ -220,8 +233,12 @@ def merge(existing: list[dict], new: list[dict]) -> int:
     added = 0
     for r in new:
         if r["id"] in by_id:
-            if r.get("probs") and not by_id[r["id"]].get("probs"):
-                by_id[r["id"]]["probs"] = r["probs"]
+            old = by_id[r["id"]]
+            if r.get("probs") and not old.get("probs"):
+                old["probs"] = r["probs"]
+            # a later harvest that saw the call's result upgrades an unknown weak label
+            if old.get("weak") in ("unknown", "none") and r.get("weak") not in ("unknown", "none", None):
+                old["weak"] = r["weak"]
             continue
         by_id[r["id"]] = r
         existing.append(r)
@@ -253,7 +270,7 @@ def cmd_harvest(a: argparse.Namespace) -> int:
     routing_new: list[dict] = []
     drift: list[str] = []
     files = 0
-    for path in sorted(Path(a.projects).glob("*/*.jsonl")):
+    for path in sorted(Path(a.projects).rglob("*.jsonl")):
         try:
             if path.stat().st_mtime < since_ts:
                 continue
@@ -263,10 +280,9 @@ def cmd_harvest(a: argparse.Namespace) -> int:
         r, p = harvest_transcript(path)
         risk_new += [c for c in r if c["ts"][:10] >= since]
         routing_new += [c for c in p if c["ts"][:10] >= since]
-        if files <= 5:
-            for name in drift_check(read_lines(path)[:200]):
-                if name not in drift:
-                    drift.append(name)
+        for name in drift_check(read_lines(path)[:200]):   # every file, its first lines: a format change in one project shows
+            if name not in drift:
+                drift.append(name)
     log = Path(a.log) if a.log else decide.state_dir() / "decisions.jsonl"
     if log.exists():
         risk_new += [c for c in harvest_log(log) if c["ts"][:10] >= since]
@@ -306,9 +322,8 @@ def show(name: str, r: dict) -> None:
         st = r["state"]
         ti = st.get("tool_input") or {}
         head = str(ti.get("command") or ti.get("file_path") or json.dumps(ti))[:300]
+        # the model's own probabilities are not shown before the label: a number on the screen anchors the labeler
         print(f"\n[{r['weak']}/{r['stratum']}] {st.get('tool_name')} in {st.get('cwd')} ({st.get('permission_mode')})\n  {head}")
-        if r.get("probs"):
-            print("  model: " + ", ".join(f"{k}={v:.2f}" for k, v in r["probs"].items()))
     else:
         print(f"\n[{r['weak']}] {r['prompt'][:300]}")
 
@@ -342,11 +357,16 @@ def cmd_review(a: argparse.Namespace) -> int:
         if answer.lower() in ("s", ""):
             skipped += 1
             continue
+        category = None
         if name == "risk":
             if answer.lower() not in ("y", "n"):
                 skipped += 1
                 continue
             label = "ask" if answer.lower() == "y" else "fine"
+            if label == "ask" and not a.recheck:
+                # the harm category is a tag on the positive, for the reason string and per-category reporting
+                letter = ask("  category: " + " ".join(f"[{k}]{v[1:]}" for k, v in CATEGORIES.items()) + ": ")
+                category = CATEGORIES.get((letter or "o").strip().lower()[:1], "other")
         else:
             label = answer
         if a.recheck:
@@ -356,6 +376,8 @@ def cmd_review(a: argparse.Namespace) -> int:
             labeled += 1
         else:
             r["label"] = label
+            if category:
+                r["category"] = category
             r["labeled_at"] = decide.now()
             labeled += 1
     save_set(name, rows)

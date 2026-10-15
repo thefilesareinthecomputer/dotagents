@@ -41,6 +41,32 @@ class TestMetrics(unittest.TestCase):
         self.assertAlmostEqual(m["false_escalations_per_100"], 10.0)
         self.assertEqual(m["flagged"], 4)
 
+    def test_rates_come_with_wilson_intervals_and_a_failed_call_counts_as_a_miss(self):
+        rows = [row(1, "ask", 0.9), row(2, "ask", 0.9), dict(row(3, "ask", 0.9), probs=None),
+                row(4, "fine", 0.1), row(5, "fine", 0.1)]
+        m = ev.metrics(rows, QUESTION)
+        self.assertEqual((m["n"], m["should_ask"], m["failed_calls"]), (5, 3, 1))
+        self.assertAlmostEqual(m["recall"], 2 / 3, places=3)
+        lo, hi = m["recall_ci"]
+        self.assertLess(lo, 2 / 3)
+        self.assertGreater(hi, 2 / 3)
+        self.assertGreater(hi - lo, 0.4, "three positives cannot pin recall down")
+        lo, hi = m["false_escalations_per_100_ci"]
+        self.assertEqual(lo, 0.0)
+        self.assertGreater(hi, 30.0, "zero false escalations in two fine rows bounds the rate only loosely")
+        self.assertGreater(ev.wilson(0, 60)[1] * 100, 4.0, "60 clean rows cannot show a 0.3 per 100 budget")
+        self.assertEqual(ev.wilson(5, 0), (None, None))
+
+    def test_platt_fits_each_option_against_its_own_category_when_rows_say_which(self):
+        # every should-ask row is an exfil case with a high destroy probability: under a shared target destroy
+        # would learn a positive slope from rows that are not destroy cases; category-matched it has no positives
+        rows = [dict(row(i, "ask", 0.9, split="tuning"), category="exfil") for i in range(1, 7)] + \
+               [dict(row(i, "fine", 0.1, split="tuning"), category=None) for i in range(7, 13)]
+        params = ev.calibrate(rows, QUESTION)
+        self.assertEqual(params["destroy"], {"a": 1.0, "b": 0.0})
+        untagged = [row(i, "ask", 0.9, split="tuning") for i in range(1, 7)] + [row(i, "fine", 0.1, split="tuning") for i in range(7, 13)]
+        self.assertNotEqual(ev.calibrate(untagged, QUESTION)["destroy"], {"a": 1.0, "b": 0.0})
+
     def test_per_stratum_recall(self):
         rows = [row(1, "ask", 0.9, stratum="organic"), row(2, "ask", 0.2, stratum="obfuscated"), row(3, "fine", 0.1, stratum="obfuscated")]
         m = ev.metrics(rows, QUESTION)
@@ -123,8 +149,28 @@ class TestLive(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stderr)
         return p.stdout
 
+    def test_features_eval_needs_no_model_and_can_refit(self):
+        out = self.run_eval("--set", "risk")
+        self.assertEqual(self.fake.posts("/v1/systemone"), [])
+        self.assertIn("features (shipped)", out)
+        rep = json.loads(next((self.state / "evals").glob("risk-features-*.json")).read_text())
+        self.assertEqual(rep["all"]["recall"] if "all" in rep else rep["shipped"]["all"]["recall"], 1.0)   # every rm -rf ~/x flags
+        self.assertEqual(rep["shipped"]["all"]["false_escalations_per_100"], 0.0)
+        self.assertNotIn("rm -rf", json.dumps(rep))
+        out = self.run_eval("--set", "risk", "--fit")
+        self.assertIn("features (fitted)", out)
+        rep = json.loads(sorted((self.state / "evals").glob("risk-features-*.json"))[-1].read_text())
+        self.assertIn("rm_recursive", rep["fitted_params"]["weights"])
+        self.assertFalse((HERE.parent / "references" / "features.json").read_text().startswith("{\"bias\""), "no --write-params, nothing written")
+
+    def test_the_scenario_corpus_is_scored_as_a_development_set(self):
+        out = self.run_eval("--set", "risk", "--labels", str(HERE.parent / "references" / "scenarios.jsonl"))
+        self.assertIn("development set", out)
+        self.assertIn("all rows n=126", out)
+        self.assertIn("recall=1.0", out)
+
     def test_risk_eval_scores_labeled_rows_and_caches(self):
-        out = self.run_eval("--set", "risk", "--model", "tev1:0.8b", "--calibrate", "--sweep")
+        out = self.run_eval("--set", "risk", "--judgment", "systemone", "--model", "tev1:0.8b", "--calibrate", "--sweep")
         self.assertEqual(len(self.fake.posts("/v1/systemone")), 20, "every labeled row once, the unlabeled row never")
         self.assertIn("recall", out)
         reports = list((self.state / "evals").glob("risk-*.json"))
@@ -138,7 +184,7 @@ class TestLive(unittest.TestCase):
         self.assertNotIn("rm -rf", json.dumps(rep), "reports hold numbers, not states")
         self.assertEqual([r["body"] for r in self.fake.posts("/api/generate")], [{"model": "tev1:0.8b", "keep_alive": 0}],
                          "the model is dropped once the fresh calls are done")
-        self.run_eval("--set", "risk", "--model", "tev1:0.8b")
+        self.run_eval("--set", "risk", "--judgment", "systemone", "--model", "tev1:0.8b")
         self.assertEqual(len(self.fake.posts("/v1/systemone")), 20, "the second run answers from the cache")
         self.assertEqual(len(self.fake.posts("/api/generate")), 1, "a cached run loads nothing and so unloads nothing")
 

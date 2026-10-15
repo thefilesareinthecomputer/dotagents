@@ -173,6 +173,8 @@ before writing; only then does `/notes` file the session.
 ## Which harness, and which model
 
 The skills are harness-neutral; where you run them is a separate choice.
+[`specs/HARNESS-PROFILES.md`](specs/HARNESS-PROFILES.md) compares the installed
+harnesses with dated evidence; the table below is the short form.
 
 | Harness | Notes |
 |---|---|
@@ -247,12 +249,14 @@ more than the pause that would have prevented it.
   agents/             # one .md per subagent (YAML frontmatter + system prompt)
   commands/           # one .md per slash command
   sync-skills.sh      # assembles ~/.claude/{skills,agents,commands} as a per-device view
+  hooks/              # cross-harness hook scripts with their manifest; each harness's own hooks sit in specs/<harness>/hooks/
   tests/              # station hook suites, plus per-skill behavior batteries
   SPEC.md             # living spec: current state and scope
   specs/              # one folder per harness: station spec + seed files
   specs/drafts/       # built-but-ungated station elements, one subfolder per harness (claude-code/, codex/, ...); never seeded or wired
   tasks/plan.md       # active plan, backlog, and dev docs
   tasks/todo.md       # next actions and session handoff
+  tasks/boards/       # sprint boards, the plan of record per large initiative (epics, features, stories)
   tasks/completed/    # dated cold storage, immutable once written
   app/                # the agents chat app: group chat with the harnesses over a markdown vault and its graph; own uv project, CLI `agents` / `agn`
   __archive/          # gitignored soft-deletions of retired root docs
@@ -284,22 +288,23 @@ description is its trigger contract and its body is the workflow.
 | `meta-loop` | Orchestration: plan, fan out, verify, synthesize |
 | `my-security-review-checklist` | Pre-merge security gate for agent tooling |
 | `code-kg` | Offline symbol-level knowledge graph over a codebase: imports, entry points, framework-aware liveness, subsystem communities, coupling hotspots, agent-tooling layer, data-store inventory, coverage join |
-| `a-little-help-from-my-friends` | Panel review for the highest-stakes reasoning: four harnesses answer one question over a fixed file set, rank each other blind behind per-reviewer shuffled labels, and a Claude chair synthesizes; every member read-only through agent-review, the script writes every output |
-| `agent-review` | One outside harness (Claude Code, Codex, Cursor or Antigravity, with its model and effort) reviews a fixed set of files read-only from a staging copy holding only those files, after the user approves the list; the review comes back as text |
+| `agent-conference` | Panel review for the highest-stakes reasoning: six members (four agent harnesses plus two Ollama cloud tags) answer one question over a fixed file set, rank each other blind behind per-reviewer shuffled labels, and a Claude chair synthesizes; every member read-only through agent-review, the script writes every output into `tasks/reviews/`; the user can sit as a member (`user`), the run pausing for their answer and ranking and naming them to the others by an alias |
+| `agent-review` | One outside model (Claude Code, Codex, Cursor, Antigravity or an Ollama `:cloud` tag, with its model and effort) reviews a fixed set of files in one headless call with the cleaned files inlined, no tools and an empty working folder, after the user approves the list; every output is scanned on arrival for invisible characters, embedded blobs and instruction-shaped text, and the review lands as a dated file in `tasks/reviews/` |
 | `antigravity-task` | Delegates one bounded task from Claude Code to the Antigravity CLI (Gemini) in an isolated worktree under a sandbox-exec write-deny profile, writes confined to a file allowlist, diff reviewed before apply; read-only mode returns text |
 | `codex-task` | Delegates one bounded task from Claude Code to the local Codex CLI in an isolated worktree, writes confined to a file allowlist, diff reviewed before apply |
 | `cursor-task` | Delegates one bounded task from Claude Code to the Cursor agent CLI (Grok) in an isolated worktree under a sandbox-exec write-deny profile, writes confined to a file allowlist, diff reviewed before apply; read-only mode returns text |
-| `local-model-task` | Hands one bounded text or search task from Claude Code to a local Ollama model on loopback, with the result on disk and a short capsule back; refuses Ollama's cloud API and exposed listeners |
+| `harness-bench` | Benchmarks open-source agent harnesses (goose and pi so far) on a fixed eleven-task coding battery: each run headless in a per-run macOS sandbox, the model reached only through a loopback proxy that pins thinking and temperature, graded by hidden tests on a clean copy; compares cost, consistency and boundary behavior, logs graded trajectories, and reports newer harness releases |
+| `local-model-task` | Hands one bounded text or search task from Claude Code to a local Ollama model on loopback, with the result on disk and a short capsule back; search spreads its matches across files and reports the model's own "nothing answers" verdict, a bounded keep-alive spares a sequence of calls the reload; refuses Ollama's cloud API and exposed listeners |
 | `notes` | End-of-session docs sweep, plus correcting any repo text the session made false |
 | `obsidian` | Obsidian markdown standard plus a per-vault authoring workflow |
 | `obsidian-kg` | Offline section-level knowledge graph over a markdown corpus |
 | `project-knowledge-vault` | Seeds and lints a flat, OKF-compatible project vault: the contract, a scaffolder, a conformance linter and obsidian-kg profile rows |
 | `reflect` | End-of-session memory reconciliation |
 | `repo-device-sync` | Multi-device git sync ritual |
-| `sanitize` | Deterministic scrubbing engine: a cleaned copy of any file or folder, a report-only tree scan, or an answer gate on stdin; secrets, personal shapes and the station term list on raw and normalized text, no model inside, a report that never holds a value |
+| `sanitize` | Deterministic scrubbing engine: a cleaned copy of any file or folder, a report-only tree scan, an answer gate on stdin, and a parser-free verifier that reads every copy back and refuses it on a residual hit; secrets, personal shapes and the station term list on raw, normalized and decoded text, values judged with their keys, no model inside, a report that never holds a value |
 | `skill-authoring` | House profile for authoring and auditing agent tooling |
 | `sprint-board` | Plans, writes and audits agile backlogs as markdown |
-| `support-local` | Hands one information goal to a Haiku 5.5 worker that drives the local models over a named corpus and returns one JSON answer whose references the script re-resolves; headless runs assert the model and record tokens |
+| `support-local` | Hands one information goal to a Haiku 5.5 worker that drives the local models over a named corpus and returns one JSON answer whose claims the script checks, each quote against its cited line, downgrading an answer nothing supports; headless runs assert the model and record tokens |
 | `teach-me` | Teaches a topic and certifies understanding |
 | `wrap-up` | Closes a session cleanly for a strong start next time: review of the session's files, docs and the handoff brought current, commit and push on the right branch, then memory |
 
@@ -360,7 +365,7 @@ documentation-only rows before trusting them, since this is moving fast.
 | Harness | Skills | Setup |
 |---|---|---|
 | **Claude Code** | `~/.claude/skills` only. | `bash ~/.agents/sync-skills.sh` |
-| **Antigravity CLI** | Not from `~/.agents/skills`. Global customizations come from `~/.gemini/config/`, project ones from `.agents/` at the workspace root. | `~/.gemini/config/skills.json` pointing an `entries` path at `~/.agents/skills` |
+| **Antigravity CLI** (observed) | Not from `~/.agents/skills`. Global customizations come from `~/.gemini/config/`, project ones from `.agents/` at the workspace root. | `~/.gemini/config/skills.json` pointing an `entries` path at the absolute path of `~/.agents/skills`; `~` is not expanded |
 | **Codex CLI** (observed) | `$HOME/.agents/skills`, plus `$CWD/.agents/skills`, `$REPO_ROOT/.agents/skills`, `/etc/codex/skills`. Follows symlinks. | none |
 | **GitHub Copilot** (observed) | `~/.agents/skills/` as a personal location, alongside `~/.copilot/skills/`. Project: `.github/skills/`, `.agents/skills/`, `.claude/skills/`. Strictest parser of the set. | none |
 | **Cursor** (observed) | `~/.agents/skills/` and `~/.cursor/skills/`, with `~/.claude/skills/` and `~/.codex/skills/` as compatibility paths. Subagents load only from a project's `.cursor/agents/` in the CLI. | skills: none; subagents: `bash ~/.agents/sync-skills.sh --cursor <repo>` per repo |

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Tests for the memory-routing.sh PreToolUse hook.
-# Target: ~/.claude/hooks/memory-routing.sh (seeded from SPEC-CLAUDE-CODE.md §8).
+# Target: the repo's specs/claude-code/hooks/memory-routing.sh by default; HOOK_UNDER_TEST
+# points the run at a station copy such as ~/.claude/hooks/memory-routing.sh (seeded per SPEC-CLAUDE-CODE.md §8).
 # Run: bash tests/station-hooks/test-memory-routing.sh
 #
 # Contract: nudges only on a NEW memory-dir file, with a count tier added at 50
@@ -8,7 +9,8 @@
 # Silent on: existing files, MEMORY.md, non-memory paths, bad input.
 set -u
 
-HOOK="${HOOK_UNDER_TEST:-$HOME/.claude/hooks/memory-routing.sh}"
+REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+HOOK="${HOOK_UNDER_TEST:-$REPO/specs/claude-code/hooks/memory-routing.sh}"
 [ -f "$HOOK" ] || { echo "FATAL: hook not found at $HOOK"; exit 2; }
 command -v jq >/dev/null 2>&1 || { echo "FATAL: jq required"; exit 2; }
 

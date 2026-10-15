@@ -1,7 +1,56 @@
 # SPEC-CODEX.md - OpenAI Codex CLI station
 
-The medium-stakes lane: everyday work that is not load-bearing. Config lives at
+The medium-stakes lane: everyday work that nothing else depends on. Config lives at
 `~/.codex/`.
+
+**Verified on the laptop 2026-10-14:** `codex-cli 0.162.1`, installed by the
+Homebrew cask (`/opt/homebrew/bin/codex` resolves into the cask), probed with
+`harness_probe.py` in the `agent-cc-configs-sync` skill. The desktop was last
+recorded at 0.155.1 on 2026-09-20 and is re-probed at its next sync.
+
+## Strengths
+
+What this harness is for on this station. Each claim is marked **observed**
+(seen in a run, a bench or a conference here), **doc-derived** (from OpenAI's
+documentation) or **impression** (the user's working sense, not yet measured).
+
+- **The strongest second opinion on reasoning questions - observed.** As the
+  `codex` member of `agent-conference` on `gpt-6-astra`, it ranked first of five
+  valid members on 2026-10-13 and third of six on 2026-10-12
+  (`tasks/reviews/*/tally.md`).
+- **Bounded delegation that holds - observed.** `codex-task` runs it headless in
+  a detached worktree with the sandboxed shell, network off and edits as
+  `apply_patch`; the file allowlist and the diff review are the contract. The
+  probe facts are in the delegation section below.
+- **Effort as a per-model dial up to `ultra` - observed.** The model cache read
+  on 2026-10-14 lists `gpt-6.1-sol`, `gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`,
+  the three `gpt-5.6` tiers and the internal `gpt-reserve` and
+  `codex-auto-review`; the `sol` and `astra` models and `gpt-5.6-terra` accept
+  `ultra`, the rest stop at `max`
+  (`../HARNESS-MODELS-AND-EFFORT.md`).
+- **Hooks in Claude Code's file shape - observed.** Codex reads
+  `~/.codex/hooks.json` since 0.162.1 and persists trust per definition in
+  `config.toml`; its hooks were captured 2026-10-13 and are read by
+  `hooks/_input.py`. Nothing is wired until FEATURE-000039 is done.
+- **Frontend and component work - impression.** The user's working sense is
+  that Codex drafts UI well; no bench task measures it yet. It is a hypothesis
+  to test rather than a routing rule.
+
+Limits that bound the lane: OpenAI-hosted, so medium-stakes only (`SPEC.md`
+invariant 6); reads are not sandboxed; a headless run writes a trust entry
+unless `CODEX_HOME` is isolated.
+
+## Config locations
+
+| Scope | Path | Holds |
+|---|---|---|
+| Global | `~/.codex/config.toml` | model, effort, the privacy fragment below, `[projects]` trust, the ChatGPT app's plugin and MCP tables |
+| Global | `~/.codex/hooks.json`, `~/.codex/hooks/` | hook wiring and scripts (not yet seeded) |
+| Global | `~/.codex/auth.json` | the ChatGPT sign-in; never copied, symlinked into an isolated `CODEX_HOME` by `codex-task` |
+| Global | `~/.codex/models_cache.json` | the model lineup and effort levels, refreshed by the CLI |
+| Global | `~/.codex/skills/` | Codex's own skill folder; this station uses `~/.agents/skills/` instead |
+| Project | `AGENTS.md` at the repo root | rules, read per repo |
+| Project | `.agents/skills/` | project skills, with the parent and repo-root variants in the table below |
 
 ## Skills: nothing to install
 
@@ -178,22 +227,37 @@ installed. Shapes are defined once in
 | Privacy and hygiene | `FRAGMENT` | `~/.codex/config.toml` | seedable keys: `analytics.enabled = false`, `otel.metrics_exporter = "none"`, `memories.disable_on_external_context = true`. Values move only in the restrictive direction; merge into the existing tables, never replace the file (see Station config below) |
 | Permissions | `FRAGMENT` | `~/.codex/config.toml` | seedable keys only: `[projects."<path>"] trust_level`. Never copy the file - it also carries credentials-adjacent state, plugin enablement and machine-specific paths. Path eligibility is bounded: each path is approved by the user at seed time, only a specific repository root is ever written, and no ancestor directory is eligible - trusting `$HOME` or a multi-repo `dev/` would silently trust every repo cloned under it afterward |
 | Sandbox level | `N/A` | - | passed per invocation (`-s`), not configured |
-| Hooks | `N/A` | - | no hook mechanism |
+| Hooks | `FRAGMENT` | `~/.codex/hooks.json`, scripts to `~/.codex/hooks/` | managed entries only, in Claude Code's file shape; plan only, and nothing is wired until a hook has a Codex test |
 | MCP servers | `N/A` | `~/.codex/config.toml`, `[mcp_servers.<name>]` | nothing is seeded. This harness has no persistent per-tool allow or deny list, so a server cannot be bounded once registered. A desktop application's installer writes entries into this file without the user registering anything, and one such entry can expose a language runtime as a tool. The file is not even a complete inventory: an enabled plugin supplies its own server, which appears in no file at all and can carry a plugin-side `enabled = false` that config-level plugin enablement overrides. `codex mcp list` is the inventory, and its enabled column is read before trusting anything. Placement rules: [`../MCP-PLACEMENT.md`](../MCP-PLACEMENT.md) |
 
-The single `FRAGMENT` row is the whole reason this harness cannot be seeded with
+The two `config.toml` `FRAGMENT` rows are the whole reason this harness cannot be seeded with
 a file copy. Plugin enablement in that same file applies to **every** session
 from that home, including headless ones, so a careless overwrite either grants
 reach nobody intended or removes tools the user relies on. `$CODEX_HOME` selects
 which file is in play, so an isolated profile is a separate seeding target rather
 than a variant of this one.
 
+`seed_hooks.py plan --harness codex` lists what would be wired and why each
+entry is skipped; nothing is wired until a hook has a Codex test. The project
+layer `<repo>/.codex/hooks.json` is not seeded. Codex's hook handling, file
+shape included, was verified by capture on 0.162.1 (2026-10-13,
+`hooks/tests/fixtures/codex.json`).
+Hooks are on unless `[features] hooks = false`. Each definition is trusted once
+in `/hooks` (`t` trusts all). The decision is stored as a per-definition sha256
+under `[hooks.state."<path>:<event>:<group>:<index>"]` in `config.toml`, so an
+edit is expected to need a new trust (inferred from that shape, not tested), and
+an untrusted hook is dropped silently. Five events are captured (`SessionStart`,
+`UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop`); the rest of the
+reference's list is doc-derived. The seeder reports that trust step and
+never bypasses it. The shell tool is `Bash` with `command`, and every edit is
+`apply_patch` with the patch text in `command`, which `hooks/_input.py` parses.
+
 ## Station config
 
 ### Install and sign-in
 
 ```
-brew install --cask codex      # codex-cli; 0.155.1 on both stations
+brew install --cask codex      # codex-cli; laptop 0.162.1 on 2026-10-14, desktop 0.155.1 when last recorded on 2026-09-20
 codex login                    # browser sign-in with the ChatGPT plan
 codex login status             # expect "Logged in using ChatGPT"
 ```

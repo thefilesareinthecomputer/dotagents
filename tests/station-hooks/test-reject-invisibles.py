@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests for the reject_invisibles.py PreToolUse hook.
-Target: ~/.claude/hooks/reject_invisibles.py (seeded from SPEC-CLAUDE-CODE.md §8).
+Target: the repo's hooks/reject_invisibles.py by default; HOOK_UNDER_TEST points the run at
+a station copy such as ~/.claude/hooks/reject_invisibles.py (seeded per SPEC-CLAUDE-CODE.md §8).
 Run: python3 tests/station-hooks/test-reject-invisibles.py
 
 Contract: invisible/non-standard characters in NEW content (Write content,
@@ -11,11 +12,12 @@ codepoints so this file itself stays clean under the very rule it tests.
 """
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
-HOOK = Path.home() / ".claude" / "hooks" / "reject_invisibles.py"
+HOOK = Path(os.environ.get("HOOK_UNDER_TEST") or Path(__file__).resolve().parents[2] / "hooks" / "reject_invisibles.py")
 
 ZWSP = chr(0x200B)   # zero width space (Cf)
 NBSP = chr(0x00A0)   # no-break space (Zs)

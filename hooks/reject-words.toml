@@ -1,0 +1,27 @@
+# Reject-words list for reject_words.py (PreToolUse, doc files only).
+#
+# One table per category. Every category says WHY its words are rejected and
+# WHAT to write instead, so a hit steers the rewrite rather than only refusing it.
+#
+#   words    whole words or phrases, matched case-insensitively. A word joined
+#            to others by a hyphen or underscore (a slug, a file name, an
+#            identifier) never matches, so established names keep working.
+#   why      one sentence: the reason the words are rejected.
+#   instead  what to write, concretely.
+#   ask      optional: the question that separates the legitimate exception
+#            from the rejected use. Resubmitting the identical write once is the
+#            answer "this is the exception".
+#
+# Add a category when a word keeps coming back after being corrected by hand.
+
+[figurative-load]
+words = ["carry", "carries", "carried", "carrying", "load-bearing"]
+why = "Used figuratively, these read as machine-written filler and are cringeworthy in documentation."
+instead = "Name the actual relation: holds, stores, includes, names, sets, depends on, is required for."
+ask = "do these words describe carrying or propping up a literal physical object or structure? if not, use other words and stop generating AI slop, please and thank you!"
+
+[vague-vocabulary]
+words = ["estate"]
+why = "A consultant word for the systems we work on; the reader needs the specific thing."
+instead = "Say which it is: the platform, the connectors, the repo."
+ask = "is this about real property?"

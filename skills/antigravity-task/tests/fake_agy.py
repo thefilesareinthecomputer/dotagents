@@ -14,6 +14,8 @@ Behavior is selected by FAKE_AGY_MODE:
   readonly    write nothing, answer in the response
 
 FAKE_AGY_ARGV, if set, receives the argv, the environment and the cwd as JSON.
+FAKE_AGY_ORPHAN, if set, starts a sleeping child tagged with its value that outlives
+the fake (tests the process-group kill after a normal exit).
 """
 
 import json
@@ -40,6 +42,8 @@ def main():
         Path(os.environ["FAKE_AGY_ARGV"]).write_text(
             json.dumps({"argv": sys.argv, "env": dict(os.environ), "cwd": os.getcwd()}))
     ws = Path(os.getcwd())
+    if os.environ.get("FAKE_AGY_ORPHAN"):
+        subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)", os.environ["FAKE_AGY_ORPHAN"]])
 
     if mode == "sleep":
         time.sleep(float(os.environ.get("FAKE_AGY_SLEEP", "60")))

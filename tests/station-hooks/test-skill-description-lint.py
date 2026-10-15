@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests for the skill_description_lint.py PostToolUse hook.
-Target: ~/.claude/hooks/skill_description_lint.py (seeded from SPEC-CLAUDE-CODE.md §8).
+Target: the repo's hooks/skill_description_lint.py by default; HOOK_UNDER_TEST points the run
+at a station copy such as ~/.claude/hooks/skill_description_lint.py (seeded per SPEC-CLAUDE-CODE.md §8).
 Run: python3 tests/station-hooks/test-skill-description-lint.py
 
 Contract: a SKILL.md whose description breaks the cap or the colon rule exits 2
@@ -16,7 +17,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-HOOK = Path.home() / ".claude" / "hooks" / "skill_description_lint.py"
+HOOK = Path(os.environ.get("HOOK_UNDER_TEST") or Path(__file__).resolve().parents[2] / "hooks" / "skill_description_lint.py")
 CHECKER = Path(__file__).resolve().parents[2] / "skills" / "skill-authoring" / "scripts" / "check_descriptions.py"
 
 

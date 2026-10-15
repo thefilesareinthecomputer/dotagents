@@ -46,9 +46,11 @@ CAPSULE_LINES = 20
 PRUNE_DAYS = 7
 TRUNCATION_MARGIN = 64
 KEEP_ALIVE = "1m"   # the longest a model outlives a run that died before it could unload
+MAX_KEEP_ALIVE = 600   # --keep-alive ceiling: a worker's sequence of calls skips the reload, and the daemon still unloads
+MATCH_OVERSCAN = 8     # how many times the byte budget the grep may collect before the spread across files picks
 EVIDENCE_KEY = "evidence"
 MIN_QUOTE = 4
-NOT_ABSENT = "A short or empty list means nothing more relevant was among the matches, not that the target is absent."
+NOT_ABSENT = "The match list was capped, so a short or empty list means nothing more relevant was among the matches sent, not that the target is absent."
 TYPES = {"string": (str,), "number": (int, float), "boolean": (bool,), "array": (list,), "object": (dict,)}
 MODEL_RE = re.compile(r"[A-Za-z0-9._:/@+-]{1,200}")
 RUN_RE = re.compile(r"\d{8}-\d{6}-[0-9a-f]{6}")
@@ -342,7 +344,8 @@ def size_ctx(prompt_chars: int, max_ctx: int, output_tokens: int = 2048) -> int:
     estimate = math.ceil(prompt_chars / 3) + output_tokens
     ctx = max(4096, math.ceil(estimate / 1024) * 1024)
     if ctx > max_ctx:
-        raise TaskError(f"the prompt needs about {ctx} tokens of context, over --max-ctx {max_ctx}; send less input")
+        # the same class as a truncated prompt: the caller's rule for exit 4 is one narrower retry
+        raise TaskError(f"the prompt needs about {ctx} tokens of context, over --max-ctx {max_ctx}; send less input", EXIT_BACKEND)
     return ctx
 
 
@@ -384,6 +387,17 @@ def redact(text: str, secret: str | None) -> str:
 def check_timeout(value: int) -> int:
     if not 1 <= value <= MAX_TIMEOUT:
         raise TaskError(f"--timeout must be between 1 and {MAX_TIMEOUT} seconds")
+    return value
+
+
+def check_keep_alive(value: int | None) -> int:
+    """`--keep-alive` in seconds, named on the call by a caller mid-sequence; 0 (the default) means unload after the
+    run as usual. There is no ambient setting on purpose: a model stays loaded only when the call that loaded it
+    said so. The ceiling keeps a mistaken value from holding memory for long."""
+    if value is None:
+        return 0
+    if not 0 <= value <= MAX_KEEP_ALIVE:
+        raise TaskError(f"--keep-alive must be between 0 and {MAX_KEEP_ALIVE} seconds")
     return value
 
 
@@ -512,8 +526,9 @@ def call_model(b: dict, model: str, prompt: str, key: str | None, opts: argparse
         options = {"num_ctx": num_ctx, "num_predict": opts.max_output_tokens}
         if temperature is not None:
             options["temperature"] = temperature
+        keep = f"{opts.keep_alive}s" if getattr(opts, "keep_alive", 0) else KEEP_ALIVE
         body = {"model": model, "messages": messages, "stream": False, "think": bool(opts.think),
-                "keep_alive": KEEP_ALIVE, "options": options}
+                "keep_alive": keep, "options": options}
         if want_json:
             body["format"] = "json"
         data = request_json("POST", base + "/api/chat", body, headers, opts.timeout, key)
@@ -636,12 +651,17 @@ def unload_ollama(b: dict, model: str, key: str | None) -> bool:
         return False
 
 
-def settle(lock: LocalLock, b: dict, model: str, key: str | None, report: dict) -> None:
-    """After a run that reached a local Ollama model: unload it unless another local run is waiting.
-    Never raises, since it runs in a finally block; a remote Ollama is never told to unload."""
+def settle(lock: LocalLock, b: dict, model: str, key: str | None, report: dict, keep_alive: int = 0) -> None:
+    """After a run that reached a local Ollama model: unload it unless another local run is waiting or the caller
+    asked for a bounded keep-alive, so a worker's sequence of calls skips the reload each time. Never raises, since
+    it runs in a finally block; a remote Ollama is never told to unload."""
     if b["api"] != "ollama" or b["locality"] != "local":
         return
     try:
+        if keep_alive:
+            report["unloaded"] = False
+            report["left_loaded_for"] = f"keep-alive {keep_alive}s"
+            return
         waiting = lock.others_waiting() if lock.active else 0
         report["unloaded"] = False if waiting else unload_ollama(b, model, key)
         if waiting:
@@ -744,6 +764,7 @@ def finish(run: Path, report: dict, code: int, error: str | None = None) -> None
 
 def cmd_run(a: argparse.Namespace) -> int:
     a.timeout = check_timeout(a.timeout)
+    a.keep_alive = check_keep_alive(a.keep_alive)
     cfg = load_config()
     name, b, model, key = resolve(cfg, a)
     brief = read_brief(a.brief)
@@ -773,7 +794,7 @@ def cmd_run(a: argparse.Namespace) -> int:
             try:
                 result = call_model(b, model, prompt, key, a, bool(schema), temperature, num_ctx)
             finally:
-                settle(lock, b, model, key, report)
+                settle(lock, b, model, key, report, a.keep_alive)
         report.update(prompt_tokens=result["prompt_tokens"], output_tokens=result["output_tokens"])
         if schema:
             try:
@@ -839,7 +860,10 @@ def collect_matches(patterns: list[str], root: Path, max_matches: int, max_bytes
     else:
         argv, engine = [shutil.which("grep") or "grep", "-rnIE", "--null", "--exclude-dir=.git",
                         "--exclude-dir=node_modules", *pat_args, "--", "."], "grep"
-    matches, size, capped = [], 0, False
+    # Collect past the caps, then spread what is kept across files: taking the first N lines in rg order
+    # fills the budget with whichever file sorts first and never shows the model the others.
+    raw, size, overscanned = [], 0, False
+    raw_matches, raw_bytes = max_matches * MATCH_OVERSCAN, max_bytes * MATCH_OVERSCAN
     deadline = time.monotonic() + timeout
     proc = subprocess.Popen(argv, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                             text=True, errors="replace")
@@ -848,20 +872,42 @@ def collect_matches(patterns: list[str], root: Path, max_matches: int, max_bytes
             m = parse_match(line)
             if not m or is_hidden(m[0]):
                 continue
-            if len(matches) >= max_matches or size + len(line) > max_bytes or time.monotonic() > deadline:
-                capped = True
+            if len(raw) >= raw_matches or size + len(line) > raw_bytes or time.monotonic() > deadline:
+                overscanned = True
                 break
-            matches.append(m)
+            raw.append(m)
             size += len(line)
     finally:
         if proc.poll() is None:
             proc.kill()
         proc.wait()
-    return matches, capped, engine
+    matches, capped = spread_matches(raw, max_matches, max_bytes)
+    return matches, capped or overscanned, engine
+
+
+def spread_matches(raw: list, max_matches: int, max_bytes: int) -> tuple[list, bool]:
+    """Round-robin across files, each file in its own order, until a cap is reached. Returns (kept, capped)."""
+    by_file: dict[str, list] = {}
+    for m in raw:
+        by_file.setdefault(m[0], []).append(m)
+    queues = [list(reversed(v)) for v in by_file.values()]
+    kept, size = [], 0
+    while queues:
+        for q in list(queues):
+            m = q.pop()
+            line_len = len(f"{m[0]}:{m[1]}:{m[2]}")
+            if len(kept) >= max_matches or size + line_len > max_bytes:
+                return kept, True
+            kept.append(m)
+            size += line_len
+            if not q:
+                queues.remove(q)
+    return kept, False
 
 
 def cmd_search(a: argparse.Namespace) -> int:
     a.timeout = check_timeout(a.timeout)
+    a.keep_alive = check_keep_alive(a.keep_alive)
     cfg = load_config()
     name, b, model, key = resolve(cfg, a)
     root = Path(a.path)
@@ -892,7 +938,7 @@ def cmd_search(a: argparse.Namespace) -> int:
             try:
                 result = call_model(b, model, prompt, key, a, True, 0, num_ctx)
             finally:
-                settle(lock, b, model, key, report)
+                settle(lock, b, model, key, report, a.keep_alive)
         report.update(prompt_tokens=result["prompt_tokens"], output_tokens=result["output_tokens"])
         try:
             obj = json.loads(strip_fences(result["text"]))
@@ -902,13 +948,16 @@ def cmd_search(a: argparse.Namespace) -> int:
             write(run, "raw_output.md", result["text"])
             raise TaskError('the reply is not a JSON object with a "hits" list', EXIT_SCHEMA)
         kept, dropped = filter_hits(obj["hits"], len(matches))
-        if obj.get("answers_question") is False:
+        # the model's verdict that nothing answers is the abstention signal the caller needs; it is kept
+        # as its own field, never folded into the capped-list warning
+        absent = obj.get("answers_question") is False
+        if absent:
             kept, dropped = [], len(obj["hits"])
         kept = kept[:a.top]
         hits = [{"rank": r, "file": matches[h["id"] - 1][0], "line": matches[h["id"] - 1][1],
                  "text": matches[h["id"] - 1][2], "reason": h["reason"]} for r, h in enumerate(kept, 1)]
-        report.update(hits_kept=len(hits), hits_dropped=dropped)
-        write(run, "result.json", json.dumps({"question": a.question, "hits": hits}, indent=2))
+        report.update(hits_kept=len(hits), hits_dropped=dropped, model_says_absent=absent)
+        write(run, "result.json", json.dumps({"question": a.question, "answers_question": not absent, "hits": hits}, indent=2))
     except TaskError as e:
         report["elapsed_s"] = round(time.monotonic() - start, 2)
         finish(run, report, e.code, str(e))
@@ -929,7 +978,12 @@ def cmd_search(a: argparse.Namespace) -> int:
           + f", {len(hits)} kept, {dropped} dropped")
     for h in hits:
         print(f"{h['rank']}. {h['file']}:{h['line']} - {h['reason']}")
-    print(("No hits. " if not hits else "") + NOT_ABSENT)
+    if absent:
+        print(f"No hits: the model judged that none of the {len(matches)} matches answers the question.")
+    elif not hits:
+        print("No hits: the model kept none of the matches.")
+    if capped:
+        print(NOT_ABSENT)
     print(f"full result: {run / 'result.json'}")
     return EXIT_OK
 
@@ -1033,6 +1087,9 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--num-ctx", type=int, help="exact context window, overriding the estimate")
         p.add_argument("--max-output-tokens", type=int, default=2048)
         p.add_argument("--think", action="store_true", help="let a thinking model reason first")
+        p.add_argument("--keep-alive", type=int, default=None,
+                       help=f"seconds to leave a local model loaded after this call for the caller's next one, at most {MAX_KEEP_ALIVE}; "
+                            "default 0 (unload); named per call, no ambient setting")
         p.add_argument("--allow-hosted", action="store_true", help="permit a hosted backend; ask the user first")
 
     r = sub.add_parser("run", help="send a brief and input files, get text or JSON back")

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests for the memory_lint.py PostToolUse hook.
-Target: ~/.claude/hooks/memory_lint.py (seeded from SPEC-CLAUDE-CODE.md §8).
+Target: the repo's specs/claude-code/hooks/memory_lint.py by default; HOOK_UNDER_TEST points
+the run at a station copy such as ~/.claude/hooks/memory_lint.py (seeded per SPEC-CLAUDE-CODE.md §8).
 Run: python3 tests/station-hooks/test-memory-lint.py   (or via unittest discover)
 
 Contract: deterministic violations exit 2 (return to agent); judgment checks are
@@ -16,7 +17,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-HOOK = Path(os.environ.get("HOOK_UNDER_TEST", Path.home() / ".claude" / "hooks" / "memory_lint.py"))
+HOOK = Path(os.environ.get("HOOK_UNDER_TEST") or Path(__file__).resolve().parents[2] / "specs" / "claude-code" / "hooks" / "memory_lint.py")
 
 GOOD_MEM = """---
 name: sample-fact
