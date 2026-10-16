@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "harness": "goose",
+  "rows": [
+    {"element": "Skills", "shape": "NATIVE", "path": "~/.agents/skills/"},
+    {"element": "Subagents", "shape": "N/A", "note": "untested; no subagent tree documented"},
+    {"element": "Commands", "shape": "N/A", "note": "commands in ~/.agents/commands/ do not appear in goose"},
+    {"element": "Remote control", "shape": "FRAGMENT", "path": "~/.config/goose/config.yaml", "format": "yaml-flat",
+     "keys": {"GOOSE_TELEMETRY_ENABLED": false}}
+  ]
+}

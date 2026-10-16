@@ -108,26 +108,54 @@ def processes() -> list[str]:
     return out.splitlines()
 
 
+def _sub(d: dict, key: str) -> dict:
+    v = d.get(key)
+    return v if isinstance(v, dict) else {}
+
+
+def _toml_file(p: Path) -> dict:
+    """Parsed config.toml, or {} when unreadable. tomllib is stdlib from 3.11;
+    an older interpreter gets an empty table and the Codex row reads ON."""
+    try:
+        import tomllib
+        with p.open("rb") as f:
+            return tomllib.load(f)
+    except (ImportError, OSError, ValueError):
+        return {}
+
+
+def _launch_agents_name(home: Path, needle: str) -> bool:
+    """True when a plist in either LaunchAgents folder runs the named binary."""
+    for folder in (home / "Library" / "LaunchAgents", Path("/Library/LaunchAgents")):
+        if not folder.is_dir():
+            continue
+        for p in folder.glob("*.plist"):
+            try:
+                if needle in p.read_text(encoding="utf-8", errors="replace"):
+                    return True
+            except OSError:
+                continue
+    return False
+
+
 def remote_of(row: Row, home: Path, procs: list[str], env: dict[str, str]) -> str:
     """The remote-control, daemon and telemetry state of one harness, read from
     its config files and the process table only (SPEC.md invariant 7). "off"
-    means every switch the harness exposes is off; anything else names the
-    switch that is on or the fact that the harness has no persistent one."""
+    means every switch the harness exposes and the probe can read is off; a
+    note after it names what the probe cannot read. Anything else names the
+    switch that is on."""
     if row.harness == "claude-code":
         s = _json_file(home / ".claude" / "settings.json")
         on = [] if s.get("disableRemoteControl") is True else ["disableRemoteControl unset"]
-        if s.get("env", {}).get("DISABLE_TELEMETRY") != "1":
+        if _sub(s, "env").get("DISABLE_TELEMETRY") != "1":
             on.append("env.DISABLE_TELEMETRY unset")
         return "off" if not on else "ON: " + ", ".join(on)
     if row.harness == "codex":
-        try:
-            toml = (home / ".codex" / "config.toml").read_text(encoding="utf-8")
-        except OSError:
-            toml = ""
+        t = _toml_file(home / ".codex" / "config.toml")
         on = []
-        if not re.search(r"^\s*daemon_auto_start\s*=\s*false", toml, re.M):
+        if _sub(t, "features").get("daemon_auto_start") is not False:
             on.append("features.daemon_auto_start not false")
-        if not re.search(r"^\s*\[analytics\]\s*\n\s*enabled\s*=\s*false", toml, re.M):
+        if _sub(t, "analytics").get("enabled") is not False:
             on.append("analytics.enabled not false")
         if any("codex app-server" in p for p in procs):
             on.append("app-server daemon running")
@@ -136,27 +164,34 @@ def remote_of(row: Row, home: Path, procs: list[str], env: dict[str, str]) -> st
         if any("cursor-agent worker" in p for p in procs):
             return "ON: cloud worker running"
         c = _json_file(home / ".cursor" / "cli-config.json")
-        ghost = c.get("privacyCache", {}).get("ghostMode")
+        ghost = _sub(c, "privacyCache").get("ghostMode")
         return "off" if ghost is True else "ON: privacy mode not ghost"
     if row.harness == "copilot":
-        if any("copilot" in p and "--remote" in p and "--no-remote" not in p for p in procs):
-            return "ON: a session with --remote"
+        for p in procs:
+            toks = p.split()
+            if "copilot" in p and ("--remote" in toks or "--remote-export" in toks):
+                return "ON: a session with --remote or --remote-export"
         return "off; per session only (--no-remote-export)"
     if row.harness == "goose":
         if any("goose serve" in p for p in procs):
             return "ON: goose serve running"
-        try:
-            yaml = (home / ".config" / "goose" / "config.yaml").read_text(encoding="utf-8")
-        except OSError:
-            yaml = ""
-        return "off" if re.search(r"^GOOSE_TELEMETRY_ENABLED:\s*false", yaml, re.M) else "ON: GOOSE_TELEMETRY_ENABLED not false"
+        val = env.get("GOOSE_TELEMETRY_ENABLED")
+        if val is None:
+            try:
+                yaml = (home / ".config" / "goose" / "config.yaml").read_text(encoding="utf-8")
+            except OSError:
+                yaml = ""
+            hits = re.findall(r"^GOOSE_TELEMETRY_ENABLED:\s*(\S+)", yaml, re.M)
+            val = hits[-1] if hits else None   # the last key wins in YAML
+        return "off" if str(val).lower() == "false" else "ON: GOOSE_TELEMETRY_ENABLED not false"
     if row.harness == "pi":
         return "off" if env.get("PI_TELEMETRY", "").lower() in ("0", "false", "no") else "ON: PI_TELEMETRY unset (install telemetry)"
     if row.harness == "antigravity":
-        if any("agy" in p and "remote-control" in p for p in procs):
-            return "ON: remote-control daemon running"
-        agents = home / "Library" / "LaunchAgents"
-        if agents.is_dir() and any("antigravity" in p.name.lower() or "agy" in p.name.lower() for p in agents.iterdir()):
+        for p in procs:
+            toks = p.split()
+            if toks and (toks[0] == "agy" or toks[0].endswith("/agy")) and "remote-control" in toks:
+                return "ON: remote-control daemon running"
+        if _launch_agents_name(home, "/agy"):
             return "ON: remote-control launch agent registered"
         return "off; telemetry switch unverified"
     return "unknown"

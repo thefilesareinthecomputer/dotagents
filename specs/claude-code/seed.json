@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "harness": "claude-code",
+  "rows": [
+    {"element": "Skills", "also": ["Subagents", "Commands"], "shape": "LINK", "path": "~/.claude/skills/",
+     "note": "sync-skills.sh plants skills/, agents/ and commands/ in one run"},
+    {"element": "Rules", "shape": "POINTER", "path": "~/.claude/CLAUDE.md", "source": "specs/claude-code/CLAUDE.md.example"},
+    {"element": "Permissions and settings", "shape": "FRAGMENT", "path": "~/.claude/settings.json", "format": "json",
+     "source": "specs/claude-code/settings.json",
+     "keys": ["permissions", "env", "statusLine", "subagentStatusLine", "enabledPlugins", "extraKnownMarketplaces",
+              "disableRemoteControl", "attribution", "autoUpdatesChannel"]},
+    {"element": "Hooks", "shape": "COPY", "path": "~/.claude/hooks/", "via": "seed_hooks"},
+    {"element": "Status lines", "shape": "COPY", "path": "~/.claude/statusline.sh", "source": "specs/claude-code/statusline.sh"},
+    {"element": "Status lines", "shape": "COPY", "path": "~/.claude/subagent-statusline.sh", "source": "specs/claude-code/subagent-statusline.sh"},
+    {"element": "Keybindings", "shape": "COPY", "path": "~/.claude/keybindings.json", "source": "specs/claude-code/keybindings.json"}
+  ]
+}

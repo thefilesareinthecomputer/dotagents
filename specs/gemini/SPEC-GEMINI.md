@@ -1,13 +1,12 @@
 # SPEC-GEMINI.md - Gemini CLI station
 
 **Retired.** Consumer Gemini CLI was retired on 2026-06-18 (doc-derived, from
-Google's announcement as read on 2026-08-08); Antigravity CLI
-(`agy`) is its successor and
-[`SPEC-ANTIGRAVITY.md`](../antigravity/SPEC-ANTIGRAVITY.md) is the live station
-spec. The `gemini` npm package was removed from the laptop on 2026-10-15 (it
-had never been run), and `~/.gemini/` belongs to `agy`, which inherited the
-folder. The sections below describe the Gemini CLI station
-for the Code Assist Standard and Enterprise tiers that keep the product.
+Google's announcement as read on 2026-08-08). Antigravity CLI (`agy`) is its
+successor, and [`SPEC-ANTIGRAVITY.md`](../antigravity/SPEC-ANTIGRAVITY.md) is
+the live station spec. The `gemini` npm package was removed from the laptop on
+2026-10-15 (it had never been run), and `~/.gemini/` belongs to `agy`, which
+inherited the folder. The rest of this spec describes the Gemini CLI station
+for the Code Assist Standard and Enterprise tiers, which keep the product.
 
 Google's terminal agent. Notable here as one of the **two harnesses besides
 Claude Code with all three trees** (Cursor is the other): skills, subagents and
@@ -31,10 +30,10 @@ restart. Workspace skills require the folder to be trusted (`/trust`); user-scop
 skills are not subject to that.
 
 **Not verified here.** Gemini CLI was never run or set up on either station,
-and the laptop's npm install was removed on 2026-10-15; the above is from
-Google's documentation as of 2026-07-31. Note that `~/.gemini/` does now
-exist, created by the Antigravity CLI installer on 2026-08-08, so its presence is
-no longer evidence that Gemini CLI is installed. `~/.gemini/config/` and
+and the laptop's npm install was removed on 2026-10-15. The skill discovery
+described in this section comes from Google's documentation as of 2026-07-31.
+`~/.gemini/` now exists, created by the Antigravity CLI installer on 2026-08-08,
+so its presence is no longer evidence that Gemini CLI is installed. `~/.gemini/config/` and
 `~/.gemini/antigravity-cli/` belong to `agy`; see
 [`SPEC-ANTIGRAVITY.md`](../antigravity/SPEC-ANTIGRAVITY.md).
 

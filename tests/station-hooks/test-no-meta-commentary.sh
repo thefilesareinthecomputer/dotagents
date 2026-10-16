@@ -33,9 +33,9 @@ pre() {
   out="$(jq -n --arg f "$1" --arg c "$2" --arg s "$3" \
         '{session_id:$s, tool_input:{file_path:$f, content:$c}}' | bash "$PRE" 2>/dev/null)"
   [ -z "$out" ] && { echo silent; return; }
-  dec="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // "?"')"
+  dec="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // "none"')"
   ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty')"
-  [ "$dec" != allow ] && { echo "BLOCK($dec)"; return; }
+  [ "$dec" != none ] && { echo "DECISION($dec)"; return; }
   [ -n "$ctx" ] && echo nudge || echo silent
 }
 post() {
@@ -76,10 +76,25 @@ check "$(pre "$tmp/tasks/AUDIT-REPORT.md" "Findings."  s1)"       silent "tasks/
 printf 'x\n' > "$tmp/EXISTING-REPORT.md"
 check "$(pre "$tmp/EXISTING-REPORT.md" "Findings."     s1)"       silent "existing file is established"
 
-# ---- never blocks ------------------------------------------------------------
+# ---- never decides -----------------------------------------------------------
+# Advisory means no permissionDecision at all: an "allow" would be a verdict
+# that could stand beside another hook's deny or ask.
 dec="$(jq -n --arg f "$tmp/a.md" '{session_id:"s9", tool_input:{file_path:$f, content:"I have created it"}}' \
-      | bash "$PRE" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecision')"
-check "$dec" allow "never-blocks contract"
+      | bash "$PRE" 2>/dev/null | jq -r '.hookSpecificOutput | has("permissionDecision")')"
+check "$dec" false "no permission verdict"
+
+# ---- cheap on large writes ---------------------------------------------------
+# The hook runs on every write with a 5-second budget. A 300 KB payload once
+# took minutes (bash substitution over the text); it has to finish in 2 s.
+big="$(python3 -c 'print("The parser handles CSV and the tests run green.\n" * 6000, end="")')"
+start=$(python3 -c 'import time; print(time.time())')
+got="$(pre "$tmp/big.md" "$big" s10)"
+secs=$(python3 -c "import time; print(round(time.time() - $start, 2))")
+check "$got" silent "large clean write stays silent"
+if python3 -c "import sys; sys.exit(0 if $secs < 2 else 1)"; then pass=$((pass+1)); else fail=$((fail+1)); echo "FAIL [large write under 2 s] took ${secs}s"; fi
+got="$(pre "$tmp/big2.md" "$big
+Let me know if you want more." s11)"
+check "$got" nudge "large write with a hit at the end"
 
 # ---- fail-open ---------------------------------------------------------------
 out="$(printf 'not json' | bash "$PRE" 2>/dev/null; echo "rc=$?")"

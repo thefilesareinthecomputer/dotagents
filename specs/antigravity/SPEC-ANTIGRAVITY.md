@@ -87,6 +87,19 @@ slash command, while a `<name>/SKILL.md` directory is the richer package form
 with `scripts/` and references. This repo only uses the directory form, which is
 the one that carries assets.
 
+## Seeding
+
+What this harness inherits natively from `~/.agents` and what has to be
+installed. Shapes are defined once in
+[`../SEEDING-SHAPES.md`](../SEEDING-SHAPES.md), and `seed.json` beside this file
+is the machine-readable copy that `seed.py` reads.
+
+| Element | Shape | Station path | Notes |
+|---|---|---|---|
+| Skills | `POINTER` | `~/.gemini/config/skills.json` | an `entries` item whose `path` is the absolute path of this repo's `skills/`; `~` is not expanded. The seed adds the entry when no entry names that path and leaves every other entry alone |
+| Subagents | `N/A` | - | no subagent tree documented |
+| Commands | `N/A` | - | a flat `.md` in a skills folder is a slash command; this repo uses the directory form only |
+
 ## Station config
 
 Settings live under `~/.gemini/antigravity-cli/`, with MCP servers in
@@ -109,11 +122,12 @@ hand after installing.
 
 **Remote control (invariant 7).** `agy remote-control start` registers a
 background daemon that pairs the CLI with a remote client, and `--remote-control`
-does the same for one session; neither has run on the laptop (`agy remote-control
-status`: not running, no launch agent, 2026-10-15), and `antigravity-task`
-refuses `--remote-control` in its argv. The telemetry switch is unverified: the
-1.3.5 binary holds no `usageStatisticsEnabled` string, so Gemini CLI's opt-out
-key may be ignored, and the sign-in asks for Google telemetry scope. Open item.
+does the same for one session. Neither has run on the laptop: on 2026-10-15,
+`agy remote-control status` reported not running and no launch agent.
+`antigravity-task` refuses `--remote-control` in its argv. The telemetry switch
+is unverified and remains an open item: the 1.3.5 binary holds no
+`usageStatisticsEnabled` string, so Gemini CLI's opt-out key may be ignored, and
+the sign-in asks for Google telemetry scope.
 
 Authentication is Google Sign-In on first run, cached in the system keyring.
 The interactive session requires a TTY; print mode does not. At 1.3.3 the CLI

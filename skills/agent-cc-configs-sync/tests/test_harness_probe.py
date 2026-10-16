@@ -177,6 +177,38 @@ class RemoteControl(unittest.TestCase):
         self.write(".codex/config.toml", "[analytics]\nenabled = false\n")
         self.assertIn("daemon_auto_start", self.remote("codex"))
 
+    def test_codex_reads_the_toml_structure_not_a_line_pattern(self):
+        # The key under another table, a comment, or a dotted form must not pass as off.
+        self.write(".codex/config.toml", "[profiles.x]\ndaemon_auto_start = false\n[analytics]\nenabled = false\n")
+        self.assertIn("daemon_auto_start", self.remote("codex"))
+        self.write(".codex/config.toml", "# daemon_auto_start = false\n[analytics]\nenabled = false\n")
+        self.assertIn("daemon_auto_start", self.remote("codex"))
+        self.write(".codex/config.toml", "features.daemon_auto_start = false\nanalytics.enabled = false\n")
+        self.assertEqual(self.remote("codex"), "off")
+
+    def test_goose_last_key_wins_and_the_env_overrides(self):
+        self.write(".config/goose/config.yaml", "GOOSE_TELEMETRY_ENABLED: false\nGOOSE_TELEMETRY_ENABLED: true\n")
+        self.assertTrue(self.remote("goose").startswith("ON"))
+        self.assertEqual(self.remote("goose", env={"GOOSE_TELEMETRY_ENABLED": "false"}), "off")
+
+    def test_copilot_matches_exact_tokens(self):
+        self.assertTrue(self.remote("copilot", procs=["copilot --no-remote-export --remote -p hi"]).startswith("ON"))
+        self.assertIn("per session", self.remote("copilot", procs=["copilot --remote-thing -p hi"]))
+
+    def test_antigravity_launch_agent_is_judged_by_content_in_either_folder(self):
+        self.write("Library/LaunchAgents/com.example.unrelated.plist", "<string>/usr/local/bin/agy</string>")
+        self.assertIn("launch agent", self.remote("antigravity"))
+        (self.home / "Library/LaunchAgents/com.example.unrelated.plist").unlink()
+        self.write("Library/LaunchAgents/com.agy.lookalike.plist", "<string>/usr/local/bin/other</string>")
+        self.assertTrue(self.remote("antigravity").startswith("off"))
+        self.assertTrue(self.remote("antigravity", procs=["/x/bin/not-agy remote-control start"]).startswith("off"))
+
+    def test_malformed_json_sections_do_not_crash(self):
+        self.write(".claude/settings.json", json.dumps({"disableRemoteControl": True, "env": "oops"}))
+        self.assertIn("DISABLE_TELEMETRY", self.remote("claude-code"))
+        self.write(".cursor/cli-config.json", json.dumps({"privacyCache": "oops"}))
+        self.assertTrue(self.remote("cursor").startswith("ON"))
+
     def test_cursor_is_on_when_a_cloud_worker_runs_or_ghost_mode_is_off(self):
         self.write(".cursor/cli-config.json", json.dumps({"privacyCache": {"ghostMode": True}}))
         self.assertEqual(self.remote("cursor"), "off")
@@ -197,7 +229,7 @@ class RemoteControl(unittest.TestCase):
         self.assertEqual(self.remote("pi", env={"PI_TELEMETRY": "0"}), "off")
         self.assertTrue(self.remote("antigravity").startswith("off"))
         self.assertTrue(self.remote("antigravity", procs=["agy remote-control start"]).startswith("ON"))
-        self.write("Library/LaunchAgents/com.google.antigravity.remote.plist", "<plist/>")
+        self.write("Library/LaunchAgents/com.google.antigravity.remote.plist", "<string>/opt/agy</string>")
         self.assertIn("launch agent", self.remote("antigravity"))
 
     def test_the_column_reaches_the_json_and_the_table(self):

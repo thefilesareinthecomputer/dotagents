@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "harness": "codex",
+  "rows": [
+    {"element": "Skills", "shape": "NATIVE", "path": "~/.agents/skills/"},
+    {"element": "Subagents", "shape": "N/A", "note": "no subagent tree of its own"},
+    {"element": "Commands", "shape": "N/A", "note": "no command tree; the portable route is a skill"},
+    {"element": "Privacy and hygiene", "shape": "FRAGMENT", "path": "~/.codex/config.toml", "format": "toml",
+     "keys": {"analytics.enabled": false, "otel.metrics_exporter": "none",
+              "memories.disable_on_external_context": true, "features.daemon_auto_start": false}},
+    {"element": "Hooks", "shape": "FRAGMENT", "path": "~/.codex/hooks.json", "via": "seed_hooks"},
+    {"element": "MCP servers", "shape": "N/A", "note": "nothing is seeded; codex mcp list is the inventory"}
+  ]
+}

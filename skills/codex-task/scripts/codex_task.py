@@ -316,13 +316,30 @@ def _kill_group(proc: subprocess.Popen) -> None:
             time.sleep(0.1)
 
 
+def _daemon_cmd(pid: int) -> str:
+    return subprocess.run(["ps", "-ww", "-o", "command=", "-p", str(pid)],
+                          capture_output=True, text=True).stdout
+
+
+def _under(home: Path, cmd: str) -> bool:
+    """True when a path token of the command line is the home or lies under it.
+    Codex installs the daemon binary under its own home
+    (<home>/packages/app-server-daemon/releases/<v>/bin/codex), so the home
+    shows in argv[0]; CODEX_HOME itself travels in the environment, not argv.
+    Paths compare resolved: /var and /private/var are one directory."""
+    target = home.resolve()
+    return any(Path(tok).resolve() == target or target in Path(tok).resolve().parents
+               for tok in cmd.split() if tok.startswith("/"))
+
+
 def reap_daemon(home: Path) -> str | None:
-    """Kill a Codex managed daemon left under the isolated home, if one is
-    recorded in app-server-daemon/daemon.pid and its command line names that
-    home. Belt to the daemon_auto_start=false braces: one seen 2026-10-13 ran
-    for two days with the linked auth. Returns a warning when one was killed."""
+    """Kill the Codex managed daemon recorded in the isolated home's
+    app-server-daemon/daemon.pid when its command line proves it belongs to
+    that home. A daemon whose ownership cannot be confirmed is left running and
+    its record kept, so a later clean can still find it. Belt to the
+    daemon_auto_start=false braces. Returns a warning when anything was done."""
     pidfile = home / "app-server-daemon" / "daemon.pid"
-    if not pidfile.exists():
+    if not pidfile.is_file() or pidfile.is_symlink() or pidfile.stat().st_size > 4096:
         return None
     try:
         pid = int(json.loads(pidfile.read_text(encoding="utf-8"))["pid"])
@@ -330,24 +347,24 @@ def reap_daemon(home: Path) -> str | None:
         pid = 0
     killed = False
     if pid > 1:
-        cmd = subprocess.run(["ps", "-ww", "-o", "command=", "-p", str(pid)],
-                             capture_output=True, text=True).stdout
-        # The pid may have been reused; only a codex whose argv names this home
-        # dies. Paths are compared resolved: /var and /private/var are one dir.
-        target = home.resolve()
-        names_home = any(Path(tok).resolve() == target or target in Path(tok).resolve().parents
-                         for tok in cmd.split() if tok.startswith("/"))
-        if "codex" in cmd and names_home:
+        cmd = _daemon_cmd(pid)
+        if "codex" in cmd and "app-server" in cmd and not _under(home, cmd):
+            return (f"a Codex daemon (pid {pid}) is recorded under the isolated home but its "
+                    "command line does not name it; left running, record kept")
+        if "codex" in cmd and _under(home, cmd):
             for sig in (signal.SIGTERM, signal.SIGKILL):
+                # Re-read before each signal: the pid must still be that daemon.
+                if not _under(home, _daemon_cmd(pid)):
+                    break
                 try:
                     os.kill(pid, sig)
-                except ProcessLookupError:
+                except (ProcessLookupError, PermissionError):
                     break
                 end = time.monotonic() + 5.0
                 while time.monotonic() < end:
                     try:
                         os.kill(pid, 0)
-                    except ProcessLookupError:
+                    except (ProcessLookupError, PermissionError):
                         break
                     time.sleep(0.1)
                 else:

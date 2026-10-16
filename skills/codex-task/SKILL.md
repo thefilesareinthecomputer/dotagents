@@ -109,9 +109,10 @@ seven days.
   `trust_level = "trusted"` for the target repo into the real config.
 - **No daemon outlives a run.** Every run passes
   `features.daemon_auto_start=false`, and `run` and `clean` both kill any
-  `codex app-server --managed-daemon` recorded under the isolated home. One
-  left by an interactive session in a scratch home ran for two days, parented
-  to launchd, polling the vendor every few minutes with the linked auth.
+  `codex app-server --managed-daemon` recorded under the isolated home whose
+  command line proves it belongs there. An interactive session in a scratch
+  home starts one that reparents to launchd and polls the vendor every few
+  minutes with the symlinked `auth.json` until something kills it.
 - **No `--dangerously-*` flag** can be passed; the script refuses its own argv
   if one appears.
 

@@ -49,7 +49,7 @@ unless `CODEX_HOME` is isolated.
 | Global | `~/.codex/auth.json` | the ChatGPT sign-in; never copied, symlinked into an isolated `CODEX_HOME` by `codex-task` |
 | Global | `~/.codex/models_cache.json` | the model lineup and effort levels, refreshed by the CLI |
 | Global | `~/.codex/skills/` | Codex's own skill folder; this station uses `~/.agents/skills/` instead |
-| Remote control (invariant 7) | `[features] daemon_auto_start = false` and `[analytics] enabled = false` in `~/.codex/config.toml`; `codex remote-control` never started | the shared app-server daemon, remote control and analytics, all off on the laptop 2026-10-15; the daemon paragraph below says what the daemon does when on |
+| Remote control (invariant 7) | `[features] daemon_auto_start = false` and `[analytics] enabled = false` in `~/.codex/config.toml`; `codex remote-control` never started | the shared app-server daemon, remote control and analytics, all off on the laptop 2026-10-15; the paragraph "An interactive session leaves a daemon running" says what the daemon does when on |
 | Project | `AGENTS.md` at the repo root | rules, read per repo |
 | Project | `.agents/skills/` | project skills, with the parent and repo-root variants in the table below |
 
@@ -150,21 +150,24 @@ Note the boundary this does and does not draw: a separate `CODEX_HOME` is a
 configuration boundary, not an isolation boundary. A process running as the same
 user can still read the default home directly.
 
-**An interactive session leaves a daemon behind, and it keeps the home's auth
-busy.** The `daemon_auto_start` feature (stable, on by default at 0.162.1)
+**An interactive session leaves a daemon running, and it calls the vendor with
+the home's auth.** The `daemon_auto_start` feature (stable, on by default at 0.162.1)
 starts `codex app-server --listen unix:// --managed-daemon` under whichever
 `CODEX_HOME` is in use. It reparents to launchd, survives the session, records
 itself in `<home>/app-server-daemon/daemon.pid`, opens a socket under
 `/private/tmp/codex-daemon-<uid>/`, and fetches the model list from the vendor
-about every four and a half minutes with that home's `auth.json` attached. One
-spawned by a scratch-home TUI session on 2026-10-13 ran until it was found two
-days later. A headless `codex exec --ephemeral --ignore-user-config` in a fresh
-home spawned none, with or without the flag (2026-10-15, 0.162.1), so the TUI is
-the spawner; `-c features.daemon_auto_start=false` is accepted by every
-subcommand and `codex features disable daemon_auto_start` writes it into a
-home's `config.toml`. Any scratch home gets that line before its first
-interactive use, and anything that creates one kills the recorded pid when it
-is done; `codex-task` does both.
+about every four and a half minutes with that home's `auth.json` attached
+(observed on the laptop from a scratch-home TUI session's daemon, 2026-10-13 to
+2026-10-15). Its binary is installed under that home at
+`<home>/packages/app-server-daemon/releases/<version>/bin/codex`, which is how a
+cleaner tells whose daemon a pid is. A headless `codex exec --ephemeral
+--ignore-user-config` in a fresh home spawned none, with or without `-c
+features.daemon_auto_start=false` (2026-10-15, 0.162.1), so the TUI is what
+starts it. `exec` and `features` accept that `-c` override (the other
+subcommands were not tried), and `codex features disable daemon_auto_start`
+writes the setting into a home's `config.toml`. Any scratch home gets that line
+before its first interactive use, and any tool that creates a scratch home kills
+the recorded pid when it is done; `codex-task` does both.
 
 ## Delegation from Claude Code: the `codex-task` skill
 
@@ -241,7 +244,7 @@ installed. Shapes are defined once in
 | Subagents | `N/A` | - | no subagent tree of its own |
 | Commands | `N/A` | - | no command tree; the portable route is a skill |
 | Rules | `NATIVE` | repo-root `AGENTS.md` | Codex's analogue to `CLAUDE.md`, read per repo; no global rules file to seed |
-| Privacy and hygiene | `FRAGMENT` | `~/.codex/config.toml` | seedable keys: `analytics.enabled = false`, `otel.metrics_exporter = "none"`, `memories.disable_on_external_context = true`. Values move only in the restrictive direction; merge into the existing tables, never replace the file (see Station config below) |
+| Privacy and hygiene | `FRAGMENT` | `~/.codex/config.toml` | seedable keys: `analytics.enabled = false`, `otel.metrics_exporter = "none"`, `memories.disable_on_external_context = true`, `features.daemon_auto_start = false`. Values move only in the restrictive direction; merge into the existing tables, never replace the file (see Station config below) |
 | Permissions | `FRAGMENT` | `~/.codex/config.toml` | seedable keys only: `[projects."<path>"] trust_level`. Never copy the file - it also carries credentials-adjacent state, plugin enablement and machine-specific paths. Path eligibility is bounded: each path is approved by the user at seed time, only a specific repository root is ever written, and no ancestor directory is eligible - trusting `$HOME` or a multi-repo `dev/` would silently trust every repo cloned under it afterward |
 | Sandbox level | `N/A` | - | passed per invocation (`-s`), not configured |
 | Hooks | `FRAGMENT` | `~/.codex/hooks.json`, scripts to `~/.codex/hooks/` | managed entries only, in Claude Code's file shape; plan only, and nothing is wired until a hook has a Codex test |

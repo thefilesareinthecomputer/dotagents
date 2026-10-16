@@ -36,18 +36,25 @@ not there.** Nothing durable and nothing contradicted: say so, skip to step 5.
 ### A. Durable knowledge
 
 **The default is not to write a memory.** Every description loads into every
-future session; a long index gets skimmed instead of read. Four tests, all
+future session; a long index gets skimmed instead of read. Five tests, all
 required:
 
 1. **Would a future session get this wrong without it?** Not "is it interesting".
-2. **Is it durable?** True next month. Work in flight belongs in `todo.md`.
-3. **Is it non-derivable?** Not recoverable from code, tests, git history,
-   `AGENTS.md`, `README.md` or a skill body - those already load.
-4. **Does no existing memory cover it?** Grep first. **Extending an existing file
+2. **Would the mistake cost more than one declined proposal?** A fact whose
+   whole value is sparing the user one "no" is not a memory. The user ruling
+   on something sessions rarely touch (a dead repo, a one-off cleanup, a
+   station's leftovers) fails here even when tests 1, 3 and 4 pass.
+3. **Is it durable?** True next month. Work in flight belongs in `todo.md`.
+4. **Is it non-derivable?** Not recoverable from code, tests, git history,
+   `AGENTS.md`, `README.md`, a skill body or the session record - those already
+   load, or are one grep away when the subject comes up.
+5. **Does no existing memory cover it?** Grep first. **Extending an existing file
    beats creating a neighbor** - two entries on one subject split recall.
 
 Most session learnings fail at least one. A session that writes no memory is
-normal.
+normal, and a slate of one is more often right than a slate of three: when
+the third item is the weakest, drop it before presenting rather than letting
+the user do the pruning.
 
 **Route before proposing.** `memory-routing.sh` fires on every write and
 `memory_lint.py` fails one lacking a `MEMORY.md` pointer or valid frontmatter.
@@ -121,7 +128,7 @@ Past 50 entries, propose a few section headers grouping related memories.
 Present the complete slate, grouped and skimmable, then **stop and wait**:
 
 - **What I now believe is true** - each fact, where it came from, the file it
-  creates or updates, which of the four tests it passed. For an update, why that
+  creates or updates, which of the five tests it passed. For an update, why that
   beat a new file.
 - **What went stale** - `file:line` → old → proposed new.
 - **Removals and merges** - with why, and the index count before and after. An

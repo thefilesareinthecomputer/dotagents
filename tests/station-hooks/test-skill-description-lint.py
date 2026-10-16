@@ -72,6 +72,19 @@ class SkillDescriptionLintTest(unittest.TestCase):
         code, _ = run(str(self.write(skill("x" * 900), name="README.md")))
         self.assertEqual(code, 0)
 
+    def test_subagent_and_command_files_are_checked(self):
+        for folder in ("agents", "commands"):
+            where = Path(self.tmp.name) / folder
+            code, err = run(str(self.write(skill("Flags drift: scope, rot."), name="x.md", where=where)))
+            self.assertEqual(code, 2, folder)
+            self.assertIn("plain scalar", err)
+            code, _ = run(str(self.write(skill("Flags drift - scope, rot."), name="y.md", where=where)))
+            self.assertEqual(code, 0, folder)
+        code, _ = run(str(self.write(skill("Flags drift: scope."), name="x.md", where=Path(self.tmp.name) / "agents" / "deep")))
+        self.assertEqual(code, 0)   # only files directly under agents/
+        code, _ = run(str(self.write("# Notes on agents\n\nPlain prose: no frontmatter.\n", name="notes.md", where=Path(self.tmp.name) / "agents")))
+        self.assertEqual(code, 0)   # a document without frontmatter is not a definition
+
     def test_fixture_paths_are_skipped(self):
         where = Path(self.tmp.name) / "skills" / "example" / "tests" / "fixtures" / "bad"
         code, _ = run(str(self.write(skill("x" * 900), where=where)))

@@ -51,7 +51,7 @@ is configured, `SPEC.md` invariant 6 binds.
 | Global | `~/.pi/agent/skills/` | Pi's own skill root, where a loose root-level `.md` is a skill |
 | Global | `~/.pi/agent/installed-plugins/`, `~/.pi/agent/servers/` | extensions and MCP servers |
 | Global | `~/.pi/agent/session-store.db`, `~/.pi/agent/logs/` | sessions and logs |
-| Remote control (invariant 7) | `export PI_TELEMETRY=0` in the shell profile; no remote-control feature | install telemetry off (set on the laptop 2026-10-15); `/share` uploads a session only when invoked |
+| Remote control (invariant 7) | `export PI_TELEMETRY=0` in the shell profile; `pi --help` at 1.1.0 lists no remote-control feature | install telemetry off (set on the laptop 2026-10-15); `/share` uploads a session only when invoked |
 | Project, after trust | `.pi/skills/`, `.agents/skills/` | project skills, in cwd and ancestors |
 | Per run | `--skill <path>`, `--tools`, `--exclude-tools`, `--no-skills` | the run's skill and tool surface |
 
@@ -124,6 +124,20 @@ Pi can also be pointed at other harnesses' skill directories through its setting
 
 Whatever provider is configured; 15+ are supported. `SPEC.md` invariant 6 binds:
 work that matters runs on Anthropic or a genuinely local model.
+
+## Seeding
+
+What this harness inherits natively from `~/.agents` and what has to be
+installed. Shapes are defined once in
+[`../SEEDING-SHAPES.md`](../SEEDING-SHAPES.md), and `seed.json` beside this file
+is the machine-readable copy that `seed.py` reads.
+
+| Element | Shape | Station path | Notes |
+|---|---|---|---|
+| Skills | `NATIVE` | reads `~/.agents/skills/` | doc-derived; discovery from the real home not yet observed, since the bench runs pi under a fake home |
+| Subagents | `N/A` | - | pi's extension model is TypeScript in-process |
+| Commands | `N/A` | - | no command tree; the portable route is a skill |
+| Remote control | `FRAGMENT` | `~/.zshrc` | one line, `export PI_TELEMETRY=0`, which turns install telemetry off (invariant 7); the seed assumes zsh, the macOS default |
 
 ## Station config
 

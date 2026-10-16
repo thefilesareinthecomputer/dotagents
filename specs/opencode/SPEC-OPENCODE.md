@@ -91,7 +91,29 @@ opencode was archived and continues as Charm's Crush. Installed here from npm as
 
 ## Station config
 
-Not adapted. No `~/.config/opencode/opencode.json` is written by this repo, and
+**Remote control (invariant 7).** opencode's network surface is its own server:
+`opencode serve`, `opencode web` and `opencode acp` listen on `127.0.0.1:4096`
+with no authentication unless `OPENCODE_SERVER_PASSWORD` is set, and its
+security policy makes securing that server the user's job. Two January 2026
+advisories (CVE-2026-22812, an unauthenticated local server any website could
+drive through permissive CORS, fixed in 1.0.216; CVE-2026-22813, a web UI XSS,
+fixed in 1.1.10) and a September 2026 one (GHSA-632h-h47v-g4x4, a malicious
+page reaching the `/global/upgrade` endpoint of a running server, fixed in
+1.18.22) all needed the server running, so on this station none of the three
+subcommands ever runs and the version floor is 1.18.22. Session sharing is the
+`share` config key (`manual`, `auto`, `disabled`); a seed sets `disabled`. The
+binary names `api.opencode.ai`, `models.opencode.ai` (the model list, off with
+`OPENCODE_DISABLE_MODELS_FETCH=1`), `console.opencode.ai` and `app.opencode.ai`;
+whether any usage telemetry leaves the process is unverified (OpenTelemetry SDK
+strings are present, no opt-out key was found, and users have reported telemetry
+with no switch). The permission system is not a sandbox by the project's own
+policy, so a run here is bounded by the bench's `sandbox-exec` profile, never by
+opencode. The laptop's npm install of `opencode-ai` 1.18.15 (2026-08-08, below
+the floor, empty config, no server process, no credentials on disk) and its
+state folders were removed on 2026-10-15; any reinstall is pinned from Homebrew
+after an egress audit of that version.
+
+Not adapted beyond that. No `~/.config/opencode/opencode.json` is written by this repo, and
 opencode's plugin model is TypeScript rather than shell hooks, so the Claude Code
 hook scripts have no direct analogue and would need rethinking rather than
 porting, the same conclusion [`SPEC-PI.md`](../pi/SPEC-PI.md) reaches. Tracked in

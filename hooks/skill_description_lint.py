@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""PostToolUse(Write|Edit) check for skill descriptions.
+"""PostToolUse(Write|Edit) check for skill, subagent and command descriptions.
 
-Fires after a write whose path is a SKILL.md and checks that file's frontmatter
-description with skill-authoring's check_descriptions.py, so the rule lives in
-one place: at most 800 characters (the house cap, inside the standard's 1024),
-and no ': ' in a plain scalar. Both pass Claude Code silently and break stricter
-harnesses, which is why an agent editing a skill never notices on its own.
+Fires after a write whose path is a SKILL.md, or a markdown file directly under
+an agents/ or commands/ folder, and checks that file's frontmatter description
+with skill-authoring's check_descriptions.py, so the rule lives in one place:
+at most 800 characters (the house cap, inside the standard's 1024), and no ': '
+in a plain scalar. Both pass Claude Code silently and break stricter parsers
+(Copilot's skill loader, strict YAML), which is why an agent editing one never
+notices on its own.
 
 A violation exits 2, which returns stderr to the agent so it is fixed now.
 Footgun, verified: exit 1 is swallowed silently, so failures use 2.
@@ -49,14 +51,18 @@ def main() -> int:
     if not fp:
         return 0
     path = Path(fp)
-    if path.name != "SKILL.md" or {"tests", "fixtures"} & set(path.parts) or not path.is_file():
+    described = path.name == "SKILL.md" or (path.suffix == ".md" and path.parent.name in ("agents", "commands"))
+    if not described or {"tests", "fixtures"} & set(path.parts) or not path.is_file():
         return 0
+    text = path.read_text(encoding="utf-8", errors="replace")
+    if not text.startswith("---"):
+        return 0   # a plain document under some project's agents/ folder, not a definition
 
     checker = checker_path()
     if not checker.is_file():
         return 0
     cd = load_checker(checker)
-    desc = cd.parse_description(path.read_text(encoding="utf-8", errors="replace"))
+    desc = cd.parse_description(text)
     found = cd.problems(desc)
     if not found:
         return 0

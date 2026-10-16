@@ -269,5 +269,5 @@
       }
     }
   },
-  "autoUpdatesChannel": "stable"
+  "autoUpdatesChannel": "latest"
 }

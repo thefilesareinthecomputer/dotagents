@@ -323,8 +323,8 @@ The principles each block enforces:
    to an "ask" permission prompt (`ask-before-claude-folder-edits.sh`), so
    nothing silently changes how every session behaves.
 7. **No remote control** - `disableRemoteControl` keeps sessions
-   local-only, and `env.DISABLE_TELEMETRY` keeps them quiet; both are what
-   `harness_probe.py` reads for invariant 7.
+   local-only, and `env.DISABLE_TELEMETRY` turns their telemetry off;
+   `harness_probe.py` reads both settings for invariant 7.
 8. **Authored text carries no invisible characters** - `reject_invisibles.py`
    on every Write/Edit-family call denies new content holding zero-widths,
    bidi controls, look-alike spaces, private-use and other invisible
@@ -337,9 +337,8 @@ The principles each block enforces:
 10. **Updates are on-demand, not automatic** - `DISABLE_AUTOUPDATER=1` in
     `env` turns off the background auto-updater; `claude update`/`claude
     install <target>` stay available for a deliberate update. `autoUpdatesChannel`
-    is inert while the disable is set, but stays pinned to `stable` rather than
-    `latest` so a future removal of the disable defaults conservative instead
-    of reverting to the bleeding-edge channel.
+    is `latest`: with the auto-updater off it steers nothing automatic, and a
+    deliberate `claude update` is expected to follow it (not probed).
 
 Template:
 
@@ -783,7 +782,8 @@ Script: [`claude-code/hooks/memory_lint.py`](hooks/memory_lint.py).
 ### `skill_description_lint.py`
 
 PostToolUse hook (matcher `Write|Edit|MultiEdit|NotebookEdit|Update|Create`,
-wired in §7) - GLOBAL. After a write to a `SKILL.md` it checks that file's
+wired in §7) - GLOBAL. After a write to a `SKILL.md`, or to a markdown file
+directly under an `agents/` or `commands/` folder, it checks that file's
 frontmatter description with skill-authoring's `scripts/check_descriptions.py`,
 reached through `~/.claude/skills/skill-authoring/` (or `SKILL_DESCRIPTION_CHECKER`),
 so the rule lives in one place. A description over the 800-character house cap,
@@ -792,7 +792,7 @@ because both pass Claude Code silently and break stricter harnesses such as
 Copilot's skill loader. Paths with a `tests` or `fixtures` component are skipped,
 since fixtures carry deliberately invalid skills. Stdlib only; **fails OPEN** (a
 missing checker or a bug in the hook exits 0). Tests:
-`tests/station-hooks/test-skill-description-lint.py` (8 cases).
+`tests/station-hooks/test-skill-description-lint.py` (9 cases).
 
 Script: [`claude-code/hooks/skill_description_lint.py`](hooks/skill_description_lint.py).
 
@@ -821,10 +821,18 @@ written in first person by design (`*/projects/*/memory/*`, `*/inbox/*`).
 A change to the list is checked against a corpus of real authored files, not
 only against fixtures written from the same assumptions as the list.
 
+A hit returns `additionalContext` only, never a `permissionDecision`: an
+advisory hook has no standing to give a permission verdict, and an `allow`
+from it would stand beside another hook's `deny` or `ask`. The incoming text
+flows from `jq` straight into the match pipeline and never through a bash
+variable. A bash substitution over a large string is quadratic, and the earlier
+version that used one ran past its 5-second budget on every write above a few
+tens of kilobytes. The suite holds a 300 KB write under 2 seconds.
+
 Fail-open on every path; the quiet path touches no disk. Tests:
-`tests/station-hooks/test-no-meta-commentary.sh` (28 cases incl. the
-never-blocks contract, path scoping, quoted and fenced text, the one-shot flag
-and session isolation).
+`tests/station-hooks/test-no-meta-commentary.sh` (31 cases incl. the
+no-verdict contract, the large-write budget, path scoping, quoted and fenced
+text, the one-shot flag and session isolation).
 
 Scripts: [`hooks/no-meta-commentary.sh`](../../hooks/no-meta-commentary.sh),
 [`hooks/no-meta-commentary-check.sh`](../../hooks/no-meta-commentary-check.sh),
@@ -856,6 +864,11 @@ keeping or removing an existing occurrence never fires. A word inside a fenced
 block, a code span or double quotes is being named rather than used and is
 ignored. Path-excluded are the sites that quote the words on purpose:
 `*/hooks/*`, `*/tests/*`, `*/fixtures/*` and `*/skills/ai-slop-magic-eraser/*`.
+A file that is somebody else's words verbatim (a quoted source, a transcript)
+is exempt as a whole when its YAML frontmatter `tags` holds a tag from the
+list's `[exempt]` table, which ships with `verbatim`. The hook reads the
+frontmatter from the incoming content for a Write and from the file on disk for
+an Edit, and a tag anywhere else in the file does not count.
 
 A legitimate use gets through by resubmitting the identical write. The first
 deny creates an empty marker named `sha256(path + incoming text)` under
@@ -866,9 +879,9 @@ is a prompt to rewrite rather than a hard wall. Fails open on a garbage or
 malformed payload, a missing or unparseable list, or an unwritable state dir.
 Stdlib python3; on a python3 older than 3.11, which has no `tomllib`, the list
 loads empty and the guard passes everything. Tests:
-`tests/station-hooks/test-reject-words.py` (19 cases, including symlinks
-planted at the session and marker paths and an unwritable state dir); run
-after any edit.
+`tests/station-hooks/test-reject-words.py` (24 cases, including the verbatim
+exemption, symlinks planted at the session and marker paths and an unwritable
+state dir); run after any edit.
 
 Script: [`claude-code/hooks/reject_words.py`](hooks/reject_words.py), list
 [`claude-code/hooks/reject-words.toml`](hooks/reject-words.toml).

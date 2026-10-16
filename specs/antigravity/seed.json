@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "harness": "antigravity",
+  "rows": [
+    {"element": "Skills", "shape": "POINTER", "path": "~/.gemini/config/skills.json", "format": "json-entries",
+     "target": "skills", "note": "the entries path must be absolute; ~ is not expanded"},
+    {"element": "Subagents", "shape": "N/A", "note": "no subagent tree documented"},
+    {"element": "Commands", "shape": "N/A", "note": "a flat .md in a skills folder is a slash command; this repo uses the directory form only"}
+  ]
+}

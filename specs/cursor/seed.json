@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "harness": "cursor",
+  "rows": [
+    {"element": "Skills", "shape": "NATIVE", "path": "~/.agents/skills/"},
+    {"element": "Commands", "shape": "N/A", "note": "no portable command form"},
+    {"element": "Remote control", "shape": "FRAGMENT", "path": "~/.cursor/cli-config.json", "format": "json",
+     "keys": {"privacyCache.ghostMode": true}}
+  ]
+}

@@ -19,11 +19,13 @@ pi           1.1.0               ~/.pi/agent        True     no listing         
 antigravity  1.3.3               ~/.gemini/config   True     skills.json present    off; telemetry switch unverified
 ```
 
-The Antigravity row read `skills.json absent` before STORY-000074 wrote the file the same day, and a later probe that evening showed `agy` at 1.3.5: the binary updates itself, so the version here is the one the first probe saw. The remote-control column was added 2026-10-15 and read in a fresh shell after `PI_TELEMETRY=0` went into the profile.
+The block merges the day's runs: the versions are the first probe's on 2026-10-14 (a later probe that evening showed `agy` at 1.3.5, because the binary updates itself), the Antigravity canary is from a re-run after STORY-000074 wrote `skills.json` that day, and the remote-control column was added on 2026-10-15 and read in a fresh shell after `PI_TELEMETRY=0` was added to the shell profile.
 
 "No listing" means the harness has no skill-list command that runs without a sign-in, so discovery is either verified another way or not verified yet; each spec says which.
 
-"Remote control" is SPEC.md invariant 7: `off` means every remote-control, daemon and telemetry switch the harness exposes is off on this station, read from its config files and the process table; the row names the switch otherwise, and each spec's config table says where it lives.
+The remote-control column reports SPEC.md invariant 7.
+A value of `off` means every remote-control, daemon and telemetry switch the harness exposes and the probe can read is off on this station, as read from its config files and the process table; a note after it names what the probe cannot read.
+Any other value names the switch that is on, and each harness spec's config table says where that switch lives.
 
 ## Side by side
 

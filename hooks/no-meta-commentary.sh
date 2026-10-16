@@ -35,17 +35,15 @@ patfile="$here/no-meta-commentary.patterns"
 pats="$(grep -v -e '^#' -e '^[[:space:]]*$' -- "$patfile" 2>/dev/null)" || exit 0
 [ -n "$pats" ] || exit 0
 
-# One jq pass. Covers Write (.content), Edit (.new_string) and MultiEdit
-# (.edits[].new_string); only the INCOMING text, so an edit that REMOVES a
-# flagged phrase correctly stays silent.
-IFS=$'\t' read -r session file text < <(
-  printf '%s' "$(cat)" | jq -r '[
-    .session_id,
-    (.tool_input.file_path // .tool_input.notebook_path // ""),
-    ((.tool_input.content // "") + "\n" + (.tool_input.new_string // "")
-      + "\n" + ([.tool_input.edits[]?.new_string // empty] | join("\n")))
-  ] | @tsv' 2>/dev/null
-)
+# The payload is read once; jq pulls each field raw. The text goes straight
+# from jq into the matching pipeline below and never into a bash variable: a
+# bash substitution over a large string is quadratic, and an earlier version
+# that unescaped a @tsv field that way ran past its 5-second budget on every
+# write above a few tens of kilobytes.
+payload="$(cat)"
+[ -n "$payload" ] || exit 0
+session="$(printf '%s' "$payload" | jq -r '.session_id // ""' 2>/dev/null)" || exit 0
+file="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.notebook_path // ""' 2>/dev/null)" || exit 0
 
 [ -n "$file" ] || exit 0
 
@@ -57,11 +55,6 @@ case "$file" in
   */projects/*/memory/*|*/inbox/*|*/processed/*) exit 0 ;;
 esac
 
-# @tsv escapes newlines and tabs; restore them so the heading anchors can match.
-# Builtin substitution, no subprocess.
-text="${text//\\n/$'\n'}"
-text="${text//\\t/	}"
-
 name="${file##*/}"
 msg=""
 
@@ -70,11 +63,16 @@ msg=""
 # hook fires on the file that documents it. Strip those before matching.
 strip() { sed -e '/^[[:space:]]*```/,/^[[:space:]]*```/d' -e 's/`[^`]*`//g' -e 's/"[^"]*"//g' 2>/dev/null; }
 
-if [ -n "$text" ]; then
-  hit="$(printf '%s' "$text" | strip | grep -o -i -m1 -E "$pats" 2>/dev/null)"
-  if [ -n "$hit" ]; then
-    msg="\"$hit\" in $name reads as chat rather than content. If it is about the work, addressed to the user, or narrating what just happened, say it in the reply instead - the file gets the instruction, the path, the criterion. Keep it only if it is genuinely part of the document."
-  fi
+# Only the INCOMING text: Write (.content), Edit (.new_string) and MultiEdit
+# (.edits[].new_string), so an edit that REMOVES a flagged phrase stays silent.
+# LC_ALL=C keeps the case-insensitive grep byte-wise; under a UTF-8 locale the
+# same alternation runs an order of magnitude slower.
+hit="$(printf '%s' "$payload" | jq -r '
+    (.tool_input.content // "") + "\n" + (.tool_input.new_string // "")
+      + "\n" + ([.tool_input.edits[]?.new_string // empty] | join("\n"))' 2>/dev/null \
+  | strip | LC_ALL=C grep -o -i -m1 -E "$pats" 2>/dev/null)"
+if [ -n "$hit" ]; then
+  msg="\"$hit\" in $name reads as chat rather than content. If it is about the work, addressed to the user, or narrating what just happened, say it in the reply instead - the file gets the instruction, the path, the criterion. Keep it only if it is genuinely part of the document."
 fi
 
 # Path-only signal: the session-report habit that content patterns miss. A new
@@ -101,6 +99,8 @@ if [ -n "${XDG_STATE_HOME:-}${HOME:-}" ]; then
   fi
 fi
 
+# Context only, no permissionDecision: an "allow" from an advisory hook would
+# be a permission verdict, and this hook has no standing to give one.
 jq -n --arg msg "$msg" \
-  '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow", additionalContext: $msg}}'
+  '{hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: $msg}}'
 exit 0

@@ -20,6 +20,13 @@ A legitimate use gets through by resubmitting the identical write: the first
 deny records a hash of the path and incoming text for the session, and the
 matching retry is allowed once.
 
+A file that is somebody else's text verbatim (a quoted source, a transcript)
+is exempt as a whole when its YAML frontmatter `tags` holds one of the tags the
+list's `[exempt]` table names. The frontmatter is read from the file on disk
+when one exists and from the incoming content only for a new file, so the tag
+cannot arrive in the same write as the word; a tag anywhere else in the file
+does not count.
+
 List location: reject-words.toml beside this script, or REJECT_WORDS_FILE.
 Fail-open: a garbage payload, a missing or unparseable list, or an unwritable
 state dir allows the write.
@@ -69,6 +76,68 @@ def load_categories(path):
         pattern = re.compile(rf"(?<![\w-])({alts})(?![\w-])", re.IGNORECASE)
         cats.append((name, pattern, spec))
     return cats
+
+
+def exempt_tags(path):
+    """The [exempt] table's tags list; () when absent or malformed."""
+    try:
+        import tomllib
+        data = tomllib.loads(Path(path).read_text())
+        tags = (data.get("exempt") or {}).get("tags")
+        return tuple(t.strip().lower() for t in tags if isinstance(t, str) and t.strip()) if isinstance(tags, list) else ()
+    except (ImportError, OSError, ValueError, AttributeError):
+        return ()
+
+
+FRONTMATTER = re.compile("\\A\ufeff?---[ \\t]*\\r?\\n(.*?)\\r?\\n---[ \\t]*(?:\\r?\\n|\\Z)", re.DOTALL)
+
+
+def frontmatter_tags(text):
+    """Lowercased values of a frontmatter `tags` key: inline list, bare
+    scalar, or block list. Plain YAML shapes only, no parser."""
+    m = FRONTMATTER.match(text)
+    if not m:
+        return set()
+    lines = m.group(1).splitlines()
+    found = set()
+    for i, line in enumerate(lines):
+        km = re.match(r"^tags:[ \t]*(.*?)[ \t]*$", line)
+        if not km:
+            continue
+        inline = km.group(1)
+        if inline:
+            found.update(re.findall(r"[^\s,\[\]\"']+", inline))
+        else:
+            for nxt in lines[i + 1:]:
+                lm = re.match(r"^[ \t]+-[ \t]*(.+?)[ \t]*$", nxt)
+                if not lm:
+                    break
+                found.add(lm.group(1).strip("\"'"))
+        break
+    return {t.lower() for t in found}
+
+
+def is_exempt(tool_input, new, tags):
+    """True when the file's frontmatter names an exempt tag. The tag is read
+    from the file on disk whenever one exists, and from the incoming content
+    only for a file being created, so a tag cannot be added to an authored
+    document in the same write that adds a rejected word."""
+    if not tags:
+        return False
+    p = Path(tool_input.get("file_path") or "")
+    try:
+        exists = p.is_file()
+    except OSError:
+        return False
+    if exists:
+        try:
+            with p.open(encoding="utf-8", errors="replace") as f:
+                text = f.read(8192)
+        except OSError:
+            return False
+    else:
+        text = new if "content" in tool_input else ""
+    return bool(frontmatter_tags(text) & set(tags))
 
 
 def strip_named(text):
@@ -187,6 +256,8 @@ def check(payload):
         return 0
 
     new, old = incoming_and_replaced(tool_input)
+    if is_exempt(tool_input, new, exempt_tags(list_path())):
+        return 0
     added = hits(new, cats) - hits(old, cats)
     if not added:
         return 0

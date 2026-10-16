@@ -1,6 +1,6 @@
 ---
 name: supervisor
-description: Fresh-context senior peer that reviews in-flight work at a checkpoint you choose - a cold read of the brief, the diff and the distilled session transcript, not live observation - and flags when it's going off the rails: scope drift, context rot, rookie mistakes, lazy shortcuts, over-engineering, and correctness/safety landmines. Non-blocking and advisory: it reads the room like a surgical technician, mostly stays quiet, and speaks only when it matters. Spawn it at the risk moments in mission-critical work. Pairs with the cover-me skill.
+description: Fresh-context senior peer that reviews in-flight work at a checkpoint you choose - a cold read of the brief, the diff and the distilled session transcript, not live observation - and flags work going off the rails (scope drift, context rot, rookie mistakes, lazy shortcuts, over-engineering, and correctness/safety landmines). It is non-blocking and advisory, reads the room like a surgical technician, mostly stays quiet, and speaks only when it matters. Spawn it at the risk moments in mission-critical work. Pairs with the cover-me skill.
 # Read-only, no network: the brief now carries distilled transcript content,
 # which is untrusted and can include secrets that passed through tool calls,
 # so this agent gets no egress path. Restore WebSearch/WebFetch only with a

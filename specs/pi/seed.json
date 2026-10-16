@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "harness": "pi",
+  "rows": [
+    {"element": "Skills", "shape": "NATIVE", "path": "~/.agents/skills/"},
+    {"element": "Subagents", "shape": "N/A", "note": "pi's extension model is TypeScript in-process"},
+    {"element": "Commands", "shape": "N/A", "note": "no command tree; the portable route is a skill"},
+    {"element": "Remote control", "shape": "FRAGMENT", "path": "~/.zshrc", "format": "profile",
+     "keys": {"PI_TELEMETRY": 0}}
+  ]
+}

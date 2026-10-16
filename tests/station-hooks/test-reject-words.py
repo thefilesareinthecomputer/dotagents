@@ -35,6 +35,9 @@ instead = "Name the widget."
 
 [broken]
 words = "not a list"
+
+[exempt]
+tags = ["verbatim"]
 """
 
 
@@ -142,6 +145,40 @@ class Hook(unittest.TestCase):
 
     def test_exempt_paths_are_untouched(self):
         self.assertIsNone(self.run_hook({"file_path": "/x/.claude/hooks/y.md", "content": "frobnicate"}))
+
+    def test_verbatim_tag_in_frontmatter_exempts_a_write(self):
+        for fm in ("tags: [quote, verbatim]", "tags: verbatim", "tags:\n  - quote\n  - verbatim", "tags: [\"Verbatim\"]"):
+            res = self.run_hook({"file_path": self.doc(), "content": f"---\n{fm}\n---\n\nSeneca would frobnicate.\n"})
+            self.assertIsNone(res, fm)
+
+    def test_verbatim_tag_exempts_an_edit_to_a_tagged_file(self):
+        path = self.root / "seneca.md"
+        path.write_text("---\ntags:\n  - verbatim\n---\n\nText.\n")
+        self.assertIsNone(self.run_hook({"file_path": str(path), "old_string": "Text.", "new_string": "We frobnicate."}))
+
+    def test_tag_added_to_an_existing_authored_file_does_not_exempt(self):
+        path = self.root / "essay.md"
+        path.write_text("---\ntags: [draft]\n---\n\nText.\n")
+        res = self.run_hook({"file_path": str(path), "content": "---\ntags: [draft, verbatim]\n---\n\nWe frobnicate.\n"})
+        self.assertIsNotNone(res)
+
+    def test_tag_outside_frontmatter_does_not_exempt(self):
+        for body in ("tags: [verbatim]\n\nfrobnicate", "---\ntype: verbatim\n---\nfrobnicate",
+                     "---\ntags: [quote]\n---\n\ntags: [verbatim]\nfrobnicate", "Intro.\n---\ntags: [verbatim]\n---\nfrobnicate"):
+            self.assertIsNotNone(self.run_hook({"file_path": self.doc(), "content": body}), body)
+
+    def test_no_exempt_table_means_no_exemption(self):
+        lst = self.root / "noexempt.toml"
+        lst.write_text(LIST.split("[exempt]")[0])
+        env = dict(self.env, REJECT_WORDS_FILE=str(lst))
+        res = self.run_hook({"file_path": self.doc(), "content": "---\ntags: [verbatim]\n---\nfrobnicate"}, env=env)
+        self.assertIsNotNone(res)
+
+    def test_frontmatter_tags_parser(self):
+        self.assertEqual(rw.frontmatter_tags("---\ntags: [a, 'B']\n---\n"), {"a", "b"})
+        self.assertEqual(rw.frontmatter_tags("---\ntitle: x\ntags:\n  - a\n  - b\nnext: y\n---\n"), {"a", "b"})
+        self.assertEqual(rw.frontmatter_tags("---\ntags:\n---\n"), set())
+        self.assertEqual(rw.frontmatter_tags("no frontmatter"), set())
 
     def test_missing_list_and_garbage_payload_fail_open(self):
         env = dict(self.env, REJECT_WORDS_FILE=str(self.root / "missing.toml"))

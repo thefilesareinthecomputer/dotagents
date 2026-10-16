@@ -473,28 +473,40 @@ class TestClean(Base):
 
 class TestDaemonReaper(Base):
     """A Codex managed daemon recorded under the isolated home is killed by a
-    run and by clean; a pid whose command line does not name that home is not."""
+    run and by clean when its command line proves it belongs to that home; a
+    reused pid is left alone, and a daemon whose ownership cannot be confirmed
+    is left running with its record kept."""
+
+    def daemon_argv(self):
+        # The real shape: Codex installs the daemon binary under its home, so the
+        # home is in argv[0]; the rest of the line never names it.
+        return (f"{self.state / 'home'}/packages/app-server-daemon/releases/0.1.0-x/bin/codex "
+                "app-server --listen unix:// --managed-daemon")
 
     def plant(self, argv_tag: str):
         home = self.state / "home"
         (home / "app-server-daemon").mkdir(parents=True)
         proc = subprocess.Popen([sys.executable, "-c", "import sys, time; time.sleep(120)",
-                                 argv_tag], start_new_session=True)
+                                 *argv_tag.split()], start_new_session=True)
         (home / "app-server-daemon" / "daemon.pid").write_text(json.dumps({"pid": proc.pid}))
-        self.addCleanup(lambda: proc.kill() if proc.poll() is None else None)
+        def stop():
+            if proc.poll() is None:
+                proc.kill()
+            proc.wait(timeout=5)
+        self.addCleanup(stop)
         return home, proc
 
     def test_run_kills_a_daemon_left_under_the_home(self):
-        home, proc = self.plant(f"codex app-server --managed-daemon {self.state / 'home'}")
+        home, proc = self.plant(self.daemon_argv())
         r = self.run_task()
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIsNotNone(proc.poll(), "the daemon outlived the run")
         self.assertFalse((home / "app-server-daemon").exists())
         rpt, _ = self.report()
-        self.assertTrue(any("daemon" in w for w in rpt["warnings"]), rpt["warnings"])
+        self.assertTrue(any("killed a Codex daemon" in w for w in rpt["warnings"]), rpt["warnings"])
 
     def test_clean_kills_a_daemon_left_under_the_home(self):
-        home, proc = self.plant(f"codex app-server --managed-daemon {self.state / 'home'}")
+        home, proc = self.plant(self.daemon_argv())
         r = self.run_cmd("clean", "--older-than-days", "9999")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIsNotNone(proc.poll(), "the daemon outlived clean")
@@ -506,6 +518,21 @@ class TestDaemonReaper(Base):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIsNone(proc.poll(), "an unrelated process was killed")
         self.assertFalse((home / "app-server-daemon").exists(), "the stale pid file should still go")
+
+    def test_a_daemon_whose_home_cannot_be_confirmed_is_kept_not_killed(self):
+        home, proc = self.plant("/usr/local/bin/codex app-server --listen unix:// --managed-daemon")
+        r = self.run_cmd("clean", "--older-than-days", "9999")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIsNone(proc.poll(), "a daemon of unconfirmed ownership was killed")
+        self.assertTrue((home / "app-server-daemon" / "daemon.pid").exists(), "the record must stay")
+        self.assertIn("left running, record kept", r.stderr)
+
+    def test_a_symlinked_pid_file_is_ignored(self):
+        home = self.state / "home"
+        (home / "app-server-daemon").mkdir(parents=True)
+        (home / "app-server-daemon" / "daemon.pid").symlink_to("/dev/zero")
+        r = self.run_cmd("clean", "--older-than-days", "9999", timeout=30)
+        self.assertEqual(r.returncode, 0, r.stderr)
 
 
 if __name__ == "__main__":

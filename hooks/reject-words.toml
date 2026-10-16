@@ -13,6 +13,13 @@
 #            answer "this is the exception".
 #
 # Add a category when a word keeps coming back after being corrected by hand.
+#
+# [exempt] is not a category. Its `tags` list names frontmatter tags that mark
+# a whole file as somebody else's words (a quoted source, a transcript), where
+# the list has no say. The tag has to sit in the file's YAML frontmatter `tags`.
+
+[exempt]
+tags = ["verbatim"]
 
 [figurative-load]
 words = ["carry", "carries", "carried", "carrying", "load-bearing"]

@@ -1,18 +1,20 @@
 ---
 name: agent-cc-configs-sync
-description: Seeds a new device or idempotently reconciles an existing one against the Claude Code station spec in specs/claude-code/ - pulls the latest ~/.agents first, vets the inbound delta and alerts on anything breaking or critical, runs sync-skills.sh, applies the global CLAUDE.md pointer template, then diffs settings, hooks, statuslines, keybindings, plugins and CLI deps item by item, asking the user which drifted items to apply. Invoked explicitly (/agent-cc-configs-sync) when setting up Claude Code on a new machine, bringing a device up to date with the specs, or checking a station for drift. External installs (brew, plugins, claude-mem) are an opt-in second step. The git commit/push ritual is repo-device-sync, not this.
+description: Seeds a new device or idempotently reconciles an existing one against the station specs in specs/<harness>/ - pulls the latest ~/.agents first and alerts on anything breaking in the delta, plans every installed harness with seed.py (sync-skills.sh, the CLAUDE.md pointer, Antigravity's skills.json, the privacy and remote-control fragments) and applies one harness at a time on approval, then diffs Claude Code's settings, hooks, statuslines, keybindings, plugins and CLI deps item by item, asking which drifted items to apply. Invoked explicitly (/agent-cc-configs-sync) when setting up a new machine, bringing a device up to date with the specs, or checking a station for drift. External installs are an opt-in second step. The git commit/push ritual is repo-device-sync, not this.
 disable-model-invocation: true
 ---
 
 # agent-cc-configs-sync
 
-Brings one machine's Claude Code station into line with the spec at
-`~/.agents/specs/claude-code/` - the same procedure whether the device is
-brand new or just drifted. The spec's `SPEC-CLAUDE-CODE.md` is the source of
-truth; its section 0 table maps each seed file to its station path, and a
-configured station matches its seeds byte for byte, so every check below is a
-`diff`, not a reading exercise. Idempotent by design: on an in-spec station
-every phase reports clean and changes nothing.
+Brings one machine's harness stations into line with the specs under
+`~/.agents/specs/` - the same procedure whether the device is brand new or just
+drifted. Each spec's Seeding table, mirrored in its `seed.json`, says what that
+harness inherits and what gets planted (Phase 1, every installed harness).
+Claude Code has the most seed files, and `SPEC-CLAUDE-CODE.md` section 0 maps
+each to its station path; a configured station matches its seeds byte for
+byte, so every check below is a `diff`, not a reading exercise (Phases 2 to 5).
+Idempotent by design: on an in-spec station every phase reports clean and
+changes nothing.
 
 **Non-destructive throughout.** Nothing on the station is overwritten without
 showing the diff and getting the user's pick first. Drift is two-way: the
@@ -41,15 +43,45 @@ and anything that would overwrite a station-side customization. Routine prose
 or template wording changes just flow into the normal Phase 2/3 diffs; the
 alert is for changes with behavioral or safety consequences.
 
-## Phase 1 - Sync the view
+## Phase 1 - Plan every harness the station has
 
 ```bash
-bash ~/.agents/sync-skills.sh
+python3 ~/.agents/skills/agent-cc-configs-sync/scripts/harness_probe.py          # what is installed; columns explained in Phase 2
+python3 ~/.agents/skills/agent-cc-configs-sync/scripts/seed.py plan --harness all
+python3 ~/.agents/skills/agent-cc-configs-sync/scripts/seed.py apply --harness <h> [--element <e>] [--key <k>]   # after the user approves that harness's plan
 ```
 
-Symlinks `skills/`, `agents/`, and `commands/` into `~/.claude/` per-entry.
-Already idempotent and never clobbers a real local entry; run it every time.
-If it errors on a parent-level symlink, follow the message it prints.
+`seed.py` reads `specs/<harness>/seed.json`, the machine-readable copy of that
+spec's Seeding table, and does what each row's shape says. The six shapes are
+defined in `specs/SEEDING-SHAPES.md`.
+
+| Shape | What `seed.py` does |
+|---|---|
+| `LINK` | runs `sync-skills.sh` |
+| `POINTER` | writes a file only when it is absent (Claude Code's `CLAUDE.md`, Antigravity's `skills.json`) |
+| `COPY` | shows the diff, and replaces the station file on apply |
+| `FRAGMENT` | merges only the named keys into a station-owned file (`settings.json`, Codex's `config.toml`, Cursor's `cli-config.json`, goose's `config.yaml`, the shell profile for pi) and re-reads the result before writing it |
+| `NATIVE`, `N/A` | reports only |
+
+A harness with no binary on PATH and no config home is skipped as not
+installed, so one `plan --harness all` covers whatever the station has. The plan
+writes nothing. `apply` recomputes the plan, prints the diff it writes, and
+writes one harness at a time; `--element` limits it to one row and `--key` to
+named keys inside a `FRAGMENT` row. An object or list value is written whole,
+and the plan names the station-only entries that drops, except that a
+permissions deny list is always the union. An existing file is kept once as
+`<name>.seed-bak`. Every persistent invariant 7 switch (Claude Code's
+`disableRemoteControl` and telemetry env, Codex's daemon and analytics keys,
+Cursor's privacy mode, goose's and pi's telemetry) is one of these fragments;
+what no file holds stays by hand: a running `codex app-server` daemon is
+killed, Copilot's `--no-remote-export` rides each session, and Antigravity's
+remote-control daemon is never started. After an apply the remote-control
+column of `harness_probe.py` reads `off`.
+
+The `LINK` row runs `sync-skills.sh`, which creates the Claude Code symlinks and
+also runs by hand (`bash ~/.agents/sync-skills.sh`). It is idempotent and never
+clobbers a real local entry. If it errors on a parent-level symlink, follow the
+message it prints. Hooks go through `seed_hooks.py`, which the `Hooks` row runs.
 
 ## Phase 2 - Seed-file parity
 
@@ -61,13 +93,14 @@ python3 ~/.agents/skills/agent-cc-configs-sync/scripts/harness_probe.py         
 
 It prints one row per core harness (Claude Code, Codex, Cursor, Copilot, goose,
 pi, Antigravity) with the installed version, the config home, and whether the
-harness lists one of this repo's skills where a no-login listing exists, and a
-remote-control column that must read `off` for every harness (SPEC.md invariant
-7: remote control, background daemons and telemetry are off on every station).
-Any other value names the switch to flip; the harness spec says where it lives.
+harness lists one of this repo's skills where a no-login listing exists. Its
+remote-control column must read `off` for every harness, because SPEC.md
+invariant 7 keeps remote control, background daemons and telemetry off on every
+station. Any other value names the switch to flip, and that harness's spec says
+where the switch lives.
 Stamp a station spec's version line from this output, never from memory.
 
-Then hooks, which the seeder handles. Their scripts come from two folders
+Hooks come next, and `seed_hooks.py` handles them. Their scripts come from two folders
 (the repository's `hooks/` and `specs/claude-code/hooks/`), and the `hooks` key
 of `settings.json` is generated from their manifests, so neither is a plain
 file diff.
@@ -84,31 +117,29 @@ records what it installed in `~/.claude/hooks/.seed-hooks.json`, so a later
 rename or retirement is reported rather than left running. A wiring diff that
 changes only grouping is not applied.
 
-Then, for each remaining row of the spec's section 0 table (CLAUDE.md.example,
-which is the one-line pointer to `~/.agents/AGENTS.md`, statusline.sh,
-subagent-statusline.sh, keybindings.json - everything except settings.json,
-which gets Phase 3's treatment), diff the seed against its station path:
+The remaining rows of the spec's section 0 table (CLAUDE.md.example,
+statusline.sh, subagent-statusline.sh, keybindings.json) are `seed.py` rows,
+and the Phase 1 plan already showed each as in parity, absent or drifted. Ask
+the user which side wins for every drifted row in one pass rather than one
+prompt per file:
 
-- **Identical** - skip, report in sync.
-- **Missing on station** - copy the seed verbatim (Write tool, not shell).
-- **Drifted** - show the diff and ask which side wins. Seed wins: write the
-  seed over the station file. Station wins: leave the station alone and record
-  the delta as a pending spec edit for the user to make deliberately - never
-  edit the spec seeds from inside this ritual.
+- **Seed wins** - `apply --element <row>` writes the seed over the station file.
+- **Station wins** - leave the station alone and record the delta as a pending
+  spec edit for the user to make deliberately - never edit the spec seeds from
+  inside this ritual.
 
-Collect all drifted items first, then ask about them in one pass rather than
-one prompt per file.
+`seed.py` never overwrites a `CLAUDE.md` that differs; reconcile it by hand.
 
 ## Phase 3 - settings.json (per-key, never whole-file)
 
 `~/.claude/settings.json` mixes spec-owned keys with machine-local ones, so a
-whole-file overwrite is always wrong. The seeder wrote the `hooks` key in Phase
-2, so this phase skips it. Compare the seed and the station key by key
-(top-level keys, and per-entry inside `permissions` and `enabledPlugins`):
-
-- Keys only on the station: leave them; they are device-local by design.
-- Keys only in the seed, or differing: list each with both values and ask
-  which to apply. Apply the chosen ones with Edit on the station file.
+whole-file overwrite is always wrong. The `Permissions and settings` row of
+`seed.py` merges only the keys the spec names and leaves every station-owned key
+(`model`, `effortLevel`, `theme`, `tui` and the rest) alone. `seed_hooks.py`
+wrote the `hooks` key in Phase 2. The `seed.py` plan lists each differing key
+with both values. Ask the user which to apply, then run
+`apply --element "Permissions and settings"` for the seed-wins keys; a
+station-wins key is a pending spec edit, as in Phase 2.
 
 The spec's section 7 explains what each block enforces; consult it before
 recommending a side.
@@ -149,4 +180,5 @@ one for deps.
 
 Committing or pushing this repo (or any repo) is `repo-device-sync`. A one-off
 settings.json tweak the user dictates is `update-config`, not a parity sweep.
-Other harnesses' stations follow their own folder under `specs/`.
+Phases 2 to 5 are Claude Code's; the other harnesses have no seed files beyond
+their `seed.json` rows yet, so Phase 1 is their whole reconciliation.

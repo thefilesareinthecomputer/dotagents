@@ -42,6 +42,12 @@ related: "[[Other Note]]"
 | List | `tags: [one, two]` or a YAML block list |
 | Links | `related: "[[Other Note]]"` |
 
+The type is fixed per property **name** across the whole vault, not per note.
+The first value Obsidian sees for a name sets its type in `.obsidian/types.json`, and every later note's value under that name is read as that type.
+For example, `due: next week` in a vault where `due` is a date shows a warning, and Bases sorts and filters it incorrectly.
+A name holds one type only, so a value of a second type goes under a second name.
+Tooling that writes frontmatter across many notes keeps to the vault's existing names and types, and checks `types.json` before introducing a name.
+
 ## Reserved / default keys: PLURAL LISTS ONLY (1.9 breaking change)
 - `tags`: note tags (searchable, shown in graph view). Values lowercased; leading `#` stripped.
 - `aliases`: alternative names (used in link suggestions).

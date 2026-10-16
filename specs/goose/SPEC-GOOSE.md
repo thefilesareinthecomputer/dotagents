@@ -50,7 +50,7 @@ a source the research pass could not find (findings, section 2).
 | Global | `~/.config/goose/config.yaml` | provider, model, extensions and settings |
 | Global | `~/.config/goose/.goosehints`, `~/.config/goose/AGENTS.md` | the documented global context files (neither exists on the laptop) |
 | Global | `~/.config/goose/memory/` | the memory extension's store |
-| Remote control (invariant 7) | `GOOSE_TELEMETRY_ENABLED: false` in `config.yaml`; `goose serve` and `goose acp` never run | telemetry off on the laptop 2026-10-15; the ACP server is the only remote surface and starts only by hand |
+| Remote control (invariant 7) | `GOOSE_TELEMETRY_ENABLED: false` in `config.yaml`; `goose serve` and `goose acp` never run | telemetry off on the laptop 2026-10-15; `goose --help` at 1.54.0 lists `serve` (ACP over HTTP and WebSocket) and `acp` (ACP on stdio) as its only network-serving subcommands, and both start only by hand |
 | Relocation | `GOOSE_PATH_ROOT` | moves `config/`, `data/sessions/` and `state/logs/` under one root |
 | Project | `.goosehints`, `AGENTS.md`, from the working directory up to the repo root | context files, local wins |
 | Project | `.goose/skills/`, `.agents/plugins/<name>/hooks/` | project skills and hook plugins |
@@ -93,6 +93,20 @@ falls under the hosted-model limit in `SPEC.md` invariant 6: **medium-stakes and
 hobby work only.** Work that matters runs on Anthropic or a genuinely local model.
 Check each model's local-versus-cloud status before assuming it satisfies "local";
 the `:cloud` suffix is the tell, and the parameter count is a hint.
+
+## Seeding
+
+What this harness inherits natively from `~/.agents` and what has to be
+installed. Shapes are defined once in
+[`../SEEDING-SHAPES.md`](../SEEDING-SHAPES.md), and `seed.json` beside this file
+is the machine-readable copy that `seed.py` reads.
+
+| Element | Shape | Station path | Notes |
+|---|---|---|---|
+| Skills | `NATIVE` | reads `~/.agents/skills/` | verified by `goose skills list`, which needs no sign-in |
+| Subagents | `N/A` | - | untested; no subagent tree documented |
+| Commands | `N/A` | - | commands in `~/.agents/commands/` do not appear in goose (observed 2026-07-31) |
+| Remote control | `FRAGMENT` | `~/.config/goose/config.yaml` | one top-level key, `GOOSE_TELEMETRY_ENABLED: false` (invariant 7); the last occurrence of a key wins in this file, so the seed folds duplicates into one line |
 
 ## Station config
 

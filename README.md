@@ -40,8 +40,8 @@ repo directly, with no install step.**
 | Harness | Setup | Spec |
 |---|---|---|
 | **Claude Code** | `sync-skills.sh` | [SPEC-CLAUDE-CODE](specs/claude-code/SPEC-CLAUDE-CODE.md) |
-| **Antigravity CLI** | one `skills.json` | [SPEC-ANTIGRAVITY](specs/antigravity/SPEC-ANTIGRAVITY.md) |
-| **Codex CLI** | none for skills; a three-key `config.toml` privacy fragment | [SPEC-CODEX](specs/codex/SPEC-CODEX.md) |
+| **Antigravity CLI** | one `skills.json`, written by `seed.py` | [SPEC-ANTIGRAVITY](specs/antigravity/SPEC-ANTIGRAVITY.md) |
+| **Codex CLI** | none for skills; a four-key `config.toml` privacy fragment | [SPEC-CODEX](specs/codex/SPEC-CODEX.md) |
 | **GitHub Copilot** | none | [SPEC-COPILOT](specs/copilot/SPEC-COPILOT.md) |
 | **Cursor** | none | [SPEC-CURSOR](specs/cursor/SPEC-CURSOR.md) |
 | **deepagents** | passed in code | [SPEC-DEEPAGENTS](specs/deepagents/SPEC-DEEPAGENTS.md) |
@@ -54,7 +54,10 @@ repo directly, with no install step.**
 Two need a setup step. Claude Code takes [`sync-skills.sh`](#for-agents), which
 symlinks the skills, subagents and commands into `~/.claude` without touching
 anything already there. Antigravity reads `.agents/` per project but not
-`~/.agents/` globally, and takes a one-entry pointer file instead. Full paths,
+`~/.agents/` globally, and takes a one-entry pointer file instead. Both steps,
+and every harness's privacy and remote-control keys, are rows of
+`specs/<harness>/seed.json`, which `seed.py plan --harness all` in the
+`agent-cc-configs-sync` skill checks for whatever harnesses a machine has. Full paths,
 per-harness caveats and what does *not* carry over are under
 [For agents](#for-agents).
 
@@ -248,7 +251,7 @@ more than the pause that would have prevented it.
   skills-archive/     # retired-but-kept skills; not synced, restore with git mv
   agents/             # one .md per subagent (YAML frontmatter + system prompt)
   commands/           # one .md per slash command
-  sync-skills.sh      # assembles ~/.claude/{skills,agents,commands} as a per-device view
+  sync-skills.sh      # assembles ~/.claude/{skills,agents,commands} as a per-device view; the LINK step of seed.py
   hooks/              # cross-harness hook scripts with their manifest; each harness's own hooks sit in specs/<harness>/hooks/
   tests/              # station hook suites, plus per-skill behavior batteries
   SPEC.md             # living spec: current state and scope

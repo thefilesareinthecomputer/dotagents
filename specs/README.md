@@ -5,15 +5,15 @@ A spec states what a machine's install of that harness needs around these skills
 
 `SPEC.md` at the repo root says what this repo IS. These say what a *harness*
 needs around it. [`HARNESS-PROFILES.md`](HARNESS-PROFILES.md) compares the core
-harnesses side by side - installed version, config home, skills discovery, hooks
-state, models and what each is for - stamped from the probe in the
-`agent-cc-configs-sync` skill.
+harnesses side by side - installed version, config home, skills discovery,
+remote-control state, hooks state, models and what each is for - stamped from
+the probe in the `agent-cc-configs-sync` skill.
 
 | Folder | Harness | Skills setup |
 |---|---|---|
 | [`claude-code/`](claude-code/SPEC-CLAUDE-CODE.md) | Claude Code | `sync-skills.sh` |
-| [`antigravity/`](antigravity/SPEC-ANTIGRAVITY.md) | Antigravity CLI (`agy`) | `~/.gemini/config/skills.json` |
-| [`codex/`](codex/SPEC-CODEX.md) | OpenAI Codex CLI | none for skills, reads `~/.agents/skills`; a three-key `config.toml` privacy fragment |
+| [`antigravity/`](antigravity/SPEC-ANTIGRAVITY.md) | Antigravity CLI (`agy`) | `~/.gemini/config/skills.json`, written by `seed.py` |
+| [`codex/`](codex/SPEC-CODEX.md) | OpenAI Codex CLI | none for skills, reads `~/.agents/skills`; a four-key `config.toml` privacy fragment |
 | [`copilot/`](copilot/SPEC-COPILOT.md) | GitHub Copilot (VS Code + CLI) | none, reads `~/.agents/skills` |
 | [`cursor/`](cursor/SPEC-CURSOR.md) | Cursor (IDE + CLI) | none, reads `~/.agents/skills` |
 | [`goose/`](goose/SPEC-GOOSE.md) | goose | none, reads `~/.agents/skills` |
@@ -54,7 +54,10 @@ their settings are optional - omit them and the rest still stands.
 Two harnesses need a setup step before they find these skills. Claude Code
 takes `sync-skills.sh`, which also gives it the subagents and commands.
 Antigravity reads `.agents/` per project but not `~/.agents/` globally, and
-takes a one-entry `skills.json` pointer file instead.
+takes a one-entry `skills.json` pointer file instead. Each core spec's Seeding
+table has a machine-readable copy, `seed.json`, in the same folder, and a test
+holds every `seed.json` row to the table's element and shape. `seed.py` in the
+`agent-cc-configs-sync` skill plans and applies those rows per harness.
 
 deepagents is the odd one out: a library rather than something you install on
 a machine, so its spec covers wiring rather than a station. LangGraph sits
