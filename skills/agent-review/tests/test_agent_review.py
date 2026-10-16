@@ -27,9 +27,48 @@ spec.loader.exec_module(ar)
 class TestResolve(unittest.TestCase):
     def test_defaults_per_harness_with_effort_high(self):
         for harness, model in (("claude", "claude-fable-5-1"), ("codex", "gpt-6-astra"),
-                               ("cursor", "grok-4.7"), ("antigravity", "gemini-3.1-pro")):
+                               ("cursor", "grok-4.7"), ("antigravity", "gemini-4-argon")):
             cfg = ar.resolve(harness, None, None)
             self.assertEqual((cfg["model"], cfg["effort"]), (model, "high"), harness)
+
+
+class TestAgyModelChoice(unittest.TestCase):
+    """The Antigravity CLI lists only level-suffixed slugs and refuses a name it does not list; two panels lost the
+    member to a stale pin before the slug was checked against the list. The choice is made from the live list."""
+    LISTING = ["gemini-4-argon-medium", "gemini-4-argon-high", "gemini-4-argon-low", "gemini-3.8-flash-high",
+               "gemini-3.8-flash-low", "claude-opus-5-5-high"]
+
+    def test_a_listed_slug_is_used_as_given(self):
+        self.assertEqual(ar.pick_agy_model("gemini-4-argon-high", None, self.LISTING), ("gemini-4-argon-high", None))
+        self.assertEqual(ar.pick_agy_model("gemini-4-argon", "low", self.LISTING), ("gemini-4-argon-low", None))
+
+    def test_a_missing_level_falls_to_the_nearest_listed_level_and_says_so(self):
+        slug, note = ar.pick_agy_model("gemini-4-argon", "xhigh", self.LISTING)
+        self.assertEqual(slug, "gemini-4-argon-high")
+        self.assertIn("xhigh", note)
+        slug, note = ar.pick_agy_model("gemini-3.8-flash", "medium", self.LISTING)
+        self.assertEqual(slug, "gemini-3.8-flash-low", "the nearest lower level first, the next level up only when nothing lower is listed")
+        slug, note = ar.pick_agy_model("gemini-3.8-flash", "low", ["gemini-3.8-flash-high"])
+        self.assertEqual(slug, "gemini-3.8-flash-high")
+
+    def test_a_stale_pin_moves_to_the_same_family_at_the_same_level(self):
+        slug, note = ar.pick_agy_model("gemini-3.1-pro", "high", self.LISTING)
+        self.assertEqual(slug, "gemini-4-argon-high", "the first gemini entry in the CLI's own order")
+        self.assertIn("gemini-3.1-pro", note)
+        slug, note = ar.pick_agy_model("gemini-3.1-pro-low", None, self.LISTING)
+        self.assertEqual(slug, "gemini-4-argon-low")
+
+    def test_no_model_of_that_family_is_a_refusal_naming_the_list(self):
+        with self.assertRaises(ar.ReviewError) as cm:
+            ar.pick_agy_model("mistral-9", "high", self.LISTING)
+        self.assertIn("gemini-4-argon-high", str(cm.exception))
+        with self.assertRaises(ar.ReviewError):
+            ar.pick_agy_model("gemini-4-argon", "high", [])
+
+    def test_the_listing_is_parsed_from_the_clis_output(self):
+        out = "Fetching available models...\ngemini-4-argon-high\tGemini 4 Argon (High)\nclaude-opus-5-5-low\tClaude Opus 5.5 (Low)\n\n"
+        self.assertEqual(ar.parse_agy_models(out), ["gemini-4-argon-high", "claude-opus-5-5-low"])
+        self.assertEqual(ar.parse_agy_models(""), [])
 
     def test_level_in_the_model_name_drops_the_effort(self):
         self.assertIsNone(ar.resolve("cursor", "grok-4.7-xhigh", "low")["effort"])
@@ -302,7 +341,34 @@ class TestOneShotRunners(Base):
         self.assertIn("--effort", argvs["claude"])
         self.assertIn('model_reasoning_effort="low"', argvs["codex"])
         self.assertIn("grok-4.7-low", argvs["agent"])
-        self.assertIn("--effort", argvs["agy"])
+        self.assertIn("gemini-4-argon-low", argvs["agy"])   # agy takes the level in the slug, never --effort
+        self.assertNotIn("--effort", argvs["agy"])
+
+    def test_antigravity_checks_its_slug_against_the_clis_model_list_and_records_a_substitution(self):
+        # a stale pin is moved to the same family at the same level, said on stdout and in run.json; the CLI is
+        # never sent a slug it does not list
+        r = self.run_one("antigravity", extra=["--model", "gemini-3.1-pro", "--effort", "high"])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        agy = [c for c in self.calls() if c["cli"] == "agy" and c["argv"][:1] != ["models"]]
+        self.assertEqual(agy[0]["argv"][agy[0]["argv"].index("--model") + 1], "gemini-4-argon-high")
+        run = json.loads((self.out / "run.json").read_text())
+        self.assertEqual(run["model"], "gemini-4-argon-high")
+        self.assertEqual(run["model_substituted"]["from"], "gemini-3.1-pro")
+        self.assertIn("gemini-4-argon-high", r.stdout)
+        self.assertIn("gemini-3.1-pro", r.stdout)
+
+    def test_antigravity_with_no_model_of_the_family_fails_with_the_list_and_no_call(self):
+        r = self.run_one("antigravity", extra=["--model", "mistral-9"])
+        self.assertEqual(r.returncode, 4, r.stdout + r.stderr)
+        run = json.loads((self.out / "run.json").read_text())
+        self.assertIn("gemini-4-argon-high", run["error"])
+        self.assertEqual([c for c in self.calls() if c["cli"] == "agy" and c["argv"][:1] != ["models"]], [])
+
+    def test_antigravity_failure_records_the_clis_own_error_text(self):
+        r = self.run_one("antigravity", responses={"fail": True})
+        self.assertEqual(r.returncode, 4)
+        run = json.loads((self.out / "run.json").read_text())
+        self.assertIn("fake failure", run["error"], "the message is in the CLI's `error` field, not `response`")
 
     def test_cursor_and_antigravity_run_under_a_write_deny_profile(self):
         if not Path("/usr/bin/sandbox-exec").exists():

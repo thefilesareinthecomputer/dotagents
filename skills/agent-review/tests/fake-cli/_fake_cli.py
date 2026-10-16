@@ -9,9 +9,27 @@ import sys
 from pathlib import Path
 
 
+AGY_MODELS = ["gemini-4-argon-medium", "gemini-4-argon-high", "gemini-4-argon-low", "gemini-3.8-flash-high",
+              "gemini-3.8-flash-medium", "gemini-3.8-flash-low", "claude-opus-5-5-high"]
+
+
 def main(name: str) -> int:
     stdin = sys.stdin.read() if not sys.stdin.isatty() else ""
     spec = json.loads(os.environ.get("AGENT_REVIEW_FAKE_RESPONSES", "{}")).get(name, {})
+    if name == "agy" and sys.argv[1:] == ["models"]:
+        # the real CLI: a progress line, then one `<slug>\t<label>` per line, every slug naming its level
+        print("Fetching available models...")
+        for slug in spec.get("models", AGY_MODELS):
+            print(f"{slug}\t{slug.replace('-', ' ').title()}")
+        return 0
+    if name == "agy" and "--model" in sys.argv and sys.argv[sys.argv.index("--model") + 1] not in spec.get("models", AGY_MODELS):
+        # the real CLI since 1.3.x: a slug it does not list is refused up front, the message in `error` and on stderr
+        wanted = sys.argv[sys.argv.index("--model") + 1]
+        msg = f'invalid model selection (--model "{wanted}"): unknown model'
+        print(f"error: {msg}", file=sys.stderr)
+        print(json.dumps({"conversation_id": "", "status": "ERROR", "response": "", "error": msg, "duration_seconds": 0,
+                          "num_turns": 0, "usage": {"input_tokens": 0, "output_tokens": 0}}))
+        return 1
     # Probe the write boundary the way a steered CLI would: a write outside the cwd and the
     # temp tree, into the user's home, must be refused by the OS when a profile is applied.
     probe = Path(os.path.expanduser("~")) / f".agent-review-fake-probe-{os.getpid()}"
@@ -51,6 +69,8 @@ def main(name: str) -> int:
         print(json.dumps({"type": "result", "subtype": "error" if fail else "success", "is_error": bool(fail),
                           "result": "fake failure" if fail else text, "usage": {"inputTokens": 100, "outputTokens": 20}}))
     elif name == "agy":
-        print(json.dumps({"status": "ERROR" if fail else "SUCCESS", "response": "fake failure" if fail else text,
+        # on failure the real CLI leaves `response` empty and puts the message in `error`
+        print(json.dumps({"status": "ERROR" if fail else "SUCCESS", "response": "" if fail else text,
+                          "error": "fake failure" if fail else None,
                           "num_turns": 1, "usage": {"input_tokens": 100, "output_tokens": 20}}))
     return 0

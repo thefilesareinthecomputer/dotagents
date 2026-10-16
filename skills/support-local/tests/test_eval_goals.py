@@ -49,6 +49,31 @@ class TestGrade(unittest.TestCase):
     def test_answerable_goal_answered_as_absent_is_wrong(self):
         self.assertFalse(eg.grade(answer("", answerable=False), {"answerable": True, "must": []})["correct"])
 
+    def test_abstention_credit_needs_a_negative_finding_not_a_dead_or_downgraded_worker(self):
+        # answerable: false reaches the grader three ways that are not a finding: a blocked stop, a salvage, and the
+        # script's downgrade of an unsupported answer; none of them says the corpus lacks the answer
+        key = {"answerable": False, "must": [], "refs": []}
+        for stop in ("answered", "no progress"):
+            a = answer("nothing found", answerable=False)
+            a["stop_reason"] = stop
+            self.assertTrue(eg.grade(a, key)["correct"], stop)
+        for stop in ("blocked", "budget", "error", "timeout"):
+            a = answer("not determined", answerable=False)
+            a["stop_reason"] = stop
+            self.assertFalse(eg.grade(a, key)["correct"], stop)
+        a = answer("something", answerable=False)
+        a["downgraded"] = "answerable set to false: no claim verified"
+        self.assertFalse(eg.grade(a, key)["correct"])
+
+    def test_must_literals_match_on_word_boundaries(self):
+        self.assertFalse(eg.grade(answer("the hook exits with code 12"), {"must": ["2"]})["correct"])
+        self.assertFalse(eg.grade(answer("written in 2026"), {"must": ["2"]})["correct"])
+        self.assertTrue(eg.grade(answer("the hook exits with code 2 on a block"), {"must": ["2"]})["correct"])
+        self.assertTrue(eg.grade(answer("it returns (2)"), {"must": ["2"]})["correct"])
+        self.assertFalse(eg.grade(answer("the taskmaster asked"), {"must": ["ask"]})["correct"])
+        self.assertTrue(eg.grade(answer("the decision is ask, not deny"), {"must": ["ask", "deny"]})["correct"])
+        self.assertTrue(eg.grade(answer("see .env.example and guard-private.sh"), {"must": [".env.example", "guard-private"]})["correct"])
+
     def test_an_answerable_goal_with_key_refs_needs_a_covered_ref_to_be_correct(self):
         key = {"must": ["EXIT_OK"], "refs": ["scripts/a.py:33"]}
         self.assertFalse(eg.grade(answer("EXIT_OK is the code", refs=[]), key)["correct"])
@@ -102,12 +127,29 @@ class TestMatrix(unittest.TestCase):
         by = {(r["id"], r["variant"]): r for r in rows}
         self.assertTrue(by[("t-01", "default")]["correct"], "the fake answers with EXIT_OK and a verified a.py:1 ref")
         self.assertEqual(by[("t-01", "default")]["refs_covered"], 1)
+        # the verified answer object travels with the row so a later grader can regrade the file without rerunning
+        self.assertEqual(by[("t-01", "default")]["answer_full"]["evidence"][0]["ref"], "a.py:1")
+        self.assertIn("verified", by[("t-01", "default")]["answer_full"]["evidence"][0])
+        self.assertIn("pressure_level", by[("t-01", "default")], "the kernel pressure level is recorded beside every row")
         self.assertFalse(by[("t-02", "default")]["correct"], "the fake never abstains, so the absent goal is wrong")
         self.assertEqual(by[("t-01", "local-first")]["peak_context_tokens"], 1700)
         self.assertIn("default     effort=None    correct 1/2", p.stdout)
         self.assertIn("abstention ok 0/1", p.stdout)
         p = subprocess.run([sys.executable, str(SCRIPT), "--report", str(out)], capture_output=True, text=True, env=self.env, timeout=60)
         self.assertIn("t-01", p.stdout)
+
+    def test_a_salvaged_run_earns_no_abstention_credit(self):
+        # a worker that crashes on every attempt is salvaged into answerable: false; that is a dead worker, not a finding
+        out = self.root / "results.jsonl"
+        env = {**self.env, "FAKE_CLAUDE_MODE": "crash"}
+        p = subprocess.run([sys.executable, str(SCRIPT), "--goals", str(self.goals), "--only", "t-02", "--out", str(out)],
+                           capture_output=True, text=True, env=env, timeout=120)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        row = json.loads(out.read_text().splitlines()[0])
+        self.assertTrue(row["salvaged"])
+        self.assertFalse(row["answerable"])
+        self.assertFalse(row["correct"], "answerable: false from a salvage is not an abstention")
+        self.assertIn("abstention ok 0/1", p.stdout)
 
 
 if __name__ == "__main__":

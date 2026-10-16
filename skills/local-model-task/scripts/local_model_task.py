@@ -23,6 +23,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -47,7 +48,12 @@ PRUNE_DAYS = 7
 TRUNCATION_MARGIN = 64
 KEEP_ALIVE = "1m"   # the longest a model outlives a run that died before it could unload
 MAX_KEEP_ALIVE = 600   # --keep-alive ceiling: a worker's sequence of calls skips the reload, and the daemon still unloads
-MATCH_OVERSCAN = 8     # how many times the byte budget the grep may collect before the spread across files picks
+COLLECT_MAX_MATCHES = 3200     # the grep collects this many before the spread across files picks what is sent; a fixed
+COLLECT_MAX_BYTES = 512 * 1024  # bound, not a multiple of the cap, so a small cap never hides the later files
+SEARCH_MAX_MATCHES = 120        # the list the model judges: 120 lines is about 6K tokens, which a 4B model ranks in
+SEARCH_MAX_BYTES = 24 * 1024    # tens of seconds; 400 ran two minutes and came back "absent"
+RUN_MAX_OUTPUT = 2048
+SEARCH_MAX_OUTPUT = 768         # a ranked list of ids and one-line reasons; the longest logged reply was 601 tokens
 EVIDENCE_KEY = "evidence"
 MIN_QUOTE = 4
 NOT_ABSENT = "The match list was capped, so a short or empty list means nothing more relevant was among the matches sent, not that the target is absent."
@@ -765,6 +771,7 @@ def finish(run: Path, report: dict, code: int, error: str | None = None) -> None
 def cmd_run(a: argparse.Namespace) -> int:
     a.timeout = check_timeout(a.timeout)
     a.keep_alive = check_keep_alive(a.keep_alive)
+    a.max_output_tokens = a.max_output_tokens or RUN_MAX_OUTPUT
     cfg = load_config()
     name, b, model, key = resolve(cfg, a)
     brief = read_brief(a.brief)
@@ -860,27 +867,54 @@ def collect_matches(patterns: list[str], root: Path, max_matches: int, max_bytes
     else:
         argv, engine = [shutil.which("grep") or "grep", "-rnIE", "--null", "--exclude-dir=.git",
                         "--exclude-dir=node_modules", *pat_args, "--", "."], "grep"
-    # Collect past the caps, then spread what is kept across files: taking the first N lines in rg order
+    # Collect well past the caps, then spread what is kept across files: taking the first N lines in rg order
     # fills the budget with whichever file sorts first and never shows the model the others.
     raw, size, overscanned = [], 0, False
-    raw_matches, raw_bytes = max_matches * MATCH_OVERSCAN, max_bytes * MATCH_OVERSCAN
+    raw_matches, raw_bytes = max(COLLECT_MAX_MATCHES, max_matches), max(COLLECT_MAX_BYTES, max_bytes)
     deadline = time.monotonic() + timeout
-    proc = subprocess.Popen(argv, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                            text=True, errors="replace")
-    try:
-        for line in proc.stdout:
-            m = parse_match(line)
-            if not m or is_hidden(m[0]):
-                continue
-            if len(raw) >= raw_matches or size + len(line) > raw_bytes or time.monotonic() > deadline:
-                overscanned = True
-                break
-            raw.append(m)
-            size += len(line)
-    finally:
-        if proc.poll() is None:
-            proc.kill()
-        proc.wait()
+    # stderr goes to a file, not a pipe, so a grep that complains about every unreadable file cannot block on it;
+    # a timer kills a grep that produces nothing, since a blocked readline would never see the deadline
+    timed_out = threading.Event()
+    with tempfile.TemporaryFile(mode="w+", encoding="utf-8", errors="replace") as errf:
+        # its own session, so the kill reaches a child that holds the pipe open (a wrapper script around the grep)
+        proc = subprocess.Popen(argv, cwd=root, stdout=subprocess.PIPE, stderr=errf, text=True, errors="replace",
+                                start_new_session=True)
+
+        def kill():
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError, OSError):
+                proc.kill()
+
+        def expire():
+            timed_out.set()
+            kill()
+
+        timer = threading.Timer(timeout, expire)
+        timer.start()
+        try:
+            for line in proc.stdout:
+                m = parse_match(line)
+                if not m or is_hidden(m[0]):
+                    continue
+                if len(raw) >= raw_matches or size + len(line) > raw_bytes or time.monotonic() > deadline:
+                    overscanned = True
+                    break
+                raw.append(m)
+                size += len(line)
+        finally:
+            timer.cancel()
+            if proc.poll() is None:
+                kill()
+            proc.wait()
+        errf.seek(0)
+        stderr = errf.read().strip()
+    if timed_out.is_set():
+        raise TaskError(f"the search under {root} timed out after {timeout} s before the model was called", EXIT_TIMEOUT)
+    # both engines exit 1 for "no matches" and 2 for an error such as a bad pattern; an error with nothing
+    # collected is an error, not an empty result
+    if not raw and not overscanned and proc.returncode not in (0, 1):
+        raise TaskError(f"the search pattern failed ({engine} exit {proc.returncode}): {stderr[-300:] or 'no message'}")
     matches, capped = spread_matches(raw, max_matches, max_bytes)
     return matches, capped or overscanned, engine
 
@@ -908,6 +942,7 @@ def spread_matches(raw: list, max_matches: int, max_bytes: int) -> tuple[list, b
 def cmd_search(a: argparse.Namespace) -> int:
     a.timeout = check_timeout(a.timeout)
     a.keep_alive = check_keep_alive(a.keep_alive)
+    a.max_output_tokens = a.max_output_tokens or SEARCH_MAX_OUTPUT
     cfg = load_config()
     name, b, model, key = resolve(cfg, a)
     root = Path(a.path)
@@ -944,9 +979,10 @@ def cmd_search(a: argparse.Namespace) -> int:
             obj = json.loads(strip_fences(result["text"]))
         except ValueError:
             obj = None
-        if not isinstance(obj, dict) or not isinstance(obj.get("hits"), list):
+        if not isinstance(obj, dict) or not isinstance(obj.get("hits"), list) or not isinstance(obj.get("answers_question"), bool):
+            # the verdict is the abstention signal; a reply without it is unparseable, not answerable
             write(run, "raw_output.md", result["text"])
-            raise TaskError('the reply is not a JSON object with a "hits" list', EXIT_SCHEMA)
+            raise TaskError('the reply is not a JSON object with a boolean "answers_question" and a "hits" list', EXIT_SCHEMA)
         kept, dropped = filter_hits(obj["hits"], len(matches))
         # the model's verdict that nothing answers is the abstention signal the caller needs; it is kept
         # as its own field, never folded into the capped-list warning
@@ -977,7 +1013,8 @@ def cmd_search(a: argparse.Namespace) -> int:
           + f", {len(matches)} matches sent{' (capped by --max-matches or --max-bytes)' if capped else ''}"
           + f", {len(hits)} kept, {dropped} dropped")
     for h in hits:
-        print(f"{h['rank']}. {h['file']}:{h['line']} - {h['reason']}")
+        # the text is shown because the caller quotes it as evidence and a verifier checks the quote at the line
+        print(f"{h['rank']}. {h['file']}:{h['line']} - {h['reason']}\n     {h['text'][:200]}")
     if absent:
         print(f"No hits: the model judged that none of the {len(matches)} matches answers the question.")
     elif not hits:
@@ -1085,7 +1122,8 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--min-free-gb", type=float, default=4.0, help="free memory a local run needs; 0 skips")
         p.add_argument("--max-ctx", type=int, default=32768, help="largest context window to request")
         p.add_argument("--num-ctx", type=int, help="exact context window, overriding the estimate")
-        p.add_argument("--max-output-tokens", type=int, default=2048)
+        p.add_argument("--max-output-tokens", type=int, default=None,
+                       help=f"reply budget; default {RUN_MAX_OUTPUT} for run and {SEARCH_MAX_OUTPUT} for search")
         p.add_argument("--think", action="store_true", help="let a thinking model reason first")
         p.add_argument("--keep-alive", type=int, default=None,
                        help=f"seconds to leave a local model loaded after this call for the caller's next one, at most {MAX_KEEP_ALIVE}; "
@@ -1105,8 +1143,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--question", required=True)
     s.add_argument("--pattern", action="append", required=True, help="regex both rg and grep -E accept; repeatable")
     s.add_argument("--path", required=True)
-    s.add_argument("--max-matches", type=int, default=400)
-    s.add_argument("--max-bytes", type=int, default=64 * 1024)
+    s.add_argument("--max-matches", type=int, default=SEARCH_MAX_MATCHES, help="matches sent to the model after the spread across files")
+    s.add_argument("--max-bytes", type=int, default=SEARCH_MAX_BYTES)
     s.add_argument("--top", type=int, default=10)
     common(s)
     s.set_defaults(func=cmd_search)

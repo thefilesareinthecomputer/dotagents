@@ -15,6 +15,7 @@ import importlib.util
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -29,14 +30,26 @@ def norm(text: str) -> str:
     return re.sub(r"\s+", " ", str(text)).strip().lower()
 
 
+def has_literal(literal: str, text: str) -> bool:
+    """The literal as a whole token: `2` is not in `12` or `2026`, `ask` is not in `asked`."""
+    return re.search(r"(?<![a-z0-9])" + re.escape(norm(literal)) + r"(?![a-z0-9])", text) is not None
+
+
+# `answerable: false` is a finding only when the worker ended on its own account; a blocked, budget, dead or
+# downgraded worker said nothing about the corpus
+ABSTENTION_STOPS = ("answered", "no progress")
+
+
 def grade(answer: dict, key: dict) -> dict:
-    """Correctness against the key. `must` literals are matched case- and whitespace-insensitively in the answer text
-    and the evidence claims; refs are matched by path, line optional."""
+    """Correctness against the key. `must` literals are matched case- and whitespace-insensitively, as whole tokens, in
+    the answer text and the evidence claims; refs are matched by path, line optional. An absent goal is correct only
+    when the worker abstained as a finding, not when it was blocked, salvaged or downgraded into `answerable: false`."""
     text = norm(answer.get("answer", "")) + " " + " ".join(norm(c.get("claim", "")) for c in answer.get("evidence", []) if isinstance(c, dict))
     musts = [m for m in key.get("must", []) if isinstance(m, str) and m.strip()]
-    hits = [m for m in musts if norm(m) in text]
+    hits = [m for m in musts if has_literal(m, text)]
     want_answerable = bool(key.get("answerable", True))
     got_answerable = bool(answer.get("answerable"))
+    abstained = (not got_answerable and answer.get("stop_reason") in ABSTENTION_STOPS and "downgraded" not in answer)
     verified_refs = [str(c.get("ref") or "") for c in answer.get("evidence", []) if isinstance(c, dict) and c.get("verified")]
     key_refs = [r for r in key.get("refs", []) if isinstance(r, str)]
     covered = 0
@@ -49,13 +62,13 @@ def grade(answer: dict, key: dict) -> dict:
                     covered += 1
                     break
     if not want_answerable:
-        correct = not got_answerable
+        correct = abstained
     else:
         # keyword presence is not correctness: when the key names the lines, one of them must be covered by a
         # claim the script verified
         correct = got_answerable and len(hits) == len(musts) and (not key_refs or covered > 0)
     return {"correct": correct, "answerable_ok": got_answerable == want_answerable, "must_hit": len(hits), "must_n": len(musts),
-            "refs_covered": covered, "refs_n": len(key_refs), "missed": [m for m in musts if norm(m) not in text]}
+            "refs_covered": covered, "refs_n": len(key_refs), "missed": [m for m in musts if not has_literal(m, text)]}
 
 
 def load_goals(paths: list[Path], only: set[str] | None) -> list[dict]:
@@ -78,10 +91,21 @@ def load_goals(paths: list[Path], only: set[str] | None) -> list[dict]:
     return goals
 
 
+def pressure() -> dict:
+    """The kernel's memory verdict at the moment a cell starts, the same signals the station's memory gate reads. Two
+    passes on 2026-10-15 differed by 6 of 12 on this alone, so it is recorded beside every row. None off macOS."""
+    try:
+        out = subprocess.run(["/usr/sbin/sysctl", "-n", "kern.memorystatus_vm_pressure_level", "kern.memorystatus_level"],
+                             capture_output=True, text=True, timeout=2, check=True).stdout.split()
+        return {"pressure_level": int(out[0]), "free_pct": int(out[1])}
+    except (OSError, ValueError, IndexError, subprocess.SubprocessError):
+        return {"pressure_level": None, "free_pct": None}
+
+
 def run_cell(goal: dict, variant: str, effort: str | None, turns: int, calls: int, timeout: int, autocompact: str | None) -> dict:
     t = time.monotonic()
     row = {"id": goal["id"], "kind": goal.get("kind"), "corpus": goal["corpus"], "variant": variant, "effort": effort,
-           "turns_budget": turns, "calls_budget": calls}
+           "turns_budget": turns, "calls_budget": calls, **pressure()}
     try:
         answer, record = sl.run_goal(goal["goal"], goal["corpus"], goal.get("complete", ""), goal.get("out_of_scope", ""),
                                      turns, calls, None, timeout, variant, effort, autocompact)
@@ -89,6 +113,8 @@ def run_cell(goal: dict, variant: str, effort: str | None, turns: int, calls: in
                                                  "output_tokens", "cache_read", "cache_write", "peak_context_tokens", "mean_context_tokens",
                                                  "attempts", "salvaged", "answerable", "verified", "unsupported", "local_calls", "stop_reason")})
         row.update(grade(answer, goal.get("key") or {}))
+        if record.get("salvaged"):
+            row["correct"] = False   # a dead worker answered nothing, whatever shape the salvage took
         why: dict = {}
         for c in answer.get("evidence", []):
             if isinstance(c, dict) and not c.get("verified"):
@@ -97,6 +123,7 @@ def run_cell(goal: dict, variant: str, effort: str | None, turns: int, calls: in
         row["unverified_refs"] = [str(c.get("ref"))[:120] for c in answer.get("evidence", []) if isinstance(c, dict) and not c.get("verified")][:5]
         row["answer_head"] = str(answer.get("answer", ""))[:300]
         row["coverage_head"] = str(answer.get("coverage", ""))[:300]
+        row["answer_full"] = answer   # the verified object, so a later grader can regrade this file without rerunning
         row["error"] = None
     except sl.TaskError as e:
         row.update({"error": f"{e} (exit {e.code})", "correct": False, "answerable_ok": False})

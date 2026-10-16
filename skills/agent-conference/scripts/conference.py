@@ -19,7 +19,7 @@ Stages, after Karpathy's llm-council:
                       and writes one synthesis; or the session does, from chair-brief.md
 
 Members are harnesses, each with its model: claude (Claude Code, Fable), codex (GPT-6
-Astra), cursor (Grok 4.7), antigravity (Gemini 3.1 Pro), and two Ollama cloud tags,
+Astra), cursor (Grok 4.7), antigravity (Gemini 4 Argon), and two Ollama cloud tags,
 deepseek (DeepSeek V4.1 Flash) and glm (GLM 5.3 Flash), which get the staged files
 inlined into one request each. The staging, the harness table and the read-only
 runners come from the agent-review skill; this script adds the fan-out, the blinding,

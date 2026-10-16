@@ -38,6 +38,27 @@ class TestAgentDefinition(unittest.TestCase):
         self.assertEqual(sl.agent_model(), "claude-haiku-5-5")
 
 
+class TestFallbackRule(unittest.TestCase):
+    def test_a_memory_pressure_deny_falls_back_to_grep_and_every_other_deny_still_blocks(self):
+        # a refusal (exit 3) is about the work and stays `blocked`; the station declining to load a model is about the
+        # machine, and the worker goes on with the tools that add no load
+        body = sl.agent_body()
+        self.assertIn("exits 3", body)
+        self.assertIn("stop_reason: \"blocked\"", body)
+        self.assertIn("brain-gate: memory-pressure", body)
+        after = body.split("brain-gate: memory-pressure", 1)[1][:800]
+        for tool in ("Grep", "Glob", "Read"):
+            self.assertIn(tool, after, tool)
+        self.assertIn("free memory", after)
+        # the forced-pressure cell of 2026-10-15: two workers fell back, found nothing, and still wrote `blocked`
+        self.assertIn("rather than `blocked`", after)
+
+    def test_a_finding_of_absence_is_an_abstention_even_with_evidence(self):
+        # an absent goal under fallback: a worker answered "none" with verified lines showing the absence and answerable: true
+        body = sl.agent_body()
+        self.assertIn("`answerable: false` even when you cite the lines that show the absence", body)
+
+
 class TestBrief(unittest.TestCase):
     def test_fills_every_section(self):
         brief = sl.build_brief("Where is the exit code table?", "/tmp/repo", "the file and line", "tests", 12, 5)
@@ -52,7 +73,9 @@ class TestBrief(unittest.TestCase):
         # brief that repeated the working rules and the failure protocol sent them twice per turn
         brief = sl.build_brief("g", "/tmp/repo", "", "", 12, 5)
         body = sl.agent_body()
-        for rule in ("Never call Ollama directly", "exits 3", "stop_reason: \"blocked\"", "--keep-alive 300"):
+        # exit 130 is the Bash tool's kill (SIGTERM) landing on a local call that ran past the tool's ceiling; the
+        # worker treats it like a timeout, one narrower retry, rather than as an unnamed failure
+        for rule in ("Never call Ollama directly", "exits 3", "stop_reason: \"blocked\"", "--keep-alive 300", "130"):
             self.assertIn(rule, body, rule)
             self.assertNotIn(rule, brief, rule)
         self.assertIn("## When a call fails", sl.build_brief("g", "/tmp/repo", "", "", 12, 5, "full"))  # the comparison arm keeps its own
@@ -70,6 +93,18 @@ class TestBrief(unittest.TestCase):
             self.assertIn("answerable: false", brief, "every variant says abstention is a correct result")
             self.assertNotIn("{goal}", brief)
         self.assertIn("Do not open files with Read before", sl.agent_body())   # the local-first rule, now in the one place the worker reads it
+        # a loosening that let the worker Grep a path the goal names before any local search was measured on
+        # 2026-10-16 (36 cells) and reverted: wall clock rose 9% and correctness did not move
+        self.assertNotIn("names verbatim", sl.agent_body())
+
+    def test_an_env_file_mention_is_rewritten_once_and_a_file_tool_deny_still_blocks(self):
+        # three cells of the 2026-10-15 matrix: the station's env-file guard held a search whose pattern spelled .env.
+        # The exception is keyed on the guard's mention case only; a file tool reaching for an env file stays blocked
+        after = sl.agent_body().split("brain-gate: memory-pressure", 1)[1]
+        self.assertIn("This Bash command mentions", after)
+        self.assertIn("rewrite that one call once in words", after)
+        self.assertIn("A deny on a file tool that targets an env file is `blocked`", after)
+        self.assertIn("Never reach an env file through a glob, wildcard, escape or quoting", after)
         self.assertEqual(sl.build_brief("g", "/tmp/repo", "", "", 30, 20, "local-first"), sl.build_brief("g", "/tmp/repo", "", "", 30, 20, "default"))
         self.assertTrue(sl.build_brief("g", "/tmp/repo", "", "", 30, 20, "full").startswith("# Brief for support-local (full variant)"))
         with self.assertRaises(sl.TaskError):
@@ -251,6 +286,73 @@ class TestHeadlessRun(unittest.TestCase):
         self.assertEqual(runs[-1]["effort"], "medium")
         self.assertEqual(runs[-1]["peak_context_tokens"], 1700)
         self.assertEqual(runs[-1]["wall_ms"], 4200)
+
+    def gate_env(self, level, free_pct, **extra):
+        # the station's memory gate reads these overrides; a tmp ack file so a real ack never eases the test's gate
+        return {**self.env, "FAKE_CLAUDE_ENV": str(self.root / "env.jsonl"), "MEMGATE_PRESSURE_LEVEL": str(level),
+                "MEMGATE_FREE_PCT": str(free_pct), "MEMGATE_SWAP_MB": "0", "MEMGATE_ACK_FILE": str(self.root / "no-ack"), **extra}
+
+    def env_calls(self):
+        p = self.root / "env.jsonl"
+        return [json.loads(l) for l in p.read_text().splitlines() if l.strip()] if p.exists() else []
+
+    def test_worker_is_seated_and_runs_in_an_empty_directory_with_an_absolute_corpus(self):
+        # pass 1 of 2026-10-15: a worker started in the repo inherited the session's memory index, and the memory gate
+        # answered "ask" to a headless process. The seat variable turns that into an explicit deny; the empty cwd keeps
+        # project rules and memory out; the corpus is absolute because the worker no longer runs beside it
+        os.chdir(self.root)
+        p = self.run_cmd("run", "--goal", "g", "--corpus", "corpus", env=self.gate_env(1, 60))
+        self.assertEqual(p.returncode, 0, p.stderr)
+        call = self.env_calls()[0]
+        self.assertEqual(call["seat"], "support-local")
+        self.assertEqual(call["entries"], [], "the worker's cwd holds nothing")
+        self.assertNotEqual(Path(call["cwd"]).resolve(), Path.cwd().resolve())
+        self.assertFalse(Path(call["cwd"]).exists(), "the empty cwd is removed after the run")
+        argv = self.argv_calls()[0]
+        self.assertIn(f"## Corpus\n\n{self.corpus.resolve()}\n", argv[-1])
+
+    def test_critical_memory_pressure_refuses_before_any_worker_is_spent(self):
+        p = self.run_cmd("run", "--goal", "g", "--corpus", str(self.corpus), env=self.gate_env(4, 5))
+        self.assertEqual(p.returncode, sl.EXIT_REFUSED, p.stdout + p.stderr)
+        self.assertIn("memory pressure", p.stderr.lower())
+        self.assertEqual(self.env_calls(), [], "no worker was started")
+        self.assertFalse((self.root / "state" / "runs.jsonl").exists())
+
+    def test_warn_level_pressure_runs_the_worker_and_tells_it_the_gate_may_deny(self):
+        # warn lets read-only work continue; the worker is told, so a prefixed deny on its first local call is
+        # expected and the fallback rule in its definition applies
+        p = self.run_cmd("run", "--goal", "g", "--corpus", str(self.corpus), env=self.gate_env(2, 22))
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(len(self.env_calls()), 1)
+        self.assertIn("## Station state", self.argv_calls()[0][-1])
+        self.assertIn("brain-gate: memory-pressure", self.argv_calls()[0][-1])
+        p = self.run_cmd("run", "--goal", "g", "--corpus", str(self.corpus), env=self.gate_env(1, 60))
+        self.assertNotIn("## Station state", self.argv_calls()[-1][-1], "a healthy machine adds nothing to the brief")
+
+    def test_run_without_an_effort_flag_passes_the_definitions_pinned_effort(self):
+        # the agent body is appended with its frontmatter stripped, so the definition's `effort: high` reaches a
+        # headless worker only if the runner reads it and passes --effort itself
+        p = self.run_cmd("run", "--goal", "g", "--corpus", str(self.corpus))
+        self.assertEqual(p.returncode, 0, p.stderr)
+        argv = self.argv_calls()[0]
+        self.assertIn("--effort", argv)
+        self.assertEqual(argv[argv.index("--effort") + 1], "high")
+        self.assertEqual(self.runs()[-1]["effort"], "high")
+
+    def test_an_honest_abstention_that_stopped_on_budget_is_not_retried(self):
+        # the retry is for a worker that died or produced nothing; a parsed `answerable: false` is a result
+        honest = json.dumps({"goal": "g", "answer": "", "answerable": False, "evidence": [],
+                             "coverage": "searched hooks/ twice; nothing on the topic", "local_calls": 2, "stop_reason": "budget"})
+        p = self.run_cmd("run", "--goal", "g", "--corpus", str(self.corpus), env={**self.env, "FAKE_CLAUDE_RESULT": honest})
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(len(self.argv_calls()), 1, "an honest abstention was retried")
+        self.assertEqual(self.runs()[-1]["attempts"], 1)
+
+    def test_a_json_array_result_is_salvaged_not_a_crash(self):
+        p = self.run_cmd("run", "--goal", "g", "--corpus", str(self.corpus), "--retries", "0", env={**self.env, "FAKE_CLAUDE_RESULT": "[]"})
+        self.assertEqual(p.returncode, sl.EXIT_WORKER, p.stderr)
+        self.assertNotIn("Traceback", p.stderr)
+        self.assertTrue(self.runs()[-1]["salvaged"])
 
     def test_run_refuses_a_lower_model(self):
         env = {**self.env, "FAKE_CLAUDE_MODEL": "claude-haiku-4-5-20251001"}

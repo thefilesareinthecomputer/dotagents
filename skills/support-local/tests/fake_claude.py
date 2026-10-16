@@ -15,6 +15,11 @@ import time
 if os.environ.get("FAKE_CLAUDE_ARGS"):
     with open(os.environ["FAKE_CLAUDE_ARGS"], "a") as f:
         f.write(json.dumps(sys.argv[1:]) + "\n")
+if os.environ.get("FAKE_CLAUDE_ENV"):
+    # the working directory and the seat variable the runner gave this worker, one JSON line per call
+    with open(os.environ["FAKE_CLAUDE_ENV"], "a") as f:
+        f.write(json.dumps({"cwd": os.getcwd(), "seat": os.environ.get("AGENTS_APP_SEAT"),
+                            "entries": sorted(os.listdir(os.getcwd()))}) + "\n")
 model = os.environ.get("FAKE_CLAUDE_MODEL", "claude-haiku-5-5")
 mode = os.environ.get("FAKE_CLAUDE_MODE", "")
 counter = os.environ.get("FAKE_CLAUDE_FAIL_FIRST")

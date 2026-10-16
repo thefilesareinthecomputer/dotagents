@@ -191,7 +191,11 @@ retrieval tools added to the skip list**:
 ```json
 {
   "CLAUDE_MEM_RUNTIME": "worker",
-  "CLAUDE_MEM_SKIP_TOOLS": "ListMcpResourcesTool,SlashCommand,Skill,TodoWrite,AskUserQuestion,Read,Glob,Grep,ToolSearch,WebSearch,WebFetch"
+  "CLAUDE_MEM_SKIP_TOOLS": "ListMcpResourcesTool,SlashCommand,Skill,TodoWrite,AskUserQuestion,Read,Glob,Grep,ToolSearch,WebSearch,WebFetch",
+  "CLAUDE_MEM_MODEL": "claude-haiku-5-5",
+  "CLAUDE_MEM_TIER_FAST_MODEL": "claude-haiku-5-5",
+  "CLAUDE_MEM_TIER_SIMPLE_MODEL": "claude-haiku-5-5",
+  "CLAUDE_MEM_TIER_SMART_MODEL": "claude-sonnet-5-5"
 }
 ```
 
@@ -200,6 +204,17 @@ search (`smart_search`/`smart_outline`/`smart_unfold`), PostToolUse observation
 capture on the tools that stay in scope - while stopping claude-mem from
 standing between the agent and the filesystem. Add more `mcp__*` entries if a
 future claude-mem version starts intercepting other read-shaped tools.
+
+**The model keys pin the summarizers to current models.** Each value is passed
+verbatim to `claude --model`, and the plugin's own defaults are the dated
+`claude-haiku-4-5-20251001` for `CLAUDE_MEM_MODEL` and the bare aliases
+`haiku` and `sonnet` for the tiers, which resolve to the 4.5 and 4.6
+generation (§0a of the support-local spec recorded the same alias lag for the
+worker). Models from the 4.6 generation on have dateless IDs that are
+themselves the pinned snapshot, so the full IDs above are the pin. The daemon
+reads this file once at start and caches it, so a change takes effect at its
+next restart (`bun scripts/worker-service.cjs restart` in the plugin's cache
+folder, or `POST /api/admin/restart` on its loopback port).
 
 **Durability note:** this file is per-machine and unversioned by claude-mem, so
 a fresh install or reinstall reverts to the blinding default. It is a bootstrap

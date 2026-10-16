@@ -28,7 +28,8 @@ forms:
   codex        `codex exec --json --ephemeral --ignore-user-config -s read-only`, prompt on stdin (`-`);
                `model_reasoning_effort` config key, low|medium|high|xhigh|max|ultra
   cursor       `agent -p --mode ask`, prompt on stdin; the level is a suffix of the model slug
-  antigravity  `agy --print --mode plan`, prompt on argv only, so capped by bytes; `agy --effort`
+  antigravity  `agy --print --mode plan`, prompt on argv only, so capped by bytes; the level is a suffix of the
+               model slug, checked against `agy models` at run time (nearest listed level or family member substituted)
   ollama       one POST to the local daemon's /api/chat; `:cloud` tags only, behind --allow-cloud;
                `think` from the tag's /api/show map
 """
@@ -71,7 +72,9 @@ HARNESSES = {
               "levels": ("low", "medium", "high", "xhigh", "max", "ultra"), "label": "Codex CLI"},
     "cursor": {"runner": "cursor", "bin": "agent", "model": "grok-4.7", "window": 400_000,
                "levels": ("low", "medium", "high", "xhigh", "max"), "label": "Cursor agent CLI"},
-    "antigravity": {"runner": "antigravity", "bin": "agy", "model": "gemini-3.1-pro", "window": 1_000_000,
+    # the base slug; agy lists leveled slugs only (gemini-4-argon-high), so the effort becomes the suffix and the
+    # pair is checked against `agy models` at run time, with the nearest listed level or family member substituted
+    "antigravity": {"runner": "antigravity", "bin": "agy", "model": "gemini-4-argon", "window": 1_000_000,
                     "levels": ("low", "medium", "high", "xhigh", "max"), "label": "Antigravity CLI"},
     # No default model: the user names a `:cloud` tag, and the call is one request to the
     # local daemon's /api/chat. Effort maps onto the tag's own `think` values and the window
@@ -933,17 +936,97 @@ def _run_cursor(cfg: dict, brief_path: Path, stage: Path, timeout: int, work: Pa
             "exit_code": EXIT_FAILED if error else EXIT_OK, "error": error[:500] if error else None}
 
 
+AGY_LEVELS = ("low", "medium", "high", "xhigh", "max")
+
+
+def parse_agy_models(out: str) -> list[str]:
+    """The slugs from `agy models`, in the CLI's own order: one `<slug>\\t<label>` per line after a progress line."""
+    slugs = []
+    for line in out.splitlines():
+        slug = line.split("\t")[0].split()[0] if line.strip() else ""
+        if "-" in slug and TOKEN_RE.match(slug) and slug not in slugs:
+            slugs.append(slug)
+    return slugs
+
+
+def agy_models() -> list[str] | None:
+    """What the installed Antigravity CLI offers right now, or None when it cannot say (then the slug is sent as
+    composed and the CLI judges it). Asked once per process."""
+    global _AGY_MODELS
+    if _AGY_MODELS is _UNSET:
+        try:
+            # an empty working directory, so no project config where the caller stands can shape what the CLI lists
+            with tempfile.TemporaryDirectory(prefix="agy-models-") as cwd:
+                proc = subprocess.run([cli_path("agy"), "models"], capture_output=True, text=True, timeout=60,
+                                      env=child_env(), cwd=cwd, stdin=subprocess.DEVNULL)
+            _AGY_MODELS = parse_agy_models(proc.stdout) if proc.returncode == 0 else None
+        except (OSError, subprocess.SubprocessError, TypeError):
+            _AGY_MODELS = None
+    return _AGY_MODELS
+
+
+_UNSET = object()
+_AGY_MODELS: list[str] | None | object = _UNSET
+
+
+def _agy_split(model: str) -> tuple[str, str | None]:
+    for lv in AGY_LEVELS:
+        if model.endswith("-" + lv):
+            return model[: -len(lv) - 1], lv
+    return model, None
+
+
+def pick_agy_model(model: str, effort: str | None, listing: list[str]) -> tuple[str, str | None]:
+    """The slug to send, from what the CLI lists. Every listed slug names its level, so `--effort` becomes the suffix.
+    A slug that is listed is used as given. Otherwise the nearest listed level of the same base, then of the same
+    family (`gemini`, `claude`) in the CLI's order, with a note saying what was asked for and what runs. Nothing of
+    the family listed is a refusal that names the list; the panel never changes vendor behind a member's name."""
+    base, named = _agy_split(model)
+    wanted = named or effort or "high"
+    if model in listing:
+        return model, None
+    if named is None and f"{model}-{wanted}" in listing:
+        return f"{model}-{wanted}", None
+    family = re.match(r"[a-z]+", model)
+    family = family.group(0) if family else model
+    nearest = [wanted] + [lv for lv in reversed(AGY_LEVELS[: AGY_LEVELS.index(wanted)])] + list(AGY_LEVELS[AGY_LEVELS.index(wanted) + 1:]) \
+        if wanted in AGY_LEVELS else [wanted]
+    same_base = [m for m in listing if m.startswith(base + "-")]
+    same_family = [m for m in listing if m.startswith(family + "-")]
+    for pool in (same_base, same_family):
+        for lv in nearest:
+            hit = next((m for m in pool if m.endswith("-" + lv)), None)
+            if hit:
+                asked = model + (f" at effort {effort}" if effort and named is None else "")
+                return hit, f"agy does not list {asked}; running {hit}"
+    raise ReviewError(f"agy lists no {family} model to run {model}{' at effort ' + effort if effort else ''}; it offers: "
+                      + (", ".join(listing) or "nothing"), EXIT_FAILED)
+
+
 def _run_agy(cfg: dict, brief_path: Path, stage: Path, timeout: int, work: Path) -> dict:
     """The Antigravity CLI in print mode and plan mode, one JSON result, under a Seatbelt
-    write-deny profile. It takes the prompt on argv only, so the prompt is capped by bytes."""
+    write-deny profile. It takes the prompt on argv only, so the prompt is capped by bytes. The
+    model slug is checked against the CLI's live list first, since the CLI refuses a slug it
+    does not list and the list changes with its releases."""
+    requested, note = cfg["model"], None
+    listing = agy_models()
+    if listing is None:
+        base, named = _agy_split(requested)
+        model_slug = requested if named else f"{requested}-{cfg['effort'] or 'high'}"
+        note = f"agy would not list its models; sending {model_slug} unchecked"
+    else:
+        model_slug, note = pick_agy_model(requested, cfg["effort"], listing)
+    cfg["model"] = model_slug
+    substituted = {"from": requested, "to": model_slug, "why": note} if note else None
+    if note:
+        print(f"  antigravity: {note}")
     prompt, meta = build_prompt(brief_path, stage, cfg["window"], cfg["model"])
     if len(prompt.encode()) > AGY_MAX_PROMPT_BYTES:
         raise ReviewError(f"the prompt is {len(prompt.encode())} bytes and agy takes it on argv, capped at "
                           f"{AGY_MAX_PROMPT_BYTES}; split the review", EXIT_FAILED)
     cwd = empty_cwd(work, cfg)
-    argv = [cli_path("agy"), "--output-format", "json", "--model", cfg["model"], "--print-timeout", "0", "--mode", "plan"]
-    if cfg["effort"]:
-        argv += ["--effort", cfg["effort"]]
+    # the level rides in the slug; agy refuses --effort beside a leveled slug, and it lists leveled slugs only
+    argv = [cli_path("agy"), "--output-format", "json", "--model", model_slug, "--print-timeout", "0", "--mode", "plan"]
     argv += ["-p", prompt]
     argv = sandboxed(argv, write_sandbox_profile(work, "antigravity", cwd))
     proc = _spawn(argv, None, timeout, cwd, work, f"agy-{slug(cfg.get('member') or 'antigravity')}")
@@ -960,12 +1043,17 @@ def _run_agy(cfg: dict, brief_path: Path, stage: Path, timeout: int, work: Path)
         return _failed(proc.stderr.strip()[-300:] or "agy output is not JSON")
     error = None
     if data.get("status") not in (None, "SUCCESS"):
-        error = f"status {data.get('status')}: {str(data.get('response') or '')[:200]}"
+        # the CLI puts its message in `error` and leaves `response` empty; stderr is the last resort
+        detail = str(data.get("error") or data.get("response") or proc.stderr.strip()[-300:] or "")[:300]
+        error = f"status {data.get('status')}: {detail}"
     elif not data.get("response"):
         error = "the reply had no content"
     usage = dict(data.get("usage") or {}, **meta, turns=data.get("num_turns"))
-    return {"text": None if error else data.get("response"), "usage": usage, "model_reported": None,
-            "exit_code": EXIT_FAILED if error else EXIT_OK, "error": error}
+    res = {"text": None if error else data.get("response"), "usage": usage, "model_reported": None,
+           "exit_code": EXIT_FAILED if error else EXIT_OK, "error": error}
+    if substituted:
+        res["model_substituted"] = substituted
+    return res
 
 
 def _run_ollama(cfg: dict, brief_path: Path, stage: Path, timeout: int, work: Path) -> dict:

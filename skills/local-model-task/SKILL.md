@@ -46,8 +46,12 @@ local_model_task.py search --question <text> --pattern <regex> [--pattern ...] -
 - Matches in hidden paths below `--path`, such as `.env`, are dropped before
   anything is sent. A `--path` that is itself hidden is searched as given.
 - The matches sent are spread across files round-robin up to `--max-matches`
-  and `--max-bytes`, so a file with hundreds of hits cannot crowd the others
-  out. `matches_capped` in `report.json` says whether anything was left out.
+  (default 120) and `--max-bytes` (default 24 KB), so a file with hundreds of
+  hits cannot crowd the others out. The grep itself collects up to 3,200 matches
+  before the spread, so a small cap never hides the later files. The defaults
+  are sized for what a 4B model judges in tens of seconds; a 400-match list ran
+  two minutes on an M1 and came back "absent". `matches_capped` in `report.json`
+  says whether anything was left out.
 - `answers_question` in `result.json` and `model_says_absent` in the report hold
   the model's verdict that none of the matches answers the question. That is
   the abstention signal; read it before widening the patterns. The capped-list

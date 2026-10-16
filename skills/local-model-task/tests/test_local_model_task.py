@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -549,14 +550,58 @@ class TestSearch(Base):
         (root / "pkg" / "use.py").write_text("from env import ENV_ALLOW\nprint(ENV_ALLOW)\n")
         return root
 
+    def test_search_defaults_cap_the_list_the_model_sees_at_a_size_it_can_judge(self):
+        # 400 matches made 20K-token prompts that ran 130 s on a 4B model and came back "absent"; the default list
+        # is small enough to judge in well under a minute, and the cap is reported
+        fake = self.serve(reply=json.dumps({"answers_question": True, "hits": [{"id": 1, "reason": "r"}]}))
+        self.write_config({"ollama": backend(fake.url)})
+        root = self.tmp / "tree"
+        root.mkdir()
+        for n in range(4):
+            (root / f"f{n}.py").write_text("".join(f"NEEDLE_{n}_{i} = {i}\n" for i in range(75)))
+        code, out, err = self.main("search", "--question", "where is NEEDLE set?", "--pattern", "NEEDLE",
+                                   "--path", str(root), "--min-free-gb", "0")
+        self.assertEqual(code, 0, err)
+        report = json.loads((self.runs()[0] / "report.json").read_text())
+        self.assertEqual(report["matches_sent"], 120)
+        self.assertTrue(report["matches_capped"])
+        body = fake.posts()[0]["body"]
+        self.assertLess(len(body["messages"][-1]["content"]), 30_000)
+        self.assertEqual(body["options"]["num_predict"], 768, "a ranked list of ids needs no 2048-token reply budget")
+        self.assertIn("capped", out)
+
+    def test_search_collection_does_not_shrink_with_the_cap(self):
+        # the grep used to stop at eight times the cap, so a file that sorts first with more hits than that hid every
+        # later file from the spread; the collection bound is fixed and large, the cap applies after the spread
+        fake = self.serve(reply=json.dumps({"answers_question": True, "hits": [{"id": 1, "reason": "r"}]}))
+        self.write_config({"ollama": backend(fake.url)})
+        root = self.tmp / "tree"
+        root.mkdir()
+        (root / "a_first.py").write_text("".join(f"TOKEN_{i} = {i}\n" for i in range(1500)))
+        (root / "z_last.py").write_text("TOKEN_LAST = 'the one that matters'\n")
+        code, out, err = self.main("search", "--question", "where is TOKEN_LAST?", "--pattern", "TOKEN_",
+                                   "--path", str(root), "--min-free-gb", "0")
+        self.assertEqual(code, 0, err)
+        prompt = fake.posts()[0]["body"]["messages"][-1]["content"]
+        self.assertIn("z_last.py:1", prompt)
+        report = json.loads((self.runs()[0] / "report.json").read_text())
+        self.assertEqual(report["matches_sent"], 120)
+
+    def test_run_keeps_the_full_reply_budget(self):
+        fake = self.serve(reply="fine")
+        self.write_config({"ollama": backend(fake.url)})
+        code, out, err = self.main("run", "--brief", self.brief(), "--min-free-gb", "0")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(fake.posts()[0]["body"]["options"]["num_predict"], 2048)
+
     def test_search_keeps_only_sent_matches(self):
         def choose(body):
             prompt = body["messages"][-1]["content"]
             # pick the match whose text defines the name, plus one invented id
             ids = [line.split("]")[0].lstrip("[") for line in prompt.splitlines()
                    if line.startswith("[") and "ENV_ALLOW =" in line]
-            return json.dumps({"hits": [{"id": int(ids[0]), "reason": "defines it"},
-                                        {"id": 999, "reason": "invented"}]})
+            return json.dumps({"answers_question": True, "hits": [{"id": int(ids[0]), "reason": "defines it"},
+                                                                  {"id": 999, "reason": "invented"}]})
         fake = self.serve(reply=choose)
         self.write_config({"ollama": backend(fake.url)})
         root = self.make_tree()
@@ -571,8 +616,59 @@ class TestSearch(Base):
         self.assertFalse(report["matches_capped"])
         self.assertEqual(fake.posts()[0]["body"]["options"]["temperature"], 0)
 
-    def test_search_cap_reported(self):
+    def test_search_reply_without_a_verdict_fails_the_schema(self):
+        # `answers_question` is the abstention signal; a reply that omits it is not "answerable", it is unparseable
         fake = self.serve(reply='{"hits": []}')
+        self.write_config({"ollama": backend(fake.url)})
+        root = self.make_tree()
+        code, out, err = self.main("search", "--question", "q", "--pattern", "ENV_ALLOW", "--path", str(root), "--min-free-gb", "0")
+        self.assertEqual(code, mt.EXIT_SCHEMA, out + err)
+        self.assertIn("answers_question", err)
+        self.assertTrue((self.runs()[0] / "raw_output.md").exists())
+
+    def test_search_capsule_shows_the_text_the_worker_must_quote(self):
+        # the worker's rule is to quote "the exact text at that line as the capsule showed it", so the capsule shows it
+        fake = self.serve(reply='{"answers_question": true, "hits": [{"id": 1, "reason": "defines it"}]}')
+        self.write_config({"ollama": backend(fake.url)})
+        root = self.make_tree()
+        code, out, err = self.main("search", "--question", "q", "--pattern", "ENV_ALLOW = ", "--path", str(root), "--min-free-gb", "0")
+        self.assertEqual(code, 0, err)
+        self.assertIn("env.py:1", out)
+        self.assertIn("ENV_ALLOW = ('HOME', 'PATH')", out)
+
+    def test_search_bad_regex_is_an_error_not_an_empty_result(self):
+        # the grep's exit code and stderr were discarded, so a broken pattern read as "No matches"
+        fake = self.serve()
+        self.write_config({"ollama": backend(fake.url)})
+        root = self.make_tree()
+        real_which = shutil.which
+        with mock.patch.object(mt.shutil, "which", side_effect=lambda n: None if n == "rg" else real_which(n)):
+            code, out, err = self.main("search", "--question", "q", "--pattern", "ENV_ALLOW(", "--path", str(root), "--min-free-gb", "0")
+        self.assertEqual(code, mt.EXIT_ARGS, out + err)
+        self.assertIn("pattern", err)
+        self.assertNotIn("No matches", out)
+        self.assertEqual(fake.posts(), [])
+
+    def test_search_collection_is_bounded_when_the_grep_goes_silent(self):
+        # the deadline was checked only when a line arrived, so a grep that produced nothing hung the call
+        fake = self.serve()
+        self.write_config({"ollama": backend(fake.url)})
+        root = self.make_tree()
+        sleeper = self.tmp / "rg"
+        sleeper.write_text("#!/bin/sh\nsleep 8\n")
+        sleeper.chmod(0o755)
+        real_which = shutil.which
+        t = time.monotonic()
+        with mock.patch.object(mt.shutil, "which", side_effect=lambda n: str(sleeper) if n == "rg" else real_which(n)):
+            code, out, err = self.main("search", "--question", "q", "--pattern", "ENV_ALLOW", "--path", str(root),
+                                       "--min-free-gb", "0", "--timeout", "1")
+        self.assertLess(time.monotonic() - t, 5, "the silent grep was not killed at the deadline")
+        self.assertNotEqual(code, 0)
+        self.assertIn("timed out", err.lower())
+        self.assertEqual(fake.posts(), [])
+
+    def test_search_cap_reported(self):
+        fake = self.serve(reply='{"answers_question": true, "hits": []}')
         self.write_config({"ollama": backend(fake.url)})
         root = self.make_tree()
         code, out, err = self.main("search", "--question", "q", "--pattern", "ENV_ALLOW", "--path", str(root),

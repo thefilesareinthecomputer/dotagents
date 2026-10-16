@@ -1,6 +1,6 @@
 ---
 name: agent-conference
-description: Panel review for the highest-stakes reasoning - a question about a fixed set of files goes to six members (Claude Code on Fable, Codex on GPT-6 Astra, Cursor on Grok 4.7, Antigravity on Gemini 3.1 Pro, DeepSeek V4.1 Flash and GLM 5.3 Flash via Ollama's cloud), each ranks all the answers blind behind shuffled labels, and a Claude chair synthesizes one answer with the disagreements ruled on, after Karpathy's llm-council. Every member runs read-only through agent-review with only the named files. Use when the user wants a panel, a council, several frontier models on one question, a second and third opinion on a plan, or says "agent conference", "convene the agents", "ask the panel", "run the council". Explicitly invoked; expensive by design. One harness's opinion is agent-review.
+description: Panel review for the highest-stakes reasoning - a question about a fixed set of files goes to six members (Claude Code on Fable, Codex on GPT-6 Astra, Cursor on Grok 4.7, Antigravity on Gemini 4 Argon, DeepSeek V4.1 Flash and GLM 5.3 Flash via Ollama's cloud), each ranks all the answers blind behind shuffled labels, and a Claude chair synthesizes one answer with the disagreements ruled on, after Karpathy's llm-council. Every member runs read-only through agent-review with only the named files. Use when the user wants a panel, a council, several frontier models on one question, a second and third opinion on a plan, or says "agent conference", "convene the agents", "ask the panel", "run the council". Explicitly invoked; expensive by design. One harness's opinion is agent-review.
 ---
 
 # agent-conference
@@ -53,17 +53,20 @@ connections.
   recorded.
 - `--members` picks members (at least two). `--model member=name` swaps a
   model; `--effort level` applies to every member and `--effort member=level` to
-  one. Defaults are agent-review's: Fable, GPT-6 Astra, Grok 4.7 and Gemini 3.1 Pro
-  at high effort, plus `deepseek` (`deepseek-v4.1-flash:cloud`) and `glm`
-  (`glm-5.3-flash:cloud`), two member names for agent-review's `ollama` harness
-  that take any registered `:cloud` tag and nothing else; the conference passes the
+  one. The default members start with agent-review's defaults at high effort:
+  Fable, GPT-6 Astra, Grok 4.7 and Gemini 4 Argon, which is checked against
+  `agy models` at run time, with a substitution recorded when the pin is gone.
+  The other two defaults are `deepseek` (`deepseek-v4.1-flash:cloud`) and `glm`
+  (`glm-5.3-flash:cloud`), member names for agent-review's `ollama` harness that
+  take any registered `:cloud` tag and nothing else. The conference passes the
   cloud gate for them itself, and a bare `ollama` member needs
   `--model ollama=<tag>:cloud`. `deepseek` runs at `low` unless `--effort deepseek=`
   names a level, and a global `--effort` does not change it: at `high` it looped in
   its thinking on a long stage-2 brief and spent 393K tokens with no answer. Every
   ollama member's output is capped at 64K tokens, and its error names a thinking
-  loop. A model that names its level (`grok-4.7-xhigh`) drops the effort; an ollama member maps the effort onto its tag's `think`
-  values, so a global `xhigh` lands as the nearest level the tag lists.
+  loop. A model that names its level (`grok-4.7-xhigh`) drops the effort; an
+  ollama member maps the effort onto its tag's `think` values, so a global
+  `xhigh` becomes the nearest level the tag lists.
 - **The user on the panel.** `--members ...,user` seats the user as a member. The
   model members answer stage 1 in parallel, then the run stops with exit `5`,
   prints `stage1/user-brief.md` and waits for `stage1/user.md`. Hand the user the

@@ -21,6 +21,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 EXIT_OK = 0
@@ -67,6 +68,17 @@ def agent_model() -> str:
         return REQUIRED_MODEL_PREFIX
     m = re.search(r"^model:\s*(\S+)", fm, re.M)
     return m.group(1) if m else REQUIRED_MODEL_PREFIX
+
+
+def agent_effort() -> str | None:
+    """The effort pinned in the agent definition's frontmatter. A subagent gets it from the definition; a headless
+    run gets the body with the frontmatter stripped, so the runner has to pass it as --effort itself."""
+    try:
+        fm = AGENT.read_text(encoding="utf-8").split("---")[1]
+    except (OSError, IndexError):
+        return None
+    m = re.search(r"^effort:\s*(low|medium|high|xhigh|max)\s*$", fm, re.M)
+    return m.group(1) if m else None
 
 
 # The default is the local-first brief: on the 72-run goal matrix of 2026-10-09 it scored 22/24 against 18/24 for the
@@ -243,15 +255,18 @@ def parse_json_object(text: str) -> object:
     fence = re.search(r"```(?:json)?\s*(\{.*\})\s*```", text, re.S)
     if fence:
         text = fence.group(1)
+    obj = None
     try:
-        return json.loads(text)
+        obj = json.loads(text)
     except ValueError:
         start, end = text.find("{"), text.rfind("}")
         if start >= 0 and end > start:
             try:
-                return json.loads(text[start:end + 1])
+                obj = json.loads(text[start:end + 1])
             except ValueError:
                 pass
+    if isinstance(obj, dict):
+        return obj
     raise TaskError("the answer is not a JSON object", EXIT_SCHEMA)
 
 
@@ -285,11 +300,40 @@ def allowed_tools() -> str:
     return ",".join(rules)
 
 
+# The station's memory gate. A headless worker cannot answer the "ask" the gate returns at warn, so the runner seats
+# the worker (the gate then denies load-adding calls outright, with a prefix the worker's fallback rule recognizes)
+# and asks the gate itself before spending anything: critical refuses the run, warn is passed on to the worker.
+SEAT = "support-local"
+GATE_PREFIX = "brain-gate: memory-pressure"
+GATE_HOOKS = (Path.home() / ".claude" / "hooks" / "memory_pressure_gate.py", HERE.parent.parent.parent / "hooks" / "memory_pressure_gate.py")
+
+
+def gate_check() -> str | None:
+    """Ask the station's memory gate as a prompt would. Exit 2 is critical: refuse before a worker is spent. A warning
+    on stdout is returned so the brief can tell the worker that its local calls may be denied. No gate installed, or a
+    gate that cannot read the kernel, means no gate."""
+    hook = next((h for h in GATE_HOOKS if h.is_file()), None)
+    if hook is None:
+        return None
+    try:
+        p = subprocess.run([sys.executable, str(hook)], input=json.dumps({"hook_event_name": "UserPromptSubmit"}),
+                           capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if p.returncode == 2:
+        raise TaskError("memory pressure is critical on this machine; refusing to start a worker: " + p.stderr.strip()[:300], EXIT_REFUSED)
+    try:
+        return (json.loads(p.stdout).get("systemMessage") or None) if p.stdout.strip() else None
+    except ValueError:
+        return None
+
+
 def run_worker(brief: str, model: str, max_turns: int, timeout: int, effort: str | None = None,
                autocompact: str | None = None) -> dict:
     """One headless worker run. Always returns a result dict: the harness's own when it produced one, or a
     synthetic one with `died` set when the process timed out, crashed or printed no JSON, so a dead worker is a
-    recorded outcome and never a vanished one."""
+    recorded outcome and never a vanished one. The worker is seated for the memory gate and runs in an empty
+    directory of its own, so no project rules file or session memory reaches it; the user-level hooks still do."""
     claude = shutil.which("claude")
     if not claude:
         raise TaskError("the claude CLI is not on PATH", EXIT_WORKER)
@@ -300,11 +344,16 @@ def run_worker(brief: str, model: str, max_turns: int, timeout: int, effort: str
     if autocompact:
         cmd += ["--autocompact", autocompact]
     cmd.append(brief)
+    env = {**os.environ, "AGENTS_APP_SEAT": SEAT}
+    (state_dir() / "cwd").mkdir(exist_ok=True, mode=0o700)
+    cwd = tempfile.mkdtemp(prefix="worker-", dir=state_dir() / "cwd")
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env, cwd=cwd)
     except subprocess.TimeoutExpired as e:
         tail = (e.stdout.decode("utf-8", "replace") if isinstance(e.stdout, bytes) else (e.stdout or ""))[-500:]
         return {"died": "timeout", "subtype": f"killed after {timeout} s", "result": tail, "is_error": True, "modelUsage": {}}
+    finally:
+        shutil.rmtree(cwd, ignore_errors=True)
     lines = [ln for ln in p.stdout.splitlines() if ln.strip().startswith("{")]
     if not lines:
         return {"died": "no_json", "subtype": f"exit {p.returncode}", "result": (p.stdout + "\n" + p.stderr).strip()[-500:],
@@ -371,8 +420,12 @@ def run_goal(goal: str, corpus: str, complete: str, out_of_scope: str, budget_tu
     `coverage`, then retried at most `retries` times with half the turn budget and the prior coverage in the brief.
     Every attempt's tokens and cost are summed into the record; nothing vanishes."""
     model = model or agent_model()
+    effort = effort or agent_effort()
     started = now()
+    warning = gate_check()   # critical refuses here, before anything is spent
     corpus_path = corpus_root(corpus, root)
+    if corpus_path is not None and Path(corpus).expanduser().is_dir():
+        corpus = str(corpus_path.resolve())   # the worker runs in its own empty directory, so a relative corpus would not resolve
     attempts: list[dict] = []
     prior = ""
     obj = result = None
@@ -380,6 +433,10 @@ def run_goal(goal: str, corpus: str, complete: str, out_of_scope: str, budget_tu
     turns = budget_turns
     for n in range(1, retries + 2):
         brief = build_brief(goal, corpus, complete, out_of_scope, turns, budget_calls, variant)
+        if warning:
+            brief += (f"\n\n## Station state\n\nThe station's memory gate is at warn ({warning[:300]}). A local-model call may be denied "
+                      f"with a reason starting `{GATE_PREFIX}`; that is the machine declining to load a model, and your definition's "
+                      f"fallback rule applies: continue with Grep, Glob and Read and name the gate in `coverage`.\n")
         if prior:
             brief += f"\n\n## Prior attempt\n\nA previous worker on this goal ended early. Its coverage: {prior}\nStart from what it covered; do not repeat the same failing call.\n"
         obj, result, salvaged = attempt(goal, corpus, brief, model, turns, timeout, effort, autocompact)
@@ -391,7 +448,10 @@ def run_goal(goal: str, corpus: str, complete: str, out_of_scope: str, budget_tu
                          "input_tokens": usage.get("input_tokens"), "harness_cost_usd": result.get("total_cost_usd"),
                          "per_model": {name: {k: u.get(k) for k in ("inputTokens", "outputTokens", "cacheReadInputTokens", "cacheCreationInputTokens", "costUSD")}
                                        for name, u in (result.get("modelUsage") or {}).items() if isinstance(u, dict)}})
-        retryable = salvaged or (obj.get("stop_reason") in ("budget", "error", "timeout") and not obj.get("evidence"))
+        # a dead worker is retried; so is one that ran out of budget with nothing to show and no verdict. A parsed
+        # `answerable: false` is a verdict, whatever stopped the worker, and is not run again
+        retryable = salvaged or (obj.get("answerable") is not False and obj.get("stop_reason") in ("budget", "error", "timeout")
+                                 and not obj.get("evidence"))
         if not retryable or n > retries:
             break
         prior = str(obj.get("coverage") or "")[:1500]
