@@ -12,10 +12,10 @@
 
 </div>
 
-TL;DR: claude code skills and configs, promoted to `~/.agents`, so all agent harnesses can use them.
+TL;DR: agent skills, commands, and configs.
 
-This repo holds my agent skills, subagents, slash commands, hooks and per-harness setup specs.
-`~/.agents/skills/` is a cross-harness convention, so most harnesses read the skills straight from the clone.
+This repo contains agent skills, subagents, slash commands, hooks and harness-specific setup specs for Claude Code, Codex, Cursor, Copilot, etc.
+`~/.agents/skills/` is a cross-harness convention, so most harnesses can read the skills as soon as they're cloned.
 Skills follow the open [Agent Skills](https://agentskills.io) standard.
 
 ## Install
