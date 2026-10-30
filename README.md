@@ -8,7 +8,7 @@
 [![Spec: Agent Skills](https://img.shields.io/badge/spec-agent%20skills-0b7285?style=flat-square)](https://agentskills.io)
 
 <img src="images/lol-skills.jpg" width="720"
-  alt="Cover image: a Napoleon Dynamite style figure rendered in green Matrix code rain, captioned 'ENGINEERS only want CODING AGENTS who have great skills.'">
+  alt="Cover image: a Napoleon Dynamite style figure rendered in green Matrix code rain, captioned 'DEVS only want AGENTS who have great skills.'">
 
 </div>
 
