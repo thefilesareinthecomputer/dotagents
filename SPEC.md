@@ -54,9 +54,9 @@ stop charging every session; restoring one is a `git mv` back plus
 > subagent serves all three. Anything learned in one mode reaches the others
 > through a single store and a single write command
 > rather than a policy asking three skills to remember each other.
-> `ledger.py` carries the catalog, field notes, stack decisions, a
-> claims-freshness axis separate from URL liveness, and a derived `map` tag; it has
-> 88 tests. Its bundled `resources/` stay portable to a reader outside this
+> `ledger.py` holds the catalog, field notes, stack decisions, a
+> claims-freshness axis separate from URL liveness, a derived `map` tag, GitHub
+> repo facts read from the API, and a per-tool security record; it has 101 tests. Its bundled `resources/` stay portable to a reader outside this
 > station, so they name no station-local skill, and `resources/data-contract.md`
 > states how the files key on each other.
 > The stack-map *opinion* layer is still hand-curated and unvalidated end-to-end;

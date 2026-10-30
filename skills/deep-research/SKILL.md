@@ -58,9 +58,9 @@ say so rather than running the pipeline.
 ## Phase 2 - RESEARCH (N parallel subagents)
 
 Spawn `researcher` subagents one per angle - the `researcher` agent definition
-(agents/researcher.md) pins model (opus), effort, tool allowlist, and turn cap structurally,
+(agents/researcher.md) pins model (sonnet), effort, tool allowlist, and turn cap structurally,
 so the spawn cannot inherit the session tier. If the `researcher` agent type is unavailable
-in this environment, fall back to `general-purpose` and pass `model: opus` explicitly. Give
+in this environment, fall back to `general-purpose` and pass `model: sonnet` explicitly. Give
 each researcher a findings-file path in the session scratchpad (e.g.
 `<scratchpad>/deep-research/<angle-slug>.md`, slug characters `[a-z0-9-]` only).
 
@@ -103,7 +103,7 @@ could-not-verify list. Never paste the full findings into your return.
 ## Phase 3 - VALIDATE (1 subagent)
 
 Spawn one validator on the `researcher` agent type (same structural pins; the prompt below
-restricts it to verification) - or `general-purpose` with `model: opus` passed explicitly
+restricts it to verification) - or `general-purpose` with `model: sonnet` passed explicitly
 if unavailable. Hand it the findings-file paths, not the findings - it reads them from disk.
 
 **Validator prompt template:**
@@ -119,7 +119,7 @@ RETURN <=200 words: confidence + reasoning, then one line per disputed/flagged c
 restate validated findings and do not edit the files.
 FILES: <findings-file paths>
 ```
-For `--deep`, run a second validator pass (also pinned `model: opus`) that re-checks only
+For `--deep`, run a second validator pass (also pinned `model: sonnet`) that re-checks only
 the `flagged` items.
 
 ## Phase 4 - SYNTHESIZE (main agent)
@@ -162,7 +162,7 @@ primary/official) · artifact path if saved.
   from, and hand the timing decision to the user.
 - **Validator verifies only** - new facts require a new researcher pass, not a validator edit.
 - **Structural pins over prose** - spawn the `researcher` agent type (model, effort, tools,
-  turn cap pinned in its definition); where it does not exist, pass `model: opus` explicitly.
+  turn cap pinned in its definition); where it does not exist, pass `model: sonnet` explicitly.
   Inheriting the session model is a bug, not a default.
 - **Budget every researcher** - the search/fetch caps and stop-on-checklist rule ship in the
   prompt verbatim; a researcher that hits budget returns could-not-verify, it does not keep

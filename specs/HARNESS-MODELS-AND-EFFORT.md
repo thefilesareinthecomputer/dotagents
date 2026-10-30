@@ -25,7 +25,7 @@ rather than as current.
 |---|---|---|---|
 | codex | 0.150.1, same at 0.162.1 | Not from the CLI | `~/.codex/models_cache.json` - structured, per-model, carries `supported_reasoning_levels` and `default_reasoning_level` |
 | cursor-agent | 2026.08.25, same at 2026.10.01 | Yes | `cursor-agent --list-models`, scoped to the logged-in account |
-| copilot | 1.0.81, same on 2026-10-14 | No | `copilot models` fails with "Invalid command format"; `--help` documents `--model` and enumerates nothing |
+| copilot | 1.0.81, same on 2026-10-29 | No command | `copilot models` fails with "Invalid command format", `--help` enumerates nothing, and an unknown `--model` errors without listing alternatives; a run with `--log-level all` writes the account's full `/models` response (ids, policy state, plan restrictions, token prices) to `~/.copilot/logs/`, and a model whose policy is `disabled` is refused like an unknown id (2026-10-29) |
 | claude | 2.1.251, same at 2.1.280 | No | `--help` says "provide an alias for the latest model or the model's full name" and lists none |
 
 codex holds the only machine-readable model data, and it is a cache file rather

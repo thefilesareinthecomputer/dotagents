@@ -2,7 +2,7 @@
 name: researcher
 description: Source-cited web researcher for one bounded angle of a topic - the worker the deep-research skill spawns in parallel, also usable for its validate pass. Runs a hard-budgeted search-and-fetch pass, writes full dated findings to a file the orchestrator names, and returns only a capsule summary. Use for any fact-gathering or fact-checking subagent whose model tier, effort, and turn budget must not inherit from the session.
 tools: WebSearch, WebFetch, Read, Write
-model: opus
+model: sonnet
 effort: medium
 maxTurns: 15
 ---

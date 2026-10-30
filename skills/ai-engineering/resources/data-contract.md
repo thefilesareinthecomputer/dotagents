@@ -49,8 +49,16 @@ Edit these:
 | `agent-stack-map.md` | the opinion layer: comparisons, cautions, recommended architectures |
 | `reference-catalog.md` | per-tool descriptions sorted by category |
 
-The two append-only stores are written through `ledger.py`, never by hand:
+The three append-only stores are written through `ledger.py`, never by hand:
 
+- `advisories-sync`, `advisory` and `advisories` keep the security record in
+  `advisories.tsv`: one row per (tool, advisory or incident id) with date, kind
+  (`vuln`, `supply-chain`, `malicious-release`, `registry-malware`, `other`),
+  severity and source. The sync appends published GitHub advisories, and a person
+  records a supply-chain incident with `ledger.py advisory`, only from its primary
+  record; summaries are cleaned of invisible characters and comment openers on the
+  way in, because agents read them. `render-advisories`
+  writes the generated `advisories.md`.
 - `field-note` and `field-notes` record and read first-hand experience. A note
   carries a verdict (`works`, `caution`, `broken`, `superseded`), the `scope` it
   held under, the finding, and evidence. Scope is what makes a note falsifiable
@@ -60,7 +68,7 @@ The two append-only stores are written through `ledger.py`, never by hand:
   field records the shape of the problem, never a project name, because shape is
   what makes the record reusable to a later reader.
 
-Both reject a URL that is not already in the catalog. That rejection is what keeps
+The field-note and decision stores reject a URL that is not already in the catalog. That rejection is what keeps
 them joined to the spine.
 
 Never hand-edit these, because a regeneration will discard the edit:
@@ -69,7 +77,9 @@ Never hand-edit these, because a regeneration will discard the edit:
 |---|---|
 | `link-ledger.md` | `catalog.tsv`, by `ledger.py render` |
 | `field-notes.md` | `field-notes.tsv`, by `ledger.py render-notes` |
-| `_conflicts.tsv` | written by the engine when a classification is superseded |
+| `_conflicts.tsv` | written by the engine when a classification is superseded or two rows merge |
+| `github.tsv` | the GitHub API, by `ledger.py github-sync`, which writes stars, license, last push and archived state per catalogued repo root with the check date; no other store holds those figures |
+| `advisories.md` | `advisories.tsv`, by `ledger.py render-advisories` |
 
 Classification is data, not code. Teaching the engine a new domain or repo is a
 row in `rules.tsv` or `seed-sections.tsv`. Changing `ledger.py` to categorize a
@@ -84,7 +94,7 @@ already in use: `frameworks`, `harnesses`, `memory`, `rag`, `vectordb`,
 `deepwiki`, `triage`, `map`, `media` (added 2026-09-18: speech, audio and
 media-production models and pipelines). Reuse a tag before inventing one.
 
-Two tags carry meaning beyond categorization:
+Three tags have meaning beyond categorization:
 
 - **`map`** means this URL also has a row in `agent-stack-map.md`. It is the join
   between the catalog and the opinion layer, and it is what scopes a freshness
@@ -95,6 +105,10 @@ Two tags carry meaning beyond categorization:
   were never map rows.
 - **`triage`** means the engine could not classify it. A triage row is unfinished
   work, not a category.
+- **`avoid`** means a person ruled, from the security record in `advisories.tsv`,
+  that the tool should not be adopted; the dated reason is in the map's "Licensing &
+  security cautions" section. It is set by `ledger.py set`, never by a rule, because
+  an advisory count alone cannot tell a careless project from one that discloses openly.
 
 An older spelling, `harnesses(map)`, encodes the same `map` relationship inside a
 single tag. Both spellings are currently present in `catalog.tsv`, `rules.tsv`

@@ -38,6 +38,12 @@ store that does not join to the catalog produces an island nothing else can see.
 | `check --claims [--section S]` | the claims queue: map rows whose ASSERTIONS are unverified. A URL resolving says nothing about whether its stars, license or maintenance status still hold |
 | `verified URL...` | stamp `claims_checked` once verdicts have actually landed in the map |
 | `sync-map-tags` | derive the `map` tag from `agent-stack-map.md`; run after adding or removing a map row |
+| `github-sync [--dormant-days N]` | refresh stars, license, last push and archived state from the GitHub API into `github.tsv`; reports moves, archives, missing licenses, dormancy |
+| `rename OLD NEW [--merge]` | move every record and prose link from one canonical URL (or prefix) to another; `--merge` folds into an existing row and logs it |
+| `advisories-sync` | append every published GitHub security advisory for each catalogued repo to `advisories.tsv` |
+| `advisory URL --id --kind --severity --date --summary --source` | record one incident by hand (a supply-chain compromise, a malicious release) - only from its primary record |
+| `advisories [URL] [--pattern]` | read the security record; `--pattern` lists tools with any supply-chain incident or three or more critical/high advisories in 24 months, for a person to rule on (`set URL --sections '...\|avoid'` plus a dated line in the map's cautions) |
+| `render-advisories` | regenerate `advisories.md` from the store |
 | `set URL --sections 'a\|b'` | manually curate a URL; manual rows win conflicts |
 | `render [--mark-stale --ttl N]` | regenerate `link-ledger.md` from the catalog (idempotent) |
 | `seed --from-md FILE` | (re)scan a markdown bundle (e.g. the source KB file) into the catalog |
@@ -75,33 +81,25 @@ For anything moving (versions, GA/maintenance, license), use `WebSearch` or the
 ## Ground truth before prose (run this first)
 
 **Every GitHub row's metadata comes from the API, never from a search summary or a
-README.** One call settles stars, license, language, last push and archived state for
-a whole batch, costs nothing, and is not a summarization of anything:
+README.** `ledger.py github-sync` makes one `gh api` call per catalogued repo root and
+writes stars, license, last push and archived state to `resources/github.tsv`, which
+`render` shows beside each ledger row with its check date. It also reports the changes
+that matter: a moved repo (fix with `ledger.py rename OLD NEW`, or `--merge` when the new
+URL is already catalogued), an archive, a missing license and a year without a push.
 
-```bash
-repos=(owner/repo owner/repo2)          # names arrive from pages we do not control
-for r in "${repos[@]}"; do
-  [[ "$r" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$ ]] \
-    || { echo "skip (not owner/repo): $r" >&2; continue; }
-  printf '%-42s ' "$r"
-  gh api "repos/$r" --jq '"\(.stargazers_count)★ \(.license.spdx_id // "NO-LICENSE") \(.language) pushed:\(.pushed_at[:10]) archived:\(.archived)"' \
-    || echo "LOOKUP FAILED"
-done
-```
+**Prose never holds these numbers.** A star count written into the map or the
+reference catalog is stale within weeks (42 of 120 were off by more than 1.5x on
+2026-10-29), and the test suite fails when it finds one. Prose covers only what an API cannot say:
+the mechanism, the transferable pattern, the cautions.
 
-**The guard is the load-bearing line, not decoration.** `$r` is interpolated into a
-REST path, so an unvalidated name steers the call off `repos/`: `r='../user'` makes
-`repos/../user` resolve to the authenticated-user endpoint and return the token
-owner's own account record. Names on this pass come from aggregator pages and
-READMEs - adversary-writable text - so validate every one, keep them in an array
-rather than a bare word-list, and never drop the `--jq` filter to "see the raw JSON"
-on a row that looks wrong. Re-verified by reproduction 2026-09-02.
+**The name check in `gh_lookup` is the security boundary.** The name is interpolated
+into a REST path, so an unvalidated one can move the call outside `repos/`: `../user` resolves
+to the authenticated-user endpoint and returns the token owner's own account record.
+Names come from aggregator pages and READMEs, which are adversary-writable, so any
+ad-hoc lookup outside the engine validates the same way and keeps the `--jq` filter.
 
-Run it **before** the research fan-out, and hand each researcher the row for its
-repos so it spends its budget on what the repo *does* rather than on re-deriving
-numbers it will get wrong. Then write the API's figures into the corpus verbatim,
-stamped `(GitHub API, checked YYYY-MM-DD)`, and let prose cover only what an API
-cannot say: the mechanism, the transferable pattern, the cautions.
+Run `github-sync` **before** a research fan-out, and hand each researcher the facts
+for its repos so it spends its budget on what the repo *does*.
 
 This step is not optional. On the 2026-09-02 pass, researchers working from search
 summaries got five of sixteen rows wrong - two star counts off by 100x and 4x, two
