@@ -85,7 +85,7 @@ assembly step, so:
 - **One edit propagates everywhere** once committed/pushed and re-synced.
 - **Device-local skills stay local** (never forced into the shared set).
 - **Nothing external owns the repo** - updating third-party skill plugins cannot
-  mutate or delete the user's skills (see `README.md` → Architecture → Ownership).
+  mutate or delete the user's skills (see `README.md` → Layout).
 
 ## Scope (in)
 
@@ -94,8 +94,8 @@ assembly step, so:
   `commands/<name>.md`.
 - Maintain `sync-skills.sh`, which assembles the per-device view by symlinking each
   tree into `~/.claude/{skills,agents,commands}`, preserving device-local entries.
-- Keep the living docs current (this file, `README.md` - incl. its Architecture
-  and Skills catalog sections - and `tasks/plan.md`).
+- Keep the living docs current (this file, `README.md` - incl. its Install
+  and What's inside sections - and `tasks/plan.md`).
 - Maintain `app/`, the agents chat app for talking to the harnesses over a
   markdown vault: a FastAPI server on loopback, a vanilla JS chat and graph UI
   with multi-agent group threads, and the `agents` CLI (alias `agn`). It is its own `uv` project with `fastapi` and
@@ -220,6 +220,6 @@ dropped-with-reasons list: `tasks/completed/SPEC-VAULT-KG-2026-08-08.md`.
 
 ---
 
-See `README.md` → Architecture for how the sync view is built and why it's safe.
+See `README.md` → Install for how the sync view is built and why it's safe.
 Shipped work is recorded in `tasks/completed/` - per-date files, the only cold
 store. This file states current truth only.
