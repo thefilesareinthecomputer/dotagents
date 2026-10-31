@@ -19,6 +19,17 @@ Walk the user through closing the open doors on a network they own, in an order 
 - **One setting, then verify.** Give the exact menu, the value and the reason in one line. Ask for the result or a screenshot before the next item.
 - **Prefer a reversible change.** Say what breaks if it goes wrong and how to undo it.
 
+## 0. Pick the mode
+
+Read the calling project's private state first; if it records a mode, use it. Otherwise ask one question, in plain words: "Do you already have a small always-on computer that every device uses for DNS, such as Pi-hole or AdGuard Home on a Raspberry Pi?" If the user is unsure, the answer is no.
+
+| Mode | Steps 1-5 | Step 6 |
+|---|---|---|
+| **No sensor** (most homes) | In full | What still works without one, then the offer to get one |
+| **Sensor** | In full | The sensor checks |
+
+Record the mode in private state. Explain each term the first time it comes up; a user who has never opened the router's admin page is told where it is before the first setting.
+
 ## 1. Orient (passive)
 
 EXECUTE these; each one is bounded. The first four read the laptop's own tables; the browse asks the local network which services it advertises.
@@ -96,6 +107,20 @@ for port in 23 5555 554 80 443; do nc -z -G 2 "$ADDR" "$port" && echo "open $por
 
 A laptop on Wi-Fi sees its own traffic and other devices' broadcast and multicast only, and it sleeps. Always-on visibility needs a box that is every device's DNS server, so its uptime is the network's uptime.
 
+### No sensor: what still works
+
+Steps 1-5 close most of the risk on their own. Without a sensor the user still gets:
+
+- **The router's client list as the inventory.** Compare it with the device record at the start of each session; anything new is an inventory item before anything else.
+- **Filtering with no new hardware.** Set the router's DHCP DNS server to a filtering resolver, such as Quad9 at `9.9.9.9`, which refuses known malicious domains for every device that uses the router's DNS. Check it from the laptop with `scutil --dns | grep nameserver` after the laptop rejoins.
+- **The router vendor's security service,** if the router has one (step 2).
+
+What it cannot give: a record of which device looked up what, a warning when a device starts reaching somewhere new, or a view of devices that bypass the router's DNS.
+
+Then offer the sensor once: what it adds, the parts it needs and roughly what they cost, and that setup is an evening of the user's own steps. On a yes, continue with "Setting one up". On a no, record "sensor: none, by choice" in private state and do not raise it again unless the user does.
+
+### Setting one up
+
 | Option | Fits | Why |
 |---|---|---|
 | Laptop | Audits only | Sleeps and leaves the house |
@@ -111,7 +136,15 @@ The board needs its official power supply, a case with a fan, storage and an Eth
 4. Roll out one device at a time, starting with one computer: its DNS set to the sensor only, with no backup server (a backup bypasses the filter) and any VPN off for the test. Then the other devices, then the router's DHCP DNS option if the router has one. If it has none, the sensor's DHCP server replaces the router's.
 5. Updates on the box are manual and deliberate. An update can restore cron entries or settings the hardening removed, so recheck them after each one.
 
-The agent prepares the scripts and config files, copies them to the box and compares checksums; the user reviews each script and runs it with `sudo` in their own session. Devices with hardcoded DNS or DNS-over-HTTPS bypass the sensor; the report names each device whose DNS is never seen. The filter's admin page is served over HTTPS and its config file is root-owned, so reads of it are the user's step too.
+The agent prepares the scripts and config files, copies them to the box and compares checksums; the user reviews each script and runs it with `sudo` in their own session. The filter's admin page is served over HTTPS and its config file is root-owned, so reads of it are the user's step too. Once the rollout is done, record the mode as "sensor" and run the checks below.
+
+### Sensor: the checks
+
+Each session in sensor mode, with the user reading the filter's admin page or running the query on the box:
+
+- **Coverage.** Every device in the record appears among the filter's clients. A device whose lookups never arrive has hardcoded DNS or DNS-over-HTTPS and bypasses the sensor; it is a finding, with the device setting that turns it off or the IoT network as the fallback.
+- **New behavior.** Lookups from a device new to the record, and any device whose blocked count jumped since the last session, are reviewed before anything else.
+- **The box itself.** Its last update date, and the hardening from step 2 of the setup still in place after it.
 
 ## Gotchas
 
