@@ -19,7 +19,7 @@ lint      python3 scripts/vault_lint.py <vault> [--json]
 test      python3 -m unittest discover -s tests
 ```
 
-A vault has two homes. `--target` and `--name` write `<path>/PROJECTS/<NAME>/`, one vault among a knowledge engine's projects. `--into` writes the folder itself, for one user who keeps the vault inside a code repo or other project, usually `docs/`; it refuses a folder that already has its own `AGENTS.md` or `CLAUDE.md`, because the vault's copies are its contract, so a repo whose `docs/` holds other files takes a folder of its own such as `docs/vault/`. The linter and every dependent skill take the vault folder wherever it lives.
+A vault has two homes. `--target` and `--name` write `<path>/PROJECTS/<NAME>/`, one vault among a knowledge engine's projects. `--into` writes the folder itself, for one user who keeps the vault inside a code repo or other project, in any folder of the repo's choosing, such as `docs/` or `tasks/vault/`; it refuses a folder that already has its own `AGENTS.md` or `CLAUDE.md`, because the vault's copies are its contract, so a repo whose `docs/` holds other files takes a folder of its own such as `docs/vault/`. The linter and every dependent skill take the vault folder wherever it lives. Inside a code repo, the vault's `CLAUDE.md` loads the whole contract into a session's context the first time that session touches a file in the vault; that is by design, since every agent writing there needs it.
 
 The scaffolder copies `templates/PROJECTS/`. It never overwrites: an existing file is reported as skipped, so a run against a part-built vault fills the gaps. A vault that holds a role under an older filename (`user-stories-runsheet.md` or `user-stories-tasks.md` for the run sheet) is not given the new name as a second file. It resolves no dates, so two runs on different days produce byte-identical notes. Then it seeds the graph: it runs markdown-kg's `init` when the vault has no graph config (a vault with only a legacy `vault-kg/` is skipped with a rename instruction), merges any row from `templates/markdown-kg-profiles.md` that the config lacks, seeds `markdown-kg/.gitignore` with `*.db*` because the database holds every note's full text, and ingests when a note or a row was added. markdown-kg is found beside this skill; when it is absent the step is reported and skipped. Exit 1 means a file could be neither written nor skipped, or the graph step failed.
 
@@ -36,7 +36,7 @@ The linter is the anti-drift mechanism. Every check fires on positive evidence, 
 | `anchor` | a `[[note#Heading]]` whose heading does not exist |
 | `dated` | a `notes-*` H2 that is not `YYYY-MM-DD-...`, `YYYY-MM-DD - <headline>`, `PREP: ...`, `About this file` or `Related`, or in `notes-pr-reviews.md` `PR-STORY-...`; `log.md` H2s not ISO and newest first, apart from an appendix after the last dated entry |
 | `board` | `user-stories.md` restating sprint-board's grammar instead of pointing at it |
-| `placeholder` | a literal `YYYY-MM-DD` in a hand-written note that already carries real dates |
+| `placeholder` | a literal `YYYY-MM-DD` in a hand-written note that already carries real dates, and the seed's `log.md` heading once any note does |
 
 `AGENTS.md` and `CLAUDE.md` are the contract, not notes. `code-*` and `docs-*` are ingested byte-for-byte and are exempt from the placeholder check. `notes-questions.md` is a register grouped by topic, not dated capture. Text inside fences, inline code and HTML comments is invisible to every check, which is why each seed file keeps its entry format in a fenced block.
 

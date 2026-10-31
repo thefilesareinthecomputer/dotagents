@@ -73,10 +73,11 @@ class LintTest(unittest.TestCase):
         text = "---\ntype: chat_log\n---\n# CHAT-NOTES-CLIENT\n\n## 2026-01-02-ALL\n\nthread\n"
         (self.v / "notes-chat-notes-client.md").write_text(text)
         (self.v / "notes-chat-notes-internal.md").write_text(text.replace("CLIENT", "INTERNAL"))
-        for name in ("notes-email-notes.md", "notes-learnings.md", "index.md"):
+        for name in ("notes-email-notes.md", "notes-learnings.md", "index.md", "log.md"):
             p = self.v / name
             p.write_text(p.read_text().replace("[[notes-general-notes]]", "[[notes-chat-notes-client]]")
-                         .replace("[notes-general-notes](notes-general-notes.md)", "[notes-chat-notes-client](notes-chat-notes-client.md)"))
+                         .replace("[notes-general-notes](notes-general-notes.md)", "[notes-chat-notes-client](notes-chat-notes-client.md)")
+                         .replace("## YYYY-MM-DD", "## 2026-01-01", 1 if name == "log.md" else 0))
         self.assertClean()
 
     def test_family_learns_the_alias_and_admits_its_unnumbered_notes(self) -> None:
@@ -169,7 +170,19 @@ class LintTest(unittest.TestCase):
         p = self.v / "notes-updates.md"
         p.write_text(p.read_text().replace("coverage_start: YYYY-MM-DD", "coverage_start: 2026-03-01", 1))
         findings = self.assertOnly("placeholder")
-        self.assertTrue(all(f["file"] == "notes-updates.md" for f in findings))
+        # the dated note itself, and the seed's log heading, since the vault now carries real dates
+        self.assertEqual({f["file"] for f in findings}, {"notes-updates.md", "log.md"})
+        self.assertEqual([f["file"] for f in findings].count("log.md"), 1)
+
+    def test_seeded_log_heading_flags_once_the_vault_carries_a_real_date(self) -> None:
+        self.assertClean()  # a fresh seed has no real date anywhere
+        with (self.v / "notes-learnings.md").open("a") as f:
+            f.write("\n## 2026-03-01 - first sweep\n\n### A fact\n\ntext\n")
+        findings = lint(self.v)[1]
+        self.assertIn(("placeholder", "log.md"), {(f["check"], f["file"]) for f in findings})
+        log = self.v / "log.md"
+        log.write_text(log.read_text().replace("## YYYY-MM-DD", "## 2026-02-28", 1))
+        self.assertNotIn("log.md", {f["file"] for f in lint(self.v)[1]})
 
     @unittest.skipIf(getattr(os, "geteuid", lambda: 1)() == 0, "root can read an unreadable file")
     def test_unreadable_file_fails_rather_than_passing_silently(self) -> None:

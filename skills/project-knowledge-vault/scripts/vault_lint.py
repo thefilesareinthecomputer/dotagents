@@ -263,16 +263,22 @@ class Linter:
                 self.add("board", "user-stories.md", n, "restates sprint-board's grammar instead of pointing at the skill")
 
     def check_placeholders(self) -> None:
-        for name, lines in self.clean.items():
-            # ingested families are byte-identical upstream content, never hand-edited
-            if name in CONTRACT_FILES or name.startswith(("code-", "docs-")):
-                continue
+        # ingested families are byte-identical upstream content, never hand-edited
+        hand = {n: l for n, l in self.clean.items()
+                if n not in CONTRACT_FILES and not n.startswith(("code-", "docs-"))}
+        # the seed's log heading is the first session's to resolve, so once any note carries
+        # a real date the log's placeholder counts even while the log holds none of its own
+        vault_dated = any(ISO_RE.search("\n".join(l)) for l in hand.values())
+        for name, lines in hand.items():
             body = "\n".join(lines)
-            if not ISO_RE.search(body):
+            if not ISO_RE.search(body) and not (name == "log.md" and vault_dated):
                 continue
+            why = ("the seed's YYYY-MM-DD heading is still unresolved while the vault carries real dates; set it to the seed date"
+                   if name == "log.md" and not ISO_RE.search(body) else
+                   "literal YYYY-MM-DD in a note that already carries real dates")
             for n, line in enumerate(lines, start=1):
                 if PLACEHOLDER_RE.search(line):
-                    self.add("placeholder", name, n, "literal YYYY-MM-DD in a note that already carries real dates")
+                    self.add("placeholder", name, n, why)
 
 
 def main(argv: list[str] | None = None) -> int:

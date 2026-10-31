@@ -81,6 +81,8 @@ class CompatTest(unittest.TestCase):
             "---\ntype: reference\ntitle: notes-learnings\ncoverage_start: 2026-02-01\n---\n\n# LEARNINGS\n\n"
             "# 2026-FEBRUARY\n\n## 2026-02-01 - the deploy target moved to blue\n\n"
             "### The deploy target is the blue cluster\n\nSettled at [[notes-meeting-notes#2026-02-01-STANDUP]] after the outage review.\n")
+        log = v / "log.md"  # the first session resolves the seed's log heading
+        log.write_text(log.read_text().replace("## YYYY-MM-DD", "## 2026-01-01", 1))
         lint = run(LINT, v)
         self.assertEqual(lint.returncode, 0, lint.stdout)
 

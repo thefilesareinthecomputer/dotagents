@@ -244,6 +244,36 @@ class TestSymlinks(Base):
 
 
 @needs_kg
+class TestDryRunGraph(Base):
+    def test_dry_run_on_a_new_vault_says_it_would_initialize(self) -> None:
+        result = run("--into", str(self.tmp / "docs"), "--dry-run", graph=True)
+        self.assertIn("graph: would initialize markdown-kg/", result.stdout)
+
+    def test_dry_run_on_a_vault_with_a_graph_says_it_is_present(self) -> None:
+        dest = self.tmp / "docs"
+        (dest / "markdown-kg").mkdir(parents=True)
+        (dest / "markdown-kg" / "markdown-kg-config.md").write_text("```json\n{}\n```\n")
+        result = run("--into", str(dest), "--dry-run", graph=True)
+        self.assertNotIn("would initialize", result.stdout)
+        self.assertIn("graph: markdown-kg/ present", result.stdout)
+
+    def test_dry_run_reports_the_refusals_the_real_run_makes(self) -> None:
+        dest = self.tmp / "docs"
+        dest.mkdir()
+        (dest / "markdown-kg").write_text("not a folder\n")
+        dry = run("--into", str(dest), "--dry-run", graph=True)
+        self.assertNotIn("would initialize", dry.stdout)
+        self.assertIn("not a directory", dry.stdout)
+        real = run("--into", str(dest), graph=True)
+        self.assertEqual(real.returncode, 1)
+
+    def test_dry_run_on_a_legacy_graph_says_it_would_skip(self) -> None:
+        dest = self.tmp / "docs"
+        (dest / "vault-kg").mkdir(parents=True)
+        result = run("--into", str(dest), "--dry-run", graph=True)
+        self.assertIn("legacy vault-kg/", result.stdout)
+
+
 class TestGraph(Base):
     def test_seed_initializes_configures_and_ingests_the_graph(self) -> None:
         result = run("--target", str(self.tmp), "--name", "T", graph=True)

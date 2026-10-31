@@ -184,8 +184,9 @@ def ignore_databases(kg_dir: Path) -> bool:
     return True
 
 
-def seed_graph(vault: Path, notes_written: int) -> tuple[bool, str]:
-    """Initialize, configure and ingest the vault's graph. Returns (ok, report line)."""
+def graph_preflight(vault: Path) -> tuple[bool, str] | None:
+    """The cases where the graph step stops before touching anything: (ok, report line), or None to proceed.
+    The real run and the dry run both ask this, so a dry run never promises what the run would refuse."""
     if not KG.is_file():
         return True, "graph: skipped, markdown-kg is not installed beside this skill; run its init and merge templates/markdown-kg-profiles.md by hand"
     kg_dir = vault / "markdown-kg"
@@ -197,6 +198,15 @@ def seed_graph(vault: Path, notes_written: int) -> tuple[bool, str]:
         return True, "graph: skipped, this vault has a legacy vault-kg/ graph; rename it to markdown-kg/ and re-run to manage it here"
     if kg_dir.is_symlink() or (kg_dir.is_dir() and any(p.is_symlink() for p in kg_dir.iterdir())):
         return False, f"graph: {kg_dir} is or contains a symlink; refusing to write through it"
+    return None
+
+
+def seed_graph(vault: Path, notes_written: int) -> tuple[bool, str]:
+    """Initialize, configure and ingest the vault's graph. Returns (ok, report line)."""
+    stop = graph_preflight(vault)
+    if stop:
+        return stop
+    kg_dir = vault / "markdown-kg"
     config = kg_dir / "markdown-kg-config.md"
     initialized = False
     if not config.exists():
@@ -217,6 +227,18 @@ def seed_graph(vault: Path, notes_written: int) -> tuple[bool, str]:
         return False, f"graph: ingest failed: {(r.stderr or r.stdout).strip()}"
     verb = "initialized" if initialized else "updated"
     return True, f"graph: {verb} markdown-kg/, {added} profile row(s) merged, ingested; {git_note}"
+
+
+def dry_run_graph(vault: Path, notes_to_write: int) -> str:
+    """What seed_graph would do, read from the vault without writing anything."""
+    stop = graph_preflight(vault)
+    if stop:
+        return stop[1].replace("graph: ", "graph (dry run): ", 1)
+    kg_dir = vault / "markdown-kg"
+    if not (kg_dir / "markdown-kg-config.md").is_file():
+        return "graph: would initialize markdown-kg/, merge the profile rows and ingest"
+    ingest = "and ingest, since notes would be added" if notes_to_write else "and ingest only if a row is missing"
+    return f"graph: markdown-kg/ present; would merge any missing profile rows {ingest}"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -259,7 +281,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.no_graph:
         return 0
     if args.dry_run:
-        print("graph: would initialize markdown-kg/ and merge the profile rows")
+        print(dry_run_graph(dest, len(written)))
         return 0
     ok, report = seed_graph(dest, len(written))
     print(report)
