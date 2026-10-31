@@ -83,7 +83,7 @@ Record each device as owner, purpose, network, OS or firmware version, support e
 Each run is proposed with its target list and runs only after the user says yes to that run, on the user's own network. EXECUTE per device, bounded:
 
 ```bash
-: "${ADDR:?set ADDR to the approved device's private address from arp -an, one device per loop}"
+ADDR="${ADDR:?set ADDR to the approved device's private address from arp -an, one device per loop}"
 for port in 23 5555 554 80 443; do nc -z -G 2 "$ADDR" "$port" && echo "open $port"; done
 ```
 
