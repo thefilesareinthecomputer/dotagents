@@ -2,8 +2,11 @@
 """Seed a project knowledge vault from the shipped template.
 
     vault_scaffold.py --target <path> --name <NAME> [--dry-run] [--no-graph]
+    vault_scaffold.py --into <folder> [--dry-run] [--no-graph]
 
-Copies every file in templates/PROJECTS/ to <target>/PROJECTS/<NAME>/. A file that
+Copies every file in templates/PROJECTS/ to <target>/PROJECTS/<NAME>/, or with --into
+to <folder> itself (a vault inside a code repo, such as docs/; a folder that already has
+its own AGENTS.md or CLAUDE.md is refused, since the vault's copies are its contract). A file that
 already exists is skipped and reported, so a run against a partly built vault fills the
 gaps and touches nothing else. Placeholders stay as placeholders: no date is resolved,
 so two runs on different days produce byte-identical notes.
@@ -35,7 +38,8 @@ KG = SKILL_DIR.parent / "markdown-kg" / "scripts" / "markdown_kg.py"
 JSON_BLOCK = re.compile(r"```json\n(.*?)```", re.S)
 # A role whose file was renamed: a vault holding the older name already fills the role,
 # so seeding the new name would give it two files for one role.
-OLDER_NAMES = {"user-runsheet.md": ("user-stories-runsheet.md", "user-stories-tasks.md")}
+OLDER_NAMES = {"user-runsheet.md": ("user-stories-runsheet.md", "user-stories-tasks.md"),
+               "notes-general-notes.md": ("notes-chat-notes-client.md", "notes-chat-notes-internal.md")}
 
 
 def template_files() -> list[Path]:
@@ -45,12 +49,49 @@ def template_files() -> list[Path]:
 
 def scaffold(target: Path, name: str, dry_run: bool = False) -> tuple[list[str], list[str], list[str]]:
     """Copy the seed into target/PROJECTS/name. Returns (written, skipped, failed)."""
-    dest = target / "PROJECTS" / name
+    return seed(target / "PROJECTS" / name, (target / "PROJECTS", target / "PROJECTS" / name), dry_run)
+
+
+def is_contract(path: Path) -> bool:
+    """Whether a rules file in the destination is the vault's own copy of the contract.
+
+    CLAUDE.md is the one-line pointer and must match it whole, since a repo's own CLAUDE.md often
+    opens with the same pointer; AGENTS.md is matched on its title, so an edited contract still counts."""
+    template = TEMPLATE_DIR / path.name
+    try:
+        have = path.read_text(encoding="utf-8")
+        want = template.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+    if path.name == "CLAUDE.md":
+        return have.strip() == want.strip()
+    return bool(have.splitlines()) and have.splitlines()[0] == want.splitlines()[0]
+
+
+def seed_into(dest: Path, dry_run: bool = False) -> tuple[list[str], list[str], list[str]]:
+    """Copy the seed into dest itself, such as a code repo's docs/. Returns (written, skipped, failed).
+
+    A folder that already holds its own AGENTS.md or CLAUDE.md belongs to something else: skipping
+    those files would leave a vault without its contract, so the whole run is refused."""
+    if dest.is_symlink():
+        return [], [], [f"{dest}: is a symlink; refusing to seed through it"]
+    for rules in ("AGENTS.md", "CLAUDE.md"):
+        path = dest / rules
+        if not (path.exists() or path.is_symlink()):
+            continue
+        if path.is_symlink() or not path.is_file() or not is_contract(path):
+            return [], [], [f"{rules}: {dest} already has its own {rules}, not the vault contract; "
+                             "seed into a folder of its own, such as docs/vault/"]
+    return seed(dest, (dest,), dry_run)
+
+
+def seed(dest: Path, guards: tuple[Path, ...], dry_run: bool) -> tuple[list[str], list[str], list[str]]:
+    """Copy every template file into dest, never overwriting. Returns (written, skipped, failed)."""
     written: list[str] = []
     skipped: list[str] = []
     failed: list[str] = []
     # A symlink anywhere on the destination path could carry the seed outside the vault.
-    for part in (target / "PROJECTS", dest):
+    for part in guards:
         if part.is_symlink():
             return written, skipped, [f"{part}: is a symlink; refusing to seed through it"]
     for src in template_files():
@@ -180,21 +221,32 @@ def seed_graph(vault: Path, notes_written: int) -> tuple[bool, str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--target", required=True, type=Path, help="folder that holds (or will hold) PROJECTS/")
-    parser.add_argument("--name", required=True, help="the project vault's folder name under PROJECTS/")
+    parser.add_argument("--target", type=Path, help="folder that holds (or will hold) PROJECTS/; needs --name")
+    parser.add_argument("--name", help="the project vault's folder name under PROJECTS/")
+    parser.add_argument("--into", type=Path, help="seed the vault into this folder itself, such as a repo's docs/")
     parser.add_argument("--dry-run", action="store_true", help="print the file list and write nothing")
     parser.add_argument("--no-graph", action="store_true", help="seed the notes only, without the markdown-kg graph")
     args = parser.parse_args(argv)
 
-    bad = {os.sep, os.altsep or os.sep}
-    if any(c in args.name for c in bad) or args.name in ("", ".", "..") or args.name.startswith(".") or not args.name.isprintable():
-        parser.error("--name is a single, visible folder name")
+    if args.into is not None:
+        if args.target is not None or args.name is not None:
+            parser.error("--into replaces --target and --name; give one form")
+    elif args.target is None or args.name is None:
+        parser.error("give --target with --name, or --into")
+    else:
+        bad = {os.sep, os.altsep or os.sep}
+        if any(c in args.name for c in bad) or args.name in ("", ".", "..") or args.name.startswith(".") or not args.name.isprintable():
+            parser.error("--name is a single, visible folder name")
     if not TEMPLATE_DIR.is_dir():
         parser.error(f"template folder missing: {TEMPLATE_DIR}")
 
-    written, skipped, failed = scaffold(args.target, args.name, args.dry_run)
+    if args.into is not None:
+        dest = args.into
+        written, skipped, failed = seed_into(dest, args.dry_run)
+    else:
+        dest = args.target / "PROJECTS" / args.name
+        written, skipped, failed = scaffold(args.target, args.name, args.dry_run)
     verb = "would write" if args.dry_run else "wrote"
-    dest = args.target / "PROJECTS" / args.name
     print(f"{dest}: {verb} {len(written)}, skipped {len(skipped)}, failed {len(failed)}")
     for f in written:
         print(f"  {verb:<11} {f}")

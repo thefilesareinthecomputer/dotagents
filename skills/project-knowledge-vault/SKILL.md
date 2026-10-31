@@ -1,24 +1,27 @@
 ---
 name: project-knowledge-vault
 description: >-
-  Seeds, adopts and checks a project knowledge vault - one flat folder of markdown notes a project's people and agents share as its source of truth, read through its markdown-kg graph as it grows. Owns the contract (AGENTS.md), seed files, scaffolder and linter. Use when starting a vault or a new project under PROJECTS/, when asked to set up, seed, scaffold or template a project's notes, when a folder of loose notes, transcripts, docs or tickets needs mapping into vault shape, when checking whether a vault conforms or why the graph or board tools read it badly, when a vault has grown too long to read whole, or when a project needs a home for its meetings, chat, learnings and stories. Knowledge base, research, board (sprint-board) and graph queries (markdown-kg) belong to their own skills.
+  Seeds, adopts and checks a project knowledge vault - one flat folder of markdown notes a project's people and agents share as its source of truth, read through its markdown-kg graph. Owns the contract (AGENTS.md), seed files, scaffolder and linter. Use when starting a vault or a new project, under PROJECTS/ or in a repo's docs/, when asked to set up, seed or scaffold a project's notes, when a folder of loose notes, transcripts, docs or tickets needs mapping into vault shape, when checking whether a vault conforms or why the graph or board tools read it badly, when a vault has grown too long to read whole, or when a project needs a home for its meetings, chat, learnings and stories. Knowledge base, research, board (sprint-board) and graph queries (markdown-kg) belong to their own skills.
 ---
 
 # project-knowledge-vault
 
 A project vault is the hub object of a knowledge stack. It is one flat directory, and the filename prefix is the category: `00-brd` states the why, `01-north-star` says who the vault serves and who is who, `notes-*` capture what happened, `notes-learnings` holds what turned out to be true, `notes-questions` is the one register of open questions, `user-stories*` hold the work, its backlog and its research, and `user-runsheet` holds the steps for the work in flight. `index.md` and `log.md` are the OKF front door and change history. The full contract is `templates/PROJECTS/AGENTS.md`, and that file ships into every vault, so the contract has exactly one copy.
 
-The seed has chat split into client and internal files, a month H1 and jump link per month in every dated file, an UPCOMING block in the meeting notes, learnings sweeps with a one-line headline, story-keyed PR reviews, a START HERE run sheet, and an alias roster in the north-star.
+The seed has one general log for chat and loose notes, a month H1 and jump link per month in every dated file, an UPCOMING block in the meeting notes, learnings sweeps with a one-line headline, story-keyed PR reviews, a START HERE run sheet, and an alias roster in the north-star.
 
 ## Commands
 
 ```
 seed      python3 scripts/vault_scaffold.py --target <path> --name <NAME> [--dry-run] [--no-graph]
-lint      python3 scripts/vault_lint.py <path>/PROJECTS/<NAME> [--json]
+seed      python3 scripts/vault_scaffold.py --into <folder> [--dry-run] [--no-graph]
+lint      python3 scripts/vault_lint.py <vault> [--json]
 test      python3 -m unittest discover -s tests
 ```
 
-The scaffolder writes `<path>/PROJECTS/<NAME>/` from `templates/PROJECTS/`. It never overwrites: an existing file is reported as skipped, so a run against a part-built vault fills the gaps. A vault that holds a role under an older filename (`user-stories-runsheet.md` or `user-stories-tasks.md` for the run sheet) is not given the new name as a second file. It resolves no dates, so two runs on different days produce byte-identical notes. Then it seeds the graph: it runs markdown-kg's `init` when the vault has no graph config (a vault with only a legacy `vault-kg/` is skipped with a rename instruction), merges any row from `templates/markdown-kg-profiles.md` that the config lacks, seeds `markdown-kg/.gitignore` with `*.db*` because the database holds every note's full text, and ingests when a note or a row was added. markdown-kg is found beside this skill; when it is absent the step is reported and skipped. Exit 1 means a file could be neither written nor skipped, or the graph step failed.
+A vault has two homes. `--target` and `--name` write `<path>/PROJECTS/<NAME>/`, one vault among a knowledge engine's projects. `--into` writes the folder itself, for one user who keeps the vault inside a code repo or other project, usually `docs/`; it refuses a folder that already has its own `AGENTS.md` or `CLAUDE.md`, because the vault's copies are its contract, so a repo whose `docs/` holds other files takes a folder of its own such as `docs/vault/`. The linter and every dependent skill take the vault folder wherever it lives.
+
+The scaffolder copies `templates/PROJECTS/`. It never overwrites: an existing file is reported as skipped, so a run against a part-built vault fills the gaps. A vault that holds a role under an older filename (`user-stories-runsheet.md` or `user-stories-tasks.md` for the run sheet) is not given the new name as a second file. It resolves no dates, so two runs on different days produce byte-identical notes. Then it seeds the graph: it runs markdown-kg's `init` when the vault has no graph config (a vault with only a legacy `vault-kg/` is skipped with a rename instruction), merges any row from `templates/markdown-kg-profiles.md` that the config lacks, seeds `markdown-kg/.gitignore` with `*.db*` because the database holds every note's full text, and ingests when a note or a row was added. markdown-kg is found beside this skill; when it is absent the step is reported and skipped. Exit 1 means a file could be neither written nor skipped, or the graph step failed.
 
 The linter is the anti-drift mechanism. Every check fires on positive evidence, and an unreadable file is a failure rather than a pass. Exit 0 clean, 1 on any finding.
 
@@ -87,7 +90,7 @@ Before changing a family, a filename, a `type` value or the heading grammar, gre
 
 ## Files
 
-- `templates/PROJECTS/` - the 19 seed files, including the contract
+- `templates/PROJECTS/` - the 18 seed files, including the contract
 - `templates/markdown-kg-profiles.md` - the graph config rows the scaffolder merges
 - `scripts/vault_scaffold.py`, `scripts/vault_lint.py`
 - `tests/` - scaffold and graph seeding, one adversarial fixture per linter check, and the compatibility tests against sprint-board and markdown-kg

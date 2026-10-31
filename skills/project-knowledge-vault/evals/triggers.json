@@ -58,5 +58,11 @@
         "query": "Merge the certified research on vector databases into the knowledge base",
         "should_trigger": false,
         "why": "The knowledge base and certification flow are outside the vault."
+    },
+    {
+        "name": "repo-docs-vault",
+        "query": "I'm the only one on this code project. Set up a notes vault in its docs/ folder for meetings, decisions and stories.",
+        "should_trigger": true,
+        "why": "A single user's vault inside a code repo is the --into home."
     }
 ]

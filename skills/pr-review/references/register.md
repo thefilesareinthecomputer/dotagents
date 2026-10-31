@@ -191,7 +191,8 @@ row count to validate against, a limit, a date - stay, beside the thing they cou
 ## The exemplars outrank every rule here
 
 The operator's own sent text carries the stance that any written rule strips out: review comments,
-the sent chat messages in a project's `notes-chat-*` files, and the operator's hand-edits over
+the sent chat messages in a project's `notes-general-notes.md` (or an older vault's `notes-chat-*`
+files), and the operator's hand-edits over
 a drafted deliverable - the strongest class, because they correct this register on the exact
 sentences it produced. Where the project keeps any of these, read the most recent ones before
 drafting and imitate them directly.

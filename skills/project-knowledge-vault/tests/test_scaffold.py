@@ -1,4 +1,4 @@
-"""Scaffolder: seeds 19 files, never overwrites, is byte-identical across runs, and seeds the graph."""
+"""Scaffolder: seeds 18 files, never overwrites, is byte-identical across runs, and seeds the graph."""
 from __future__ import annotations
 
 import filecmp
@@ -15,7 +15,7 @@ SCAFFOLD = SKILL / "scripts" / "vault_scaffold.py"
 TEMPLATE = SKILL / "templates" / "PROJECTS"
 PROFILES = SKILL / "templates" / "markdown-kg-profiles.md"
 KG = SKILL.parent / "markdown-kg" / "scripts" / "markdown_kg.py"
-SEED_COUNT = 19
+SEED_COUNT = 18
 needs_kg = unittest.skipUnless(KG.exists(), "markdown-kg not installed beside this skill")
 
 
@@ -80,6 +80,17 @@ class TestSeed(Base):
                 self.assertIn(f"user-runsheet.md (the vault already has {older}", result.stdout)
                 self.assertEqual(len(list(dest.iterdir())), SEED_COUNT)  # the older name stands in for the new one
 
+    def test_older_split_chat_files_fill_the_general_notes_role(self) -> None:
+        for older in ("notes-chat-notes-client.md", "notes-chat-notes-internal.md"):
+            with self.subTest(older=older), tempfile.TemporaryDirectory() as d:
+                dest = Path(d) / "PROJECTS" / "TEST"
+                dest.mkdir(parents=True)
+                (dest / older).write_text("the existing chat log\n")
+                result = run("--target", d, "--name", "TEST")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertFalse((dest / "notes-general-notes.md").exists())
+                self.assertIn(f"notes-general-notes.md (the vault already has {older}", result.stdout)
+
     def test_dry_run_writes_nothing(self) -> None:
         result = run("--target", str(self.tmp), "--name", "TEST", "--dry-run")
         self.assertEqual(result.returncode, 0)
@@ -96,6 +107,92 @@ class TestSeed(Base):
         for bad in ("a/b", ".hidden", "..", "tab\there"):
             with self.subTest(name=bad):
                 self.assertEqual(run("--target", str(self.tmp), "--name", bad).returncode, 2)
+
+
+class TestInto(Base):
+    """--into seeds the vault into the named folder itself, such as a code repo's docs/."""
+
+    def test_into_seeds_the_folder_itself(self) -> None:
+        dest = self.tmp / "repo" / "docs"
+        result = run("--into", str(dest))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(sorted(p.name for p in dest.iterdir()), sorted(p.name for p in TEMPLATE.iterdir()))
+        self.assertFalse((self.tmp / "repo" / "PROJECTS").exists())
+        self.assertFalse((dest / "PROJECTS").exists())
+
+    def test_into_rerun_fills_gaps_and_keeps_edits(self) -> None:
+        dest = self.tmp / "docs"
+        run("--into", str(dest))
+        (dest / "00-brd.md").write_text("edited by hand\n")
+        (dest / "log.md").unlink()
+        result = run("--into", str(dest))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((dest / "00-brd.md").read_text(), "edited by hand\n")
+        self.assertTrue((dest / "log.md").exists())
+
+    def test_into_refuses_a_folder_with_its_own_agent_rules(self) -> None:
+        for name, text in (("AGENTS.md", "# Docs folder rules\n"), ("CLAUDE.md", "Repo notes for Claude.\n")):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as d:
+                dest = Path(d) / "docs"
+                dest.mkdir()
+                (dest / name).write_text(text)
+                result = run("--into", str(dest))
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(name, result.stdout)
+                self.assertEqual([p.name for p in dest.iterdir()], [name])
+                self.assertEqual((dest / name).read_text(), text)
+
+    def test_into_refuses_a_symlinked_or_lookalike_rules_file(self) -> None:
+        outside = self.tmp / "repo-rules.md"
+        outside.write_text("# Project Knowledge Vault - the contract\n")
+        cases = (("AGENTS.md", lambda p: p.symlink_to(outside)),
+                 ("CLAUDE.md", lambda p: p.write_text("@AGENTS.md\n\nRepo notes for Claude.\n")))
+        for name, make in cases:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as d:
+                dest = Path(d) / "docs"
+                dest.mkdir()
+                make(dest / name)
+                result = run("--into", str(dest))
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertEqual([p.name for p in dest.iterdir()], [name])
+
+    def test_into_accepts_the_contract_it_wrote(self) -> None:
+        dest = self.tmp / "docs"
+        run("--into", str(dest))
+        (dest / "index.md").unlink()
+        result = run("--into", str(dest))
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertTrue((dest / "index.md").exists())
+
+    def test_into_dry_run_writes_nothing(self) -> None:
+        dest = self.tmp / "docs"
+        result = run("--into", str(dest), "--dry-run")
+        self.assertEqual(result.returncode, 0)
+        self.assertFalse(dest.exists())
+        self.assertEqual(result.stdout.count("would write"), SEED_COUNT + 1)
+
+    def test_into_symlinked_folder_is_refused(self) -> None:
+        elsewhere = self.tmp / "elsewhere"
+        elsewhere.mkdir()
+        (self.tmp / "docs").symlink_to(elsewhere)
+        result = run("--into", str(self.tmp / "docs"))
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(any(elsewhere.iterdir()))
+
+    def test_into_and_target_are_exclusive_and_one_is_required(self) -> None:
+        for args in ((), ("--name", "X"), ("--target", str(self.tmp)),
+                     ("--into", str(self.tmp / "d"), "--target", str(self.tmp), "--name", "X"),
+                     ("--into", str(self.tmp / "d"), "--name", "X")):
+            with self.subTest(args=args):
+                self.assertEqual(run(*args).returncode, 2)
+
+    @needs_kg
+    def test_into_seeds_the_graph_in_the_folder(self) -> None:
+        dest = self.tmp / "docs"
+        result = run("--into", str(dest), graph=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue((dest / "markdown-kg" / "markdown-kg-config.md").is_file())
+        self.assertIn("*.db*", (dest / "markdown-kg" / ".gitignore").read_text())
 
 
 class TestSymlinks(Base):

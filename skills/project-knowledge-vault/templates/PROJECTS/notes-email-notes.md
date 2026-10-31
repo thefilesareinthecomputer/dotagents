@@ -12,7 +12,7 @@ updated: YYYY-MM-DD
 # EMAIL-NOTES
 [YYYY-MONTH](#YYYY-MONTH)
 
-Email worth keeping, newest first, one section per exchange. Chat goes to [[notes-chat-notes-client]] or [[notes-chat-notes-internal]].
+Email worth keeping, newest first, one section per exchange. Chat goes to [[notes-general-notes]].
 
 Record what the exchange settled or asked for. Quote verbatim only where the exact wording is the thing that matters, such as a commitment or an approval.
 

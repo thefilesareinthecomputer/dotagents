@@ -11,9 +11,8 @@ The contract every note here satisfies is in [AGENTS.md](AGENTS.md). Read it bef
 
 ## Notes
 
-- [notes-chat-notes-client](notes-chat-notes-client.md) - Chat threads with the client team, one dated section per conversation.
-- [notes-chat-notes-internal](notes-chat-notes-internal.md) - Chat threads among the delivery team, one dated section per conversation.
 - [notes-email-notes](notes-email-notes.md) - Email threads worth keeping, one dated section per exchange.
+- [notes-general-notes](notes-general-notes.md) - Chat threads and loose notes that fit no other log, one dated section per conversation or entry.
 - [notes-learnings](notes-learnings.md) - Durable mechanical facts, one dated section per sweep, written to outlive the threads that produced them.
 - [notes-meeting-notes](notes-meeting-notes.md) - Standups, working sessions, refinements and planning, one dated section per meeting.
 - [notes-pr-reviews](notes-pr-reviews.md) - Story and pull-request reviews, each section carrying the item under review and its comment thread.

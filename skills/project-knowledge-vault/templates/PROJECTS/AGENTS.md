@@ -46,8 +46,7 @@ Collaboration happens across the gradient rather than in a designated place. The
 | `agents-<slug>.md` | `reference` | Agent-owned registers and logs: relay state, self-managed decision records, run history. Reserved family, seeded empty. |
 | `code-<repo>[-<subsystem>].md` | `code` | Flattened repository contents, byte-identical. Never reformatted, never compressed. Re-flatten upstream to change one. |
 | `docs-<origin>-<slug>.md` | `doc` or `reference` | Ingested documents. `docs-internal-*` for material from the project's own people, `docs-research-*` for external. |
-| `notes-chat-notes-client.md` | `chat_log` | Chat with the client or stakeholder team. One dated section per conversation. |
-| `notes-chat-notes-internal.md` | `chat_log` | Chat among the delivery team. One dated section per conversation. |
+| `notes-general-notes.md` | `note` | Chat with anyone on the project, and scratch or journal notes that fit no other log. One dated section per conversation or entry. An older vault splits chat into `notes-chat-notes-client.md` and `notes-chat-notes-internal.md` (`chat_log`); a dependent skill reads both as this role. |
 | `notes-email-notes.md` | `email` | Email threads worth keeping. One dated section per exchange. |
 | `notes-meeting-notes.md` | `meeting_note` | Standups, working sessions, refinements, planning. One dated section per meeting, with an UPCOMING block for prep. |
 | `notes-pr-reviews.md` | `reference` | Story and pull-request reviews. One section per pull request, holding its comment thread and draft replies. |
@@ -62,7 +61,7 @@ Collaboration happens across the gradient rather than in a designated place. The
 | `index.md` | reserved | The front door. OKF §8. |
 | `log.md` | reserved | The change history. OKF §9. |
 
-**One file per theme, with one split.** Chat is split by audience into a client file and an internal file, and nothing else is split by audience or channel. Within a file, sequence is what makes supersession readable, so a meeting with the client and one without it share `notes-meeting-notes.md`, and the heading names who was there.
+**One file per theme.** Nothing is split by audience or channel. Within a file, sequence is what makes supersession readable, so a meeting with the client and one without it share `notes-meeting-notes.md`, and the heading names who was there.
 
 `code-*` and `docs-*` are created by dropping ingested content in, so this template seeds none. `agents-*` is declared and unseeded: add one when an agent actually needs a durable register, not before.
 
@@ -164,12 +163,12 @@ Material rarely arrives in the vault's shape. A file is classified by what it ho
 | Material | Role |
 |---|---|
 | Meeting notes, transcripts, standup and working-session notes | `notes-meeting-notes.md` |
-| Chat exports and threads | `notes-chat-notes-client.md` or `notes-chat-notes-internal.md`, by audience |
+| Chat exports and threads | `notes-general-notes.md` |
 | Email | `notes-email-notes.md` |
 | Status reports and write-ups | `notes-updates.md` |
 | Facts, gotchas, "turns out" notes | `notes-learnings.md` |
 | Lists of open questions | `notes-questions.md` |
-| Scratch notes and journals | the log their content matches; otherwise their own `notes-<slug>.md` |
+| Scratch notes and journals | the log their content matches; otherwise `notes-general-notes.md` |
 | Documentation, SOWs, proposals, contracts, runbooks, decks | `docs-internal-<slug>.md`, or `docs-research-<slug>.md` for external material |
 | Code snippets, scripts, configs, repository dumps | `code-<repo>[-<subsystem>].md` |
 | User stories, tickets, agile boards, backlog exports | `user-stories.md` while open, `user-stories-completed.md` once closed |

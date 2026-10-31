@@ -64,9 +64,20 @@ class LintTest(unittest.TestCase):
         self.assertIn("frontmatter", checks(findings))
 
     def test_family_fires_on_a_wrong_type_value(self) -> None:
-        p = self.v / "notes-chat-notes-internal.md"
-        p.write_text(p.read_text().replace("type: chat_log", "type: note", 1))
+        p = self.v / "notes-email-notes.md"
+        p.write_text(p.read_text().replace("type: email", "type: note", 1))
         self.assertOnly("family")
+
+    def test_an_older_vault_with_split_chat_files_stays_clean(self) -> None:
+        (self.v / "notes-general-notes.md").unlink()
+        text = "---\ntype: chat_log\n---\n# CHAT-NOTES-CLIENT\n\n## 2026-01-02-ALL\n\nthread\n"
+        (self.v / "notes-chat-notes-client.md").write_text(text)
+        (self.v / "notes-chat-notes-internal.md").write_text(text.replace("CLIENT", "INTERNAL"))
+        for name in ("notes-email-notes.md", "notes-learnings.md", "index.md"):
+            p = self.v / name
+            p.write_text(p.read_text().replace("[[notes-general-notes]]", "[[notes-chat-notes-client]]")
+                         .replace("[notes-general-notes](notes-general-notes.md)", "[notes-chat-notes-client](notes-chat-notes-client.md)"))
+        self.assertClean()
 
     def test_family_learns_the_alias_and_admits_its_unnumbered_notes(self) -> None:
         (self.v / "abc-glossary.md").write_text("---\ntype: glossary\n---\n# GLOSSARY\n")
@@ -137,7 +148,7 @@ class LintTest(unittest.TestCase):
         self.assertClean()  # a sweep headline and a story-keyed review
         with (self.v / "notes-updates.md").open("a") as f:
             f.write("\n## PR-STORY-456-CD-YYYY-MM-DD\n\nnot a review file\n")
-        with (self.v / "notes-chat-notes-client.md").open("a") as f:
+        with (self.v / "notes-general-notes.md").open("a") as f:
             f.write("\n## Kickoff thread\n\ntext\n\n## YYYY-MM-DD kickoff\n\nno hyphen\n")
         self.assertOnly("dated", count=3)
 

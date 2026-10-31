@@ -24,7 +24,7 @@ A learning earns a place here by being mechanical and checkable: how a system ac
 | Kind | Notes | What it contributes |
 |---|---|---|
 | Work items | [[user-stories]], [[user-runsheet]], [[user-stories-backlog]], [[user-stories-completed]] | What was asked for, what is being done about it, what closed |
-| Narrative | the `notes-*` files: [[notes-meeting-notes]], [[notes-chat-notes-client]], [[notes-chat-notes-internal]], [[notes-email-notes]], [[notes-pr-reviews]], [[notes-updates]] | Where it was argued, decided or reviewed, and on what date |
+| Narrative | the `notes-*` files: [[notes-meeting-notes]], [[notes-general-notes]], [[notes-email-notes]], [[notes-pr-reviews]], [[notes-updates]] | Where it was argued, decided or reviewed, and on what date |
 | Documents | the `docs-*` files | What was written down at the time, and what has since gone stale |
 | Code | the `code-*` files | What is actually true, which outranks every note |
 

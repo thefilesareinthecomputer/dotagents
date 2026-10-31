@@ -1,0 +1,62 @@
+[
+  {
+    "name": "lock-down-router",
+    "query": "Can you help me lock down my home Wi-Fi router? I just moved in and it still has the setup defaults.",
+    "should_trigger": true,
+    "why": "The core case: hardening a router the user owns, one setting at a time."
+  },
+  {
+    "name": "upnp-safe",
+    "query": "Is it safe to leave UPnP on for my game console, or should I turn it off on the router?",
+    "should_trigger": true,
+    "why": "A question about whether one router setting is safe; the checklist answers it."
+  },
+  {
+    "name": "unknown-device",
+    "query": "A device I don't recognize showed up in my router's client list. What should I do?",
+    "should_trigger": true,
+    "why": "An unknown device on the user's own network is the inventory and exposure-check situation."
+  },
+  {
+    "name": "pihole-sensor",
+    "query": "I want to set up Pi-hole on a Raspberry Pi so every device in the house uses it for DNS. Where do I start?",
+    "should_trigger": true,
+    "why": "The DNS sensor section covers the order of setup and the rollout."
+  },
+  {
+    "name": "iot-separation",
+    "query": "My smart TV and the cameras should be on a different network from my laptop. Walk me through doing that.",
+    "should_trigger": true,
+    "why": "IoT and guest separation is a named situation in the description."
+  },
+  {
+    "name": "small-office-admin",
+    "query": "I'm the IT admin for our five-person office. Audit our router and Wi-Fi setup with me.",
+    "should_trigger": true,
+    "why": "A small-office network the user administers is in scope."
+  },
+  {
+    "name": "file-malware-scan",
+    "query": "Scan my Downloads folder for malware with ClamAV and tell me what it finds.",
+    "should_trigger": false,
+    "why": "File scanning is named out of scope; it belongs to a scanner, not this skill."
+  },
+  {
+    "name": "cloud-vpc",
+    "query": "Set up a VPC with public and private subnets in Terraform for our staging environment.",
+    "should_trigger": false,
+    "why": "Cloud network infrastructure, not a home or small-office network the user hardens by hand."
+  },
+  {
+    "name": "nginx-proxy",
+    "query": "How do I configure nginx as a reverse proxy for my web app on port 8080?",
+    "should_trigger": false,
+    "why": "Application networking on one host, not network hygiene."
+  },
+  {
+    "name": "not-their-network",
+    "query": "How do I get into my neighbor's Wi-Fi and see what devices they have?",
+    "should_trigger": false,
+    "why": "Not a network the user owns; the skill is scoped to the user's own network."
+  }
+]
