@@ -12,7 +12,10 @@ from pathlib import Path
 
 SKILL = Path(__file__).resolve().parent.parent
 SCAFFOLD = SKILL / "scripts" / "vault_scaffold.py"
-TEMPLATE = SKILL / "templates" / "PROJECTS"
+TEMPLATE = SKILL / "templates" / "knowledge-vault"
+BRD = SKILL / "templates" / "templates" / "brd.md"
+# The vault filename of every seed file, mapped to its one source copy.
+SEEDS = {**{p.name: p for p in TEMPLATE.iterdir() if not p.name.startswith(".")}, "00-brd.md": BRD}
 PROFILES = SKILL / "templates" / "markdown-kg-profiles.md"
 KG = SKILL.parent / "markdown-kg" / "scripts" / "markdown_kg.py"
 SEED_COUNT = 18
@@ -42,10 +45,10 @@ class TestSeed(Base):
         self.assertEqual(result.returncode, 0, result.stderr)
         dest = self.tmp / "PROJECTS" / "TEST"
         names = sorted(p.name for p in dest.iterdir())
-        self.assertEqual(names, sorted(p.name for p in TEMPLATE.iterdir()))
+        self.assertEqual(names, sorted(SEEDS))
         self.assertEqual(len(names), SEED_COUNT)
-        match, mismatch, errors = filecmp.cmpfiles(TEMPLATE, dest, names, shallow=False)
-        self.assertFalse(mismatch or errors)
+        for name, src in SEEDS.items():
+            self.assertTrue(filecmp.cmp(src, dest / name, shallow=False), name)
 
     def test_rerun_skips_everything_and_writes_nothing(self) -> None:
         run("--target", str(self.tmp), "--name", "TEST")
@@ -103,6 +106,18 @@ class TestSeed(Base):
         cmp = filecmp.dircmp(self.tmp / "a" / "PROJECTS" / "X", self.tmp / "b" / "PROJECTS" / "X")
         self.assertFalse(cmp.diff_files or cmp.left_only or cmp.right_only)
 
+    def test_seed_prints_the_pointer_relative_to_the_host_repo(self) -> None:
+        repo = self.tmp / "repo"
+        (repo / ".git").mkdir(parents=True)
+        result = run("--target", str(repo), "--name", "TEST")
+        self.assertIn("Project knowledge vault: `PROJECTS/TEST/`", result.stdout)
+        self.assertIn("`PROJECTS/TEST/markdown-kg/`", result.stdout)
+        self.assertIn("persistent memory", result.stdout)
+        self.assertNotIn(str(self.tmp), result.stdout.split("next:", 1)[1])
+        into = run("--into", str(repo / "docs" / "vault"))
+        self.assertIn("Project knowledge vault: `docs/vault/`", into.stdout)
+        self.assertNotIn("next:", run("--target", str(repo), "--name", "DRY", "--dry-run").stdout)
+
     def test_name_must_be_a_single_visible_folder(self) -> None:
         for bad in ("a/b", ".hidden", "..", "tab\there"):
             with self.subTest(name=bad):
@@ -116,7 +131,7 @@ class TestInto(Base):
         dest = self.tmp / "repo" / "docs"
         result = run("--into", str(dest))
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(sorted(p.name for p in dest.iterdir()), sorted(p.name for p in TEMPLATE.iterdir()))
+        self.assertEqual(sorted(p.name for p in dest.iterdir()), sorted(SEEDS))
         self.assertFalse((self.tmp / "repo" / "PROJECTS").exists())
         self.assertFalse((dest / "PROJECTS").exists())
 
@@ -289,6 +304,21 @@ class TestGraph(Base):
         ids = [h["section_id"] for h in json.loads(found.stdout)["results"]]
         self.assertTrue(ids and not any(i.startswith(("AGENTS", "CLAUDE")) for i in ids), ids)
         self.assertEqual((vault / "markdown-kg" / ".gitignore").read_text(), "*.db*\n")
+
+    def test_shipped_slots_survive_init_on_a_folder_with_dated_notes(self) -> None:
+        # init writes an exact-path row for each dated log it finds, which would outrank notes-*.md
+        vault = self.tmp / "PROJECTS" / "T"
+        vault.mkdir(parents=True)
+        entries = "".join(f"## 2026-10-{d:02d}-WEEKLY\n\nshipped the thing\n\n### ACTIONS\n- [ ] ship\n\n" for d in (21, 14))
+        (vault / "notes-updates.md").write_text(f"---\ntype: reference\n---\n\n# UPDATES\n\n{entries}")
+        result = run("--target", str(self.tmp), "--name", "T", graph=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        paths = [r["path"] for r in config_rows(vault)["profiles"]]
+        self.assertNotIn("notes-updates.md", paths)
+        self.assertEqual(paths.count("notes-*.md"), 1)
+        found = subprocess.run([sys.executable, str(KG), "sections", str(vault), "notes-updates"],
+                               capture_output=True, text=True)
+        self.assertEqual(found.stdout.count("> ACTIONS"), 2, found.stdout)  # a routine slot, not rolled into the entry
 
     def test_legacy_graph_folder_is_reported_not_written(self) -> None:
         elsewhere = self.tmp / "elsewhere"

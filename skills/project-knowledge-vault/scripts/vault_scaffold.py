@@ -4,9 +4,9 @@
     vault_scaffold.py --target <path> --name <NAME> [--dry-run] [--no-graph]
     vault_scaffold.py --into <folder> [--dry-run] [--no-graph]
 
-Copies every file in templates/PROJECTS/ to <target>/PROJECTS/<NAME>/, or with --into
-to <folder> itself (a vault inside a code repo, such as docs/; a folder that already has
-its own AGENTS.md or CLAUDE.md is refused, since the vault's copies are its contract). A file that
+Copies every file in templates/knowledge-vault/, plus templates/templates/brd.md as 00-brd.md,
+to <target>/PROJECTS/<NAME>/, the one home for a new vault, or with --into to <folder> itself (a vault that already lives elsewhere; a folder that
+already has its own AGENTS.md or CLAUDE.md is refused, since the vault's copies are its contract). A file that
 already exists is skipped and reported, so a run against a partly built vault fills the
 gaps and touches nothing else. Placeholders stay as placeholders: no date is resolved,
 so two runs on different days produce byte-identical notes.
@@ -14,9 +14,13 @@ so two runs on different days produce byte-identical notes.
 Then seeds the vault's knowledge graph, because that is how a grown vault is read: runs
 markdown-kg's `init` when the vault has no graph config (a vault with only a legacy
 vault-kg/ is skipped with a rename instruction), merges the rows in
-templates/markdown-kg-profiles.md that the config lacks, seeds markdown-kg/.gitignore
-so the database stays out of git, and ingests when a note or a row was added. markdown-kg is found beside this skill; when it is absent the step is
-reported and skipped. `--no-graph` skips it.
+templates/markdown-kg-profiles.md that the config lacks (replacing the rows init detected
+for files those rows cover), seeds markdown-kg/.gitignore so the database stays out of git,
+and ingests when a note or a row was added. markdown-kg is found beside this skill; when it
+is absent the step is reported and skipped. `--no-graph` skips it.
+
+Last, prints the pointer line for the host repo's AGENTS.md and the agent's memory, so later
+sessions find the vault without searching.
 
 Standard library only, offline. Exit 0 when every file was written or deliberately
 skipped, 1 when any file could be neither or the graph step failed, 2 on a usage error.
@@ -24,6 +28,7 @@ skipped, 1 when any file could be neither or the graph step failed, 2 on a usage
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 import os
 import re
@@ -32,7 +37,10 @@ import sys
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
-TEMPLATE_DIR = SKILL_DIR / "templates" / "PROJECTS"
+TEMPLATE_DIR = SKILL_DIR / "templates" / "knowledge-vault"
+# Document templates that are also vault notes: each keeps its one copy in templates/templates/
+# and is seeded under its vault filename.
+DOCUMENT_SEEDS = {"00-brd.md": SKILL_DIR / "templates" / "templates" / "brd.md"}
 PROFILES = SKILL_DIR / "templates" / "markdown-kg-profiles.md"
 KG = SKILL_DIR.parent / "markdown-kg" / "scripts" / "markdown_kg.py"
 JSON_BLOCK = re.compile(r"```json\n(.*?)```", re.S)
@@ -42,9 +50,11 @@ OLDER_NAMES = {"user-runsheet.md": ("user-stories-runsheet.md", "user-stories-ta
                "notes-general-notes.md": ("notes-chat-notes-client.md", "notes-chat-notes-internal.md")}
 
 
-def template_files() -> list[Path]:
-    """Every seed file, in a stable order."""
-    return sorted(p for p in TEMPLATE_DIR.iterdir() if p.is_file())
+def template_files() -> list[tuple[str, Path]]:
+    """Every seed file as (vault filename, source), in a stable order."""
+    files = {p.name: p for p in TEMPLATE_DIR.iterdir() if p.is_file() and not p.name.startswith(".")}
+    files.update(DOCUMENT_SEEDS)
+    return sorted(files.items())
 
 
 def scaffold(target: Path, name: str, dry_run: bool = False) -> tuple[list[str], list[str], list[str]]:
@@ -94,20 +104,20 @@ def seed(dest: Path, guards: tuple[Path, ...], dry_run: bool) -> tuple[list[str]
     for part in guards:
         if part.is_symlink():
             return written, skipped, [f"{part}: is a symlink; refusing to seed through it"]
-    for src in template_files():
-        out = dest / src.name
+    for name, src in template_files():
+        out = dest / name
         if out.is_symlink():
-            failed.append(f"{src.name}: destination is a symlink; refusing to write through it")
+            failed.append(f"{name}: destination is a symlink; refusing to write through it")
             continue
         if out.exists():
-            skipped.append(src.name)
+            skipped.append(name)
             continue
-        older = next((n for n in OLDER_NAMES.get(src.name, ()) if (dest / n).exists()), None)
+        older = next((n for n in OLDER_NAMES.get(name, ()) if (dest / n).exists()), None)
         if older:
-            skipped.append(f"{src.name} (the vault already has {older}, its older name)")
+            skipped.append(f"{name} (the vault already has {older}, its older name)")
             continue
         if dry_run:
-            written.append(src.name)
+            written.append(name)
             continue
         try:
             dest.mkdir(parents=True, exist_ok=True)
@@ -115,9 +125,9 @@ def seed(dest: Path, guards: tuple[Path, ...], dry_run: bool) -> tuple[list[str]
             fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o644)
             with os.fdopen(fd, "wb") as fh:
                 fh.write(src.read_bytes())
-            written.append(src.name)
+            written.append(name)
         except OSError as exc:
-            failed.append(f"{src.name}: {exc}")
+            failed.append(f"{name}: {exc}")
     return written, skipped, failed
 
 
@@ -125,8 +135,13 @@ def kg(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, str(KG), *args], capture_output=True, text=True)
 
 
-def merge_profiles(config: Path) -> int:
-    """Add the shipped ignore and profile rows whose path the config lacks. Returns rows added."""
+def merge_profiles(config: Path, replace_detected: bool = False) -> int:
+    """Add the shipped ignore and profile rows whose path the config lacks. Returns rows added.
+
+    With replace_detected, which is set only when this run's `init` wrote the config, a profile row
+    that a shipped row covers is dropped first. init writes exact-path rows for the dated notes it
+    finds, and an exact path outranks the shipped `notes-*.md` glob, so its rows would hide the
+    shipped slots. Rows in a config the operator already had are never dropped."""
     if config.is_symlink():
         raise OSError(f"{config} is a symlink; refusing to write through it")
     text = config.read_text(encoding="utf-8")
@@ -138,16 +153,22 @@ def merge_profiles(config: Path) -> int:
     if not isinstance(data, dict):
         raise ValueError(f"{config}: the json block is not an object")
     added = 0
+    replaced = False
     for key, rows in json.loads(shipped.group(1)).items():
         existing = data.setdefault(key, [])
         if not isinstance(existing, list) or not all(isinstance(r, dict) for r in existing):
             raise ValueError(f"{config}: '{key}' is not a list of objects")
+        if replace_detected and key == "profiles":
+            covered = [r for r in existing
+                       if any(fnmatch.fnmatchcase(str(r.get("path", "")), s["path"]) for s in rows)]
+            existing[:] = [r for r in existing if r not in covered]
+            replaced = replaced or bool(covered)
         have = {row.get("path") for row in existing}
         for row in rows:
             if row["path"] not in have:
                 existing.append(row)
                 added += 1
-    if added:
+    if added or replaced:
         body = json.dumps(data, indent=2) + "\n"
         replace_file(config, text[:block.start(1)] + body + text[block.end(1):])
     return added
@@ -216,7 +237,7 @@ def seed_graph(vault: Path, notes_written: int) -> tuple[bool, str]:
         initialized = True
     try:
         ignored = ignore_databases(kg_dir)
-        added = merge_profiles(config)
+        added = merge_profiles(config, replace_detected=initialized)
     except (OSError, ValueError) as exc:
         return False, f"graph: could not configure markdown-kg/: {exc}"
     git_note = "the database is gitignored" if ignored else "WARNING: markdown-kg/.gitignore exists without a *.db* line; add it, the database holds every note's full text"
@@ -239,6 +260,20 @@ def dry_run_graph(vault: Path, notes_to_write: int) -> str:
         return "graph: would initialize markdown-kg/, merge the profile rows and ingest"
     ingest = "and ingest, since notes would be added" if notes_to_write else "and ingest only if a row is missing"
     return f"graph: markdown-kg/ present; would merge any missing profile rows {ingest}"
+
+
+def pointer_steps(vault: Path, root: Path) -> str:
+    """The lines that tell a host repo, and the next session's memory, where this vault lives.
+    Paths are relative to the nearest git root above the vault, else to the root given."""
+    vault = vault.resolve()
+    host = next((p for p in (vault, *vault.parents) if (p / ".git").exists()), root.resolve())
+    rel = vault.relative_to(host).as_posix() if vault.is_relative_to(host) else vault.name
+    line = (f"Project knowledge vault: `{rel}/` - its `AGENTS.md` is the contract, "
+            f"and its graph is `{rel}/markdown-kg/`.")
+    return ("next: record where this vault lives, so later sessions find it without searching:\n"
+            "  1. add this line to the host repo's root AGENTS.md (CLAUDE.md where it has no AGENTS.md), unless it is there:\n"
+            f"     {line}\n"
+            "  2. save the same line to your harness's persistent memory for this project, where it has one")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -278,13 +313,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  FAILED      {f}")
     if failed:
         return 1
-    if args.no_graph:
-        return 0
     if args.dry_run:
-        print(dry_run_graph(dest, len(written)))
+        if not args.no_graph:
+            print(dry_run_graph(dest, len(written)))
         return 0
-    ok, report = seed_graph(dest, len(written))
-    print(report)
+    ok = True
+    if not args.no_graph:
+        ok, report = seed_graph(dest, len(written))
+        print(report)
+    if ok:
+        print(pointer_steps(dest, args.target if args.target is not None else dest.parent))
     return 0 if ok else 1
 
 

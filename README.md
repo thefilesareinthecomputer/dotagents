@@ -109,7 +109,7 @@ Each entry's own file is authoritative: a skill's frontmatter `description` is i
 | `markdown-kg` | Offline section-level knowledge graph over any markdown corpus. |
 | `code-kg` | Offline symbol-level knowledge graph over a codebase: imports, liveness, subsystems, coupling hotspots. |
 | `obsidian` | Obsidian markdown standard plus a per-vault authoring workflow. |
-| `project-knowledge-vault` | Seeds and lints a flat project vault: the contract, a scaffolder and a linter. |
+| `project-knowledge-vault` | Seeds, finds and lints a flat project vault: the contract, a scaffolder, a linter, and the BRD, solution design, ADR and knowledge-base entry templates. |
 | `gather-learnings` | Sweeps a vault's dated notes and the running session into its learnings file. |
 | `compact-notes` | Rewrites one meeting-note section into a fixed summary format, with a backup and a verify. |
 | `get-ready` | Claims audit before a meeting or a piece of work, written into the vault's run sheet. |

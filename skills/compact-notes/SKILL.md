@@ -93,7 +93,7 @@ Read-only research subagents are encouraged when a transcript reading is contest
 
 ## Vault contract
 
-The vault's file families and dated-heading grammar belong to the `project-knowledge-vault` skill, and every seeded vault holds them in its `AGENTS.md`. This skill uses one role, the meeting log: `notes-meeting-notes.md`, or `notes-meetings.md` in an older vault. A vault that does not match is mapped, not refused:
+The vault's file families and dated-heading grammar belong to the `project-knowledge-vault` skill, and every seeded vault holds them in its `AGENTS.md`. Find the vault by the pointer line in the host repo's root `AGENTS.md`, then memory, then the folder under the host repo whose `AGENTS.md` opens `# Project Knowledge Vault - the contract`. This skill uses one role, the meeting log: `notes-meeting-notes.md`, or `notes-meetings.md` in an older vault. A vault that does not match is mapped, not refused:
 
 - **Find the meeting notes** by those names, then by what the files hold, following the "Filing loose material" table in the vault's `AGENTS.md`. That means any file whose name says meeting, standup, sync or transcript, or whose content is speaker-labeled transcript lines or dated meeting sections, whatever the extension. Several files can be meeting notes. The target is the one holding the section the operator names, and a transcript the operator names directly is the target whatever it is called. Name the file you chose.
 - **A non-markdown transcript** (`.txt` and the like) is compacted into the vault's meeting log as a new dated section, with the operator's approval, and the original is left untouched.

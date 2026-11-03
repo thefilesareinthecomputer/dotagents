@@ -1,7 +1,7 @@
 ---
 name: gather-learnings
 description: >-
-  Sweeps today's sections in every `notes-*` log of one project vault, each checked against that file's previous dated entry, or a lookback window of N days, plus the running session for anything relevant to its work that no vault file records yet. Routes each finding to the day's entry in the vault's `notes-learnings.md` or to `notes-updates.md`, and drains the vault's run sheet. The only path that writes the learnings file, so it fires on notes or on the current session alike. Use for "gather the learnings", "what did we learn this week", "catch the learnings up", "write this into the learnings file", "capture what we learned today", "do we have learnings to write", "clear the run sheet". It never shrinks one named document or drops it from the corpus.
+  Sweeps today's sections in every `notes-*` log of one project vault, each checked against that file's previous dated entry, or a lookback window of N days, plus the running session for anything relevant to its work that no vault file records yet. Routes each finding to the day's entry in the vault's `notes-learnings.md` or to `notes-updates.md`, keeps `notes-questions.md` current, and drains the vault's run sheet. The only path that writes the learnings file, so it fires on notes or on the current session alike. Use for "gather the learnings", "what did we learn this week", "catch the learnings up", "write this into the learnings file", "capture what we learned today", "do we have learnings to write", "clear the run sheet". It never shrinks one named document or drops it from the corpus.
 ---
 
 # gather-learnings
@@ -12,7 +12,7 @@ The `notes-*` corpus is never cut: a claim stays where it was made. The file tha
 
 ## Sources and the write path
 
-Every run draws on three sources, and this skill writes one learnings entry from them under the section 5 contract. Run sections 1 through 8 in order.
+Every run draws on three sources, and this skill writes one learnings entry from them under the section 5 contract. It also keeps the vault's question register, `notes-questions.md`, current: section 3 checks it against what the run found. Run sections 1 through 8 in order.
 
 **The notes window.** The run reads today's sections in every `notes-*` log against each file's previous dated entry, or a lookback of N days (sections 1 and 2).
 
@@ -26,7 +26,7 @@ Session candidates go through section 3 like every other claim that survives the
 
 ## Vault contract
 
-The vault's file families and dated-heading grammar belong to the `project-knowledge-vault` skill, and every seeded vault holds them in its `AGENTS.md`. This skill uses these roles:
+The vault's file families and dated-heading grammar belong to the `project-knowledge-vault` skill, and every seeded vault holds them in its `AGENTS.md`. Find the vault by the pointer line in the host repo's root `AGENTS.md`, then memory, then the folder under the host repo whose `AGENTS.md` opens `# Project Knowledge Vault - the contract`. This skill uses these roles:
 
 | Role | Found as | Older name |
 |---|---|---|
@@ -143,9 +143,17 @@ Every survivor lands in one bucket:
 
 Candidate generation is mechanical: identifier overlap between the claim and the window, which is what works when a claim carries no citation, as most authored prose blocks do not.
 
+### The question register
+
+Then read `notes-questions.md` in full, and sort its open questions and the run's new ones:
+
+- **Answered.** A source read this run answers an open question: a window section, the code, or an operator message in the session. The question leaves the register, and its answer is written as a fact in today's learnings entry, citing where it was answered and the date the question was raised. An answer that rests only on the agent's own inference does not count, and the question stays open.
+- **Still open.** A question in the register that nothing this run answers stays as it is.
+- **New.** A question raised in the window or the session that nothing answers, and that the register does not already hold, is added under its topic in the register's entry format.
+
 ## 4. One checkpoint
 
-Only what is still unresolved reaches the operator, in one `AskUserQuestion` carrying four things: the draft learnings entry, the surviving contradictions with both sides cited, the open `**NOTE**:` directives, and the proposed cut list from section 6. Their answers shape what gets written, so the entry that is written is already reconciled and the drain is already approved.
+Only what is still unresolved reaches the operator, in one `AskUserQuestion` carrying five things: the draft learnings entry, the surviving contradictions with both sides cited, the open `**NOTE**:` directives, the questions to add to and resolve from the register, and the proposed cut list from section 6. Their answers shape what gets written, so the entry that is written is already reconciled and the drain is already approved.
 
 ## 5. Write: route first, then one entry per day
 
@@ -160,7 +168,7 @@ Only what is still unresolved reaches the operator, in one `AskUserQuestion` car
 
 **An artifact goes to `notes-updates.md` whole**, because its value is the wording that was circulated, which a mechanical summary loses. Where one finding has both a durable mechanism and an artifact, the mechanism goes to learnings and the artifact to updates, with neither restating the other.
 
-Three narrower destinations take what fits neither of those two: a fact about a subject an authored note already owns goes to that note per section 8, an action still to run goes back to the run sheet, and an unanswered question goes to `notes-questions.md`.
+Three narrower destinations take what fits neither of those two: a fact about a subject an authored note already owns goes to that note per section 8, an action still to run goes back to the run sheet, and an unanswered question goes to `notes-questions.md`. Write the register changes approved at section 4 there: add the new questions and remove the answered ones.
 
 The rest of this section governs the `notes-learnings.md` write.
 
@@ -253,6 +261,7 @@ The run is done when all of these hold:
 - Every cross-day conflict with a baseline was settled at the checkpoint.
 - Every supersession of the learnings baseline is marked in both entries.
 - Every `**NOTE**:` directive is accounted for.
+- Every open question in the register was checked, and each answered one left the register with its answer in today's entry.
 - Every survivor reached one of the five destinations in section 5.
 - The operator approved both the delta and its routing.
 - Every drained file is reported with a before and after line count.
