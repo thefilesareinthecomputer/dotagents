@@ -41,6 +41,12 @@ TEMPLATE_DIR = SKILL_DIR / "templates" / "knowledge-vault"
 # Document templates that are also vault notes: each keeps its one copy in templates/templates/
 # and is seeded under its vault filename.
 DOCUMENT_SEEDS = {"00-brd.md": SKILL_DIR / "templates" / "templates" / "brd.md"}
+# The deliverables folder beside every vault: its own seed, a copy of the templates its documents
+# start from, and the two folders those documents go in.
+DELIVERABLES_DIR = SKILL_DIR / "templates" / "deliverables"
+DELIVERABLE_DOCS = {f"templates/{n}": SKILL_DIR / "templates" / "templates" / n
+                    for n in ("adr.md", "solution-design.md")}
+DELIVERABLE_FOLDERS = ("adrs", "solution-designs")
 PROFILES = SKILL_DIR / "templates" / "markdown-kg-profiles.md"
 KG = SKILL_DIR.parent / "markdown-kg" / "scripts" / "markdown_kg.py"
 JSON_BLOCK = re.compile(r"```json\n(.*?)```", re.S)
@@ -55,6 +61,19 @@ def template_files() -> list[tuple[str, Path]]:
     files = {p.name: p for p in TEMPLATE_DIR.iterdir() if p.is_file() and not p.name.startswith(".")}
     files.update(DOCUMENT_SEEDS)
     return sorted(files.items())
+
+
+def deliverable_files() -> list[tuple[str, Path]]:
+    """Every deliverables seed file as (path in the folder, source), in a stable order."""
+    files = {p.name: p for p in DELIVERABLES_DIR.iterdir() if p.is_file() and not p.name.startswith(".")}
+    files.update(DELIVERABLE_DOCS)
+    return sorted(files.items())
+
+
+def deliverables_for(vault: Path) -> Path:
+    """The vault's deliverables folder: its sibling, named for it."""
+    vault = vault.resolve()  # once, so `.` or `..` in the path cannot put it inside the vault
+    return vault.parent / f"{vault.name}-DELIVERABLES"
 
 
 def scaffold(target: Path, name: str, dry_run: bool = False) -> tuple[list[str], list[str], list[str]]:
@@ -95,8 +114,10 @@ def seed_into(dest: Path, dry_run: bool = False) -> tuple[list[str], list[str], 
     return seed(dest, (dest,), dry_run)
 
 
-def seed(dest: Path, guards: tuple[Path, ...], dry_run: bool) -> tuple[list[str], list[str], list[str]]:
-    """Copy every template file into dest, never overwriting. Returns (written, skipped, failed)."""
+def seed(dest: Path, guards: tuple[Path, ...], dry_run: bool, files: list[tuple[str, Path]] | None = None,
+         folders: tuple[str, ...] = ()) -> tuple[list[str], list[str], list[str]]:
+    """Copy every seed file into dest and make its folders, never overwriting. Returns (written, skipped, failed).
+    The files default to the vault seed."""
     written: list[str] = []
     skipped: list[str] = []
     failed: list[str] = []
@@ -104,9 +125,23 @@ def seed(dest: Path, guards: tuple[Path, ...], dry_run: bool) -> tuple[list[str]
     for part in guards:
         if part.is_symlink():
             return written, skipped, [f"{part}: is a symlink; refusing to seed through it"]
-    for name, src in template_files():
+    for folder in folders:
+        path = dest / folder
+        if path.is_symlink() or (path.exists() and not path.is_dir()):
+            failed.append(f"{folder}/: exists and is not a plain folder; refusing to use it")
+        elif path.is_dir():
+            skipped.append(f"{folder}/")
+        elif dry_run:
+            written.append(f"{folder}/")
+        else:
+            try:
+                path.mkdir(parents=True)
+                written.append(f"{folder}/")
+            except OSError as exc:
+                failed.append(f"{folder}/: {exc}")
+    for name, src in (template_files() if files is None else files):
         out = dest / name
-        if out.is_symlink():
+        if out.is_symlink() or (out.parent != dest and out.parent.is_symlink()):
             failed.append(f"{name}: destination is a symlink; refusing to write through it")
             continue
         if out.exists():
@@ -120,9 +155,15 @@ def seed(dest: Path, guards: tuple[Path, ...], dry_run: bool) -> tuple[list[str]
             written.append(name)
             continue
         try:
-            dest.mkdir(parents=True, exist_ok=True)
-            # O_EXCL and O_NOFOLLOW: create only, never through a link planted between the check and the write
-            fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o644)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            # O_EXCL and O_NOFOLLOW on the file and on its folder: create only, never through a link
+            # planted between the check and the write
+            nofollow = getattr(os, "O_NOFOLLOW", 0)
+            parent = os.open(out.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | nofollow)
+            try:
+                fd = os.open(out.name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow, 0o644, dir_fd=parent)
+            finally:
+                os.close(parent)
             with os.fdopen(fd, "wb") as fh:
                 fh.write(src.read_bytes())
             written.append(name)
@@ -269,11 +310,21 @@ def pointer_steps(vault: Path, root: Path) -> str:
     host = next((p for p in (vault, *vault.parents) if (p / ".git").exists()), root.resolve())
     rel = vault.relative_to(host).as_posix() if vault.is_relative_to(host) else vault.name
     line = (f"Project knowledge vault: `{rel}/` - its `AGENTS.md` is the contract, "
-            f"and its graph is `{rel}/markdown-kg/`.")
+            f"its graph is `{rel}/markdown-kg/`, and its deliverables are in `{rel}-DELIVERABLES/`.")
     return ("next: record where this vault lives, so later sessions find it without searching:\n"
             "  1. add this line to the host repo's root AGENTS.md (CLAUDE.md where it has no AGENTS.md), unless it is there:\n"
             f"     {line}\n"
             "  2. save the same line to your harness's persistent memory for this project, where it has one")
+
+
+def report_seed(dest: Path, verb: str, written: list[str], skipped: list[str], failed: list[str]) -> None:
+    print(f"{dest}: {verb} {len(written)}, skipped {len(skipped)}, failed {len(failed)}")
+    for f in written:
+        print(f"  {verb:<11} {f}")
+    for f in skipped:
+        print(f"  skipped     {f} (exists)")
+    for f in failed:
+        print(f"  FAILED      {f}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -304,23 +355,27 @@ def main(argv: list[str] | None = None) -> int:
         dest = args.target / "PROJECTS" / args.name
         written, skipped, failed = scaffold(args.target, args.name, args.dry_run)
     verb = "would write" if args.dry_run else "wrote"
-    print(f"{dest}: {verb} {len(written)}, skipped {len(skipped)}, failed {len(failed)}")
-    for f in written:
-        print(f"  {verb:<11} {f}")
-    for f in skipped:
-        print(f"  skipped     {f} (exists)")
-    for f in failed:
-        print(f"  FAILED      {f}")
+    report_seed(dest, verb, written, skipped, failed)
     if failed:
         return 1
+    deliverables = deliverables_for(dest)
+    d_written, d_skipped, d_failed = seed(deliverables, (deliverables,), args.dry_run,
+                                          deliverable_files(), DELIVERABLE_FOLDERS)
+    report_seed(deliverables, verb, d_written, d_skipped, d_failed)
+    if d_failed:
+        return 1
+    folders = ((dest, len(written)), (deliverables, len(d_written)))
     if args.dry_run:
         if not args.no_graph:
-            print(dry_run_graph(dest, len(written)))
+            for folder, count in folders:
+                print(f"{folder.resolve().name}: {dry_run_graph(folder, count)}")
         return 0
     ok = True
     if not args.no_graph:
-        ok, report = seed_graph(dest, len(written))
-        print(report)
+        for folder, count in folders:
+            folder_ok, report = seed_graph(folder, count)
+            print(f"{folder.resolve().name}: {report}")
+            ok = ok and folder_ok
     if ok:
         print(pointer_steps(dest, args.target if args.target is not None else dest.parent))
     return 0 if ok else 1

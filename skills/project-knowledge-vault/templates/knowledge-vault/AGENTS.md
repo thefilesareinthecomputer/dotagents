@@ -155,6 +155,7 @@ Four exceptions, each fixed by file:
 | An action still to run | `user-runsheet.md` |
 | Work not on the board yet | `user-stories-backlog.md` |
 | A note added, removed, renamed or archived | `log.md`, under today's date |
+| A solution design, ADR, guide or runbook this project ships | the deliverables folder beside this one, `<this folder>-DELIVERABLES/`, which has its own `AGENTS.md`; notes here name its files in backticks |
 
 ## Filing loose material
 
@@ -169,7 +170,8 @@ Material rarely arrives in the vault's shape. A file is classified by what it ho
 | Facts, gotchas, "turns out" notes | `notes-learnings.md` |
 | Lists of open questions | `notes-questions.md` |
 | Scratch notes and journals | the log their content matches; otherwise `notes-general-notes.md` |
-| Documentation, SOWs, proposals, contracts, runbooks, decks | `docs-internal-<slug>.md`, or `docs-research-<slug>.md` for external material |
+| Solution designs, ADRs, guides and runbooks this project writes to ship | the deliverables folder, `<this folder>-DELIVERABLES/` |
+| Documentation, SOWs, proposals, contracts, runbooks and decks received from elsewhere | `docs-internal-<slug>.md`, or `docs-research-<slug>.md` for external material |
 | Code snippets, scripts, configs, repository dumps | `code-<repo>[-<subsystem>].md` |
 | User stories, tickets, agile boards, backlog exports | `user-stories.md` while open, `user-stories-completed.md` once closed |
 | Work intake requests and work not yet on the board | `user-stories-backlog.md` |

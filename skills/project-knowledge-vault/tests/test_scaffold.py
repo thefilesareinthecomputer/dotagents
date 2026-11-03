@@ -19,6 +19,12 @@ SEEDS = {**{p.name: p for p in TEMPLATE.iterdir() if not p.name.startswith(".")}
 PROFILES = SKILL / "templates" / "markdown-kg-profiles.md"
 KG = SKILL.parent / "markdown-kg" / "scripts" / "markdown_kg.py"
 SEED_COUNT = 18
+DELIVERABLES = SKILL / "templates" / "deliverables"
+# The deliverables folder's path for every seed file, mapped to its source, and the folders it makes.
+DELIVERABLE_SEEDS = {**{p.name: p for p in DELIVERABLES.iterdir() if not p.name.startswith(".")},
+                     **{f"templates/{n}": SKILL / "templates" / "templates" / n for n in ("adr.md", "solution-design.md")}}
+DELIVERABLE_FOLDERS = ("adrs", "solution-designs")
+DELIVERABLE_COUNT = len(DELIVERABLE_SEEDS) + len(DELIVERABLE_FOLDERS)
 needs_kg = unittest.skipUnless(KG.exists(), "markdown-kg not installed beside this skill")
 
 
@@ -57,7 +63,8 @@ class TestSeed(Base):
         before = {p.name: p.stat().st_mtime_ns for p in dest.iterdir()}
         result = run("--target", str(self.tmp), "--name", "TEST")
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(result.stdout.count("skipped"), SEED_COUNT + 1)  # summary line plus one per file
+        # a summary line per folder plus one per file and deliverables folder
+        self.assertEqual(result.stdout.count("skipped"), SEED_COUNT + DELIVERABLE_COUNT + 2)
         self.assertEqual((dest / "00-brd.md").read_text(), "edited by hand\n")
         self.assertEqual({p.name: p.stat().st_mtime_ns for p in dest.iterdir()}, before)
 
@@ -98,7 +105,7 @@ class TestSeed(Base):
         result = run("--target", str(self.tmp), "--name", "TEST", "--dry-run")
         self.assertEqual(result.returncode, 0)
         self.assertFalse((self.tmp / "PROJECTS").exists())
-        self.assertEqual(result.stdout.count("would write"), SEED_COUNT + 1)
+        self.assertEqual(result.stdout.count("would write"), SEED_COUNT + DELIVERABLE_COUNT + 2)
 
     def test_two_seeds_are_byte_identical(self) -> None:
         run("--target", str(self.tmp / "a"), "--name", "X")
@@ -183,8 +190,8 @@ class TestInto(Base):
         dest = self.tmp / "docs"
         result = run("--into", str(dest), "--dry-run")
         self.assertEqual(result.returncode, 0)
-        self.assertFalse(dest.exists())
-        self.assertEqual(result.stdout.count("would write"), SEED_COUNT + 1)
+        self.assertFalse(dest.exists() or (self.tmp / "docs-DELIVERABLES").exists())
+        self.assertEqual(result.stdout.count("would write"), SEED_COUNT + DELIVERABLE_COUNT + 2)
 
     def test_into_symlinked_folder_is_refused(self) -> None:
         elsewhere = self.tmp / "elsewhere"
@@ -208,6 +215,72 @@ class TestInto(Base):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertTrue((dest / "markdown-kg" / "markdown-kg-config.md").is_file())
         self.assertIn("*.db*", (dest / "markdown-kg" / ".gitignore").read_text())
+
+
+class TestDeliverables(Base):
+    """Every vault gets a sibling <vault>-DELIVERABLES/ folder for the documents the project ships."""
+
+    def test_seed_writes_the_deliverables_folder_beside_the_vault(self) -> None:
+        result = run("--target", str(self.tmp), "--name", "TEST")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        out = self.tmp / "PROJECTS" / "TEST-DELIVERABLES"
+        for name, src in DELIVERABLE_SEEDS.items():
+            self.assertTrue(filecmp.cmp(src, out / name, shallow=False), name)
+        for folder in DELIVERABLE_FOLDERS:
+            self.assertTrue((out / folder).is_dir(), folder)
+        self.assertFalse((self.tmp / "PROJECTS" / "TEST" / "adrs").exists())
+
+    def test_rerun_keeps_the_deliverables_and_their_edits(self) -> None:
+        run("--target", str(self.tmp), "--name", "TEST")
+        out = self.tmp / "PROJECTS" / "TEST-DELIVERABLES"
+        (out / "index.md").write_text("edited by hand\n")
+        (out / "adrs" / "ADR-001-example.md").write_text("a record\n")
+        result = run("--target", str(self.tmp), "--name", "TEST")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual((out / "index.md").read_text(), "edited by hand\n")
+        self.assertEqual((out / "adrs" / "ADR-001-example.md").read_text(), "a record\n")
+
+    def test_symlinked_templates_folder_is_refused_not_followed(self) -> None:
+        elsewhere = self.tmp / "elsewhere"
+        elsewhere.mkdir()
+        out = self.tmp / "PROJECTS" / "TEST-DELIVERABLES"
+        out.mkdir(parents=True)
+        (out / "templates").symlink_to(elsewhere)
+        result = run("--target", str(self.tmp), "--name", "TEST")
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("symlink", result.stdout)
+        self.assertFalse(any(elsewhere.iterdir()))
+
+    def test_into_dot_puts_the_deliverables_beside_the_vault(self) -> None:
+        vault = self.tmp / "v"
+        vault.mkdir()
+        result = subprocess.run([sys.executable, str(SCAFFOLD), "--into", ".", "--no-graph"],
+                                capture_output=True, text=True, cwd=vault)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue((self.tmp / "v-DELIVERABLES" / "AGENTS.md").is_file())
+        self.assertFalse((vault / "v-DELIVERABLES").exists())
+
+    def test_symlinked_deliverables_folder_is_refused(self) -> None:
+        elsewhere = self.tmp / "elsewhere"
+        elsewhere.mkdir()
+        (self.tmp / "PROJECTS").mkdir()
+        (self.tmp / "PROJECTS" / "TEST-DELIVERABLES").symlink_to(elsewhere)
+        result = run("--target", str(self.tmp), "--name", "TEST")
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("symlink", result.stdout)
+        self.assertFalse(any(elsewhere.iterdir()))
+
+    @needs_kg
+    def test_deliverables_graph_leaves_out_the_templates(self) -> None:
+        result = run("--target", str(self.tmp), "--name", "TEST", graph=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        out = self.tmp / "PROJECTS" / "TEST-DELIVERABLES"
+        self.assertTrue((out / "markdown-kg" / "markdown-kg-config.md").is_file())
+        found = subprocess.run([sys.executable, str(KG), "search", str(out), "decision options", "--json"],
+                               capture_output=True, text=True)
+        self.assertEqual(found.returncode, 0, found.stderr)
+        ids = [h["section_id"] for h in json.loads(found.stdout)["results"]]
+        self.assertFalse(any(i.startswith(("templates/", "AGENTS", "CLAUDE")) for i in ids), ids)
 
 
 class TestSymlinks(Base):
@@ -269,15 +342,15 @@ class TestDryRunGraph(Base):
         (dest / "markdown-kg").mkdir(parents=True)
         (dest / "markdown-kg" / "markdown-kg-config.md").write_text("```json\n{}\n```\n")
         result = run("--into", str(dest), "--dry-run", graph=True)
-        self.assertNotIn("would initialize", result.stdout)
-        self.assertIn("graph: markdown-kg/ present", result.stdout)
+        self.assertNotIn("docs: graph: would initialize", result.stdout)
+        self.assertIn("docs: graph: markdown-kg/ present", result.stdout)
 
     def test_dry_run_reports_the_refusals_the_real_run_makes(self) -> None:
         dest = self.tmp / "docs"
         dest.mkdir()
         (dest / "markdown-kg").write_text("not a folder\n")
         dry = run("--into", str(dest), "--dry-run", graph=True)
-        self.assertNotIn("would initialize", dry.stdout)
+        self.assertNotIn("docs: graph: would initialize", dry.stdout)
         self.assertIn("not a directory", dry.stdout)
         real = run("--into", str(dest), graph=True)
         self.assertEqual(real.returncode, 1)
