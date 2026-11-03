@@ -218,8 +218,8 @@ under Station config below:
 |---|---|---|
 | `analytics.enabled` | `false` | `false` |
 | `otel.metrics_exporter` | default `none` under an empty home | `"none"` (default is `statsig`; trace and log exporters default to `none`) |
-| `features.memories` | `false` | left on by the ChatGPT app; `memories.disable_on_external_context = true` added |
-| `history.persistence` | `--ephemeral` | default `save-all`; 241 MB of sessions on disk that day |
+| `features.memories` | `false` | the ChatGPT app turns it on; `memories.disable_on_external_context = true` is seeded, and the laptop also has memories off since 2026-11-01 |
+| `history.persistence` | `--ephemeral` | `save-all`, the default, set explicitly on the laptop on 2026-11-01 to keep transcripts; 241 MB of sessions on disk on 2026-09-19 |
 | `shell_environment_policy.inherit` | `"core"` plus `include_only=[HOME,PATH,USER,LANG,SHELL,TMPDIR]`, and the skill builds the child environment itself | default; built-in filters only match `*KEY*`, `*SECRET*`, `*TOKEN*` by name. **`include_only` is accepted under `--strict-config` and then ignored at 0.155.1** - probed 2026-09-20, the whole parent environment reached the sandboxed shell, so the skill scrubs in Python and passes the key only as a second layer |
 
 Training use of prompts under ChatGPT sign-in is governed by the ChatGPT
@@ -245,7 +245,7 @@ installed. Shapes are defined once in
 | Subagents | `N/A` | - | no subagent tree of its own |
 | Commands | `N/A` | - | no command tree; the portable route is a skill |
 | Rules | `NATIVE` | repo-root `AGENTS.md` | Codex's analogue to `CLAUDE.md`, read per repo; no global rules file to seed |
-| Privacy and hygiene | `FRAGMENT` | `~/.codex/config.toml` | seedable keys: `analytics.enabled = false`, `otel.metrics_exporter = "none"`, `memories.disable_on_external_context = true`, `features.daemon_auto_start = false`. Values move only in the restrictive direction; merge into the existing tables, never replace the file (see Station config below) |
+| Privacy and hygiene | `FRAGMENT` | `~/.codex/config.toml` | seedable keys: `analytics.enabled = false`, `otel.metrics_exporter = "none"`, `memories.disable_on_external_context = true`, `feedback.enabled = false`, `features.daemon_auto_start = false`. Values move only in the restrictive direction; merge into the existing tables, never replace the file (see Station config below) |
 | Permissions | `FRAGMENT` | `~/.codex/config.toml` | seedable keys only: `[projects."<path>"] trust_level`. Never copy the file - it also carries credentials-adjacent state, plugin enablement and machine-specific paths. Path eligibility is bounded: each path is approved by the user at seed time, only a specific repository root is ever written, and no ancestor directory is eligible - trusting `$HOME` or a multi-repo `dev/` would silently trust every repo cloned under it afterward |
 | Sandbox level | `N/A` | - | passed per invocation (`-s`), not configured |
 | Hooks | `FRAGMENT` | `~/.codex/hooks.json`, scripts to `~/.codex/hooks/` | managed entries only, in Claude Code's file shape; plan only, and nothing is wired until a hook has a Codex test |
@@ -303,12 +303,20 @@ metrics_exporter = "none"      # trace and log exporters already default to none
 
 [memories]
 disable_on_external_context = true
+
+[feedback]
+enabled = false                # the /feedback upload, as Claude Code's DISABLE_FEEDBACK_COMMAND
 ```
 
-Left as the user's choice: `history.persistence` (default `save-all`;
-`history.max_bytes` caps it), `memories.generate_memories` (on, set by the
-ChatGPT app; turn off for repos holding client code), `model` and
-`model_reasoning_effort` (station taste, `gpt-6-astra` / `high` on desktop).
+Left as the user's choice: `history.persistence` (default `save-all`, set
+explicitly on the laptop on 2026-11-01 because session transcripts are kept as
+training data; `history.max_bytes` caps it), `features.memories`,
+`memories.generate_memories` and `memories.use_memories` (the ChatGPT app turns
+them on; all three are off on the laptop since 2026-11-01), plugin enablement
+(the laptop's curated Google Calendar and Slack plugins are `enabled = false`
+since 2026-11-01, by the user's ruling that they are the same class as the
+Claude Code account connectors), `model` and `model_reasoning_effort` (station
+taste, `gpt-6-astra` / `high` on desktop).
 
 ### Verify
 

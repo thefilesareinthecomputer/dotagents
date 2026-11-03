@@ -13,8 +13,8 @@ the probe in the `agent-cc-configs-sync` skill.
 |---|---|---|
 | [`claude-code/`](claude-code/SPEC-CLAUDE-CODE.md) | Claude Code | `sync-skills.sh` |
 | [`antigravity/`](antigravity/SPEC-ANTIGRAVITY.md) | Antigravity CLI (`agy`) | `~/.gemini/config/skills.json`, written by `seed.py` |
-| [`codex/`](codex/SPEC-CODEX.md) | OpenAI Codex CLI | none for skills, reads `~/.agents/skills`; a four-key `config.toml` privacy fragment |
-| [`copilot/`](copilot/SPEC-COPILOT.md) | GitHub Copilot (VS Code + CLI) | none, reads `~/.agents/skills` |
+| [`codex/`](codex/SPEC-CODEX.md) | OpenAI Codex CLI | none for skills, reads `~/.agents/skills`; a five-key `config.toml` privacy fragment |
+| [`copilot/`](copilot/SPEC-COPILOT.md) | GitHub Copilot (VS Code + CLI) | none for skills, reads `~/.agents/skills`; a four-key `settings.json` fragment |
 | [`cursor/`](cursor/SPEC-CURSOR.md) | Cursor (IDE + CLI) | none, reads `~/.agents/skills` |
 | [`goose/`](goose/SPEC-GOOSE.md) | goose | none, reads `~/.agents/skills` |
 | [`gemini/`](gemini/SPEC-GEMINI.md) | Gemini CLI | none, reads `~/.agents/skills` |
@@ -37,7 +37,7 @@ Every harness folder follows the shape `claude-code/` established:
   A seed file and the configured station it seeds stay in byte parity: a drift check is a `diff`, not a reading exercise.
 - **Reference docs** that inform a harness beyond this station's own choices sit beside the spec they belong to (e.g. [`claude-code/CLAUDE-CONTEXT-TOPOLOGY-ONTOLOGY-AND-TEAM-HEURISTICS.md`](claude-code/CLAUDE-CONTEXT-TOPOLOGY-ONTOLOGY-AND-TEAM-HEURISTICS.md)).
 - **Same-folder links are bare filenames; cross-folder links are relative** (`../copilot/SPEC-COPILOT.md`).
-  Assets shared by several harnesses stay at `specs/` level: [`secrets-exclusions.gitignore`](secrets-exclusions.gitignore), [`SEEDING-SHAPES.md`](SEEDING-SHAPES.md) defining the shape vocabulary every spec's Seeding table uses, [`MCP-PLACEMENT.md`](MCP-PLACEMENT.md) carrying the position each spec's MCP row defers to, and [`HARNESS-MODELS-AND-EFFORT.md`](HARNESS-MODELS-AND-EFFORT.md) recording how each CLI enumerates models and names effort levels, stamped with the version and date it was probed.
+  Assets shared by several harnesses stay at `specs/` level: [`secrets-exclusions.gitignore`](secrets-exclusions.gitignore), [`SEEDING-SHAPES.md`](SEEDING-SHAPES.md) defining the shape vocabulary every spec's Seeding table uses, [`MCP-PLACEMENT.md`](MCP-PLACEMENT.md) carrying the position each spec's MCP row defers to, [`AGENT-PROTOCOLS.md`](AGENT-PROTOCOLS.md) recording which standard (ACP, MCP, A2A, AG-UI) the station uses for each agent link and what is built, and [`HARNESS-MODELS-AND-EFFORT.md`](HARNESS-MODELS-AND-EFFORT.md) recording how each CLI enumerates models and names effort levels, stamped with the version and date it was probed.
 
 A folder holding nothing but its spec is normal; most harnesses need no seeds.
 Rules for agents editing this tree: [`AGENTS.md`](AGENTS.md).

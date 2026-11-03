@@ -19,8 +19,10 @@ import it, so a detector is fixed once and every consumer gets the fix.
 ## Commands
 
 Every command runs as `python3 <skill-dir>/scripts/sanitize.py ...`.
+The old names `tree`, `answer`, `verify` and `corpus` still run as `check`, `filter`,
+`check --raw` and `copy`, with a one-line note on stderr.
 
-### copy (alias: corpus)
+### copy
 
 ```
 sanitize.py copy <file-or-folder> [--out <path>] [--force] [--include-binary] [--include-docx] [--no-verify]
@@ -59,40 +61,37 @@ sanitize.py copy <file-or-folder> [--out <path>] [--force] [--include-binary] [-
 - The report lands as `sanitize-report.json` in the copy (or `<out>.sanitize-report.json`
   for a single file) and is printed to stdout.
 
-### verify
+### check
 
 ```
-sanitize.py verify <copy-path> [--allow-binary] [--terms ...] [--patterns ...] [--config ...]
+sanitize.py check <path> [--tracked] [--exclude <glob>...] [--max-mb 50] [--terms ...] [--patterns ...] [--config ...]
+sanitize.py check --raw <copy-path> [--allow-binary] [--terms ...] [--patterns ...] [--config ...]
 ```
 
-- `verify` is the release verifier, a second pass that shares no parser with the engine.
-  It reads every file in the copy as flat text, every member of a zip the same way, and
-  every path, and runs every matcher over them. Any hit exits `1`; any part it could not
-  decode exits `4` (pass `--allow-binary` when binaries were copied through on purpose).
-- `copy` runs it over the staging folder before the copy lands and refuses (exit
-  `5`) on either outcome, so a gap in a parser can never ship a copy as clean. The
-  report records `verified`; `--no-verify` skips the pass and records `null`.
-
-### tree
-
-```
-sanitize.py tree <path> [--tracked] [--exclude <glob>...] [--terms ...] [--patterns ...] [--config ...]
-```
-
-- Tree mode only reports and writes nothing. It exits `1` when anything would have
+- `check` only reports and writes nothing. It exits `1` when anything would have
   been replaced, `4` when a text-bearing file was left uninspected, and `0` when
   clean. `--tracked` limits the scan to the files git tracks under the path, which
   is the right scope before a publish.
+- `check --raw` is the release verifier, a second pass that shares no parser with the engine.
+  It reads every file in the copy as flat text, every member of a zip the same way, and
+  every path, and runs every matcher over them. Any hit exits `1`; any part it could not
+  decode exits `4` (pass `--allow-binary` when binaries were copied through on purpose).
+  Its JSON output has its own shape (`ok`, `files`, `hits`, `uninspected`), not the report schema.
+  `--tracked`, `--exclude`, `--max-mb` and `--include-docx` with `--raw`, or
+  `--allow-binary` without it, exit `2`.
+- `copy` runs the raw pass over the staging folder before the copy lands and refuses (exit
+  `5`) on either outcome, so a gap in a parser can never ship a copy as clean. The
+  report records `verified`; `--no-verify` skips the pass and records `null`.
 
-### answer
+### filter
 
 ```
-sanitize.py answer [--config <vault.json>] < answer.txt
+sanitize.py filter [--config <vault.json>] < answer.txt
 ```
 
-- Answer mode reads text on stdin and writes text to stdout. Secrets and personal
+- `filter` reads text on stdin and writes text to stdout. Secrets and personal
   shapes are replaced; a hit on the station list, a ban list or a per-run pattern
-  withholds the whole answer and exits `3`. The term check runs on the original
+  withholds the whole output and exits `3`. The term check runs on the original
   text, so a term inside an address or a path is still a hit. This is the local
   vault's gate before an answer goes to a cloud agent.
 
@@ -113,16 +112,23 @@ installed with `sh hooks/git/install.sh`). It reports on added lines only: every
 runs over each touched file's full post-image, and a finding counts when it touches an
 added line. A range (and a pre-push ref list) is scanned commit by commit, reading each
 commit's diff and message, so a secret added and then removed still counts.
-Secrets, hidden-character attacks (tag, bidi, zero-width) and a commit message that
-describes sensitivity block with exit `3`. Everything identifier-shaped (terms, emails,
-home paths, work items, GUIDs) warns and exits `0`. `--files` reads whole files at the
+The gate blocks with exit `3` on secrets, hidden-character attacks (tag, bidi, zero-width),
+a home path with a real login (a placeholder owner, such as a one-letter name, passes) and
+a commit message that describes sensitivity. The other identifier shapes (terms, emails,
+work items, GUIDs) warn and exit `0`. `--files` reads whole files at the
 review severity the wrap-up lint uses. Output is `path:line  class  tier` and never
 includes the value.
 
 A missing term list skips the term class with one note. A git object the gate cannot
 read blocks. A bug in the gate exits `0` with a stderr line, so a gate bug never stops
-every commit on the machine. Lockfiles, minified bundles and binaries are skipped. The
-only escape hatch is the user's: `--no-verify` on commit and push from their own
+every commit on the machine. Lockfiles, minified bundles and binaries are skipped. A text
+file up to 8 MiB is scanned whole; a larger one is scanned within 64 lines of each added
+line, so the time follows the change; one over 1 GiB blocks, since it cannot be checked.
+
+A staged file under `.claude/inbox/` or `.agents/inbox/` blocks the commit by path, so
+agent-mail stays out of history. To commit inbox files on purpose, run that one commit
+as `AGENT_MAIL_COMMIT_INBOX=1 git commit ...`, which lifts the inbox rule and nothing else.
+The only full escape hatch is the user's: `--no-verify` on commit and push from their own
 terminal. `hooks/guard_git_bypass.py` refuses the same flag when an agent passes it.
 
 ## What gets replaced, in order
@@ -153,28 +159,27 @@ the run; `files_changed` lists each file that lost content with its relative pat
 top-level `origin` folder and its per-class counts, so a whole source can be dropped
 from a training set; `skipped` lists binaries, PDFs and oversized files. No field
 holds a matched value. Terms shorter than four characters are matched on raw text
-only and as typed, so an all-caps two-character term no longer fires on the common
+only and as typed, so an all-caps two-character term does not fire on the common
 word it spells; if `term` counts still look high, check the list before the files.
 
 ## Exit codes
 
-`0` clean or copied; `1` tree or verify found hits; `2` bad arguments, config, a missing
-station term list, or a copy refused before anything was written (a destination
-that is a link, two sources cleaning to one path, a source file named like the
-report, a destination `--force` may not replace); `3` answer withheld; `4` tree left
-a text-bearing file uninspected (a PDF, a Word file without `--include-docx`, an
-oversized, unreadable or undecodable file; known binary types do not count in tree
-mode), or verify could not decode a file or a zip member (every one counts unless
-`--allow-binary`, media members aside), or the self-test failed; `5` the verifier
-refused a copy, which was then not written.
+| Exit | Meaning |
+|---|---|
+| `0` | Clean, or the copy was written. |
+| `1` | `check` found hits. |
+| `2` | Bad arguments or config, a missing station term list, or a copy refused before anything was written (a destination that is a link, two sources cleaning to one path, a source file named like the report, a destination `--force` may not replace). |
+| `3` | `filter` withheld its output, or `gate` blocked. |
+| `4` | `check` left a text-bearing file uninspected (a PDF, a Word file without `--include-docx`, an oversized, unreadable or undecodable file; known binary types do not count there), or `check --raw` could not decode a file or a zip member (every one counts unless `--allow-binary`, media members aside), or the self-test failed. |
+| `5` | The verifier refused a copy, which was then not written. |
 
 ## Boundaries
 
-- The engine never prints a matched value, never edits in tree mode, never writes a
+- The engine never prints a matched value, never edits in check mode, never writes a
   reversible mapping, and never calls a model.
 - The station term list is never copied into this skill; the tests use invented words
   and `tests/test_self_guard.py` scans the skill's own files on every run.
 - The recall-layer masker (a local CPU model over the copy) is a later phase and
   ask-first. PDF text is out of scope until a dependency is approved.
 
-Spec: `tasks/SPEC-SANITIZE.md`. Tests: `python3 -m unittest discover -s <skill-dir>/tests -v`.
+The spec is `tasks/SPEC-SANITIZE.md`, and the tests run with `python3 -m unittest discover -s <skill-dir>/tests -v`.

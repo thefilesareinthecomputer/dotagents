@@ -132,7 +132,7 @@ def _pairs_hook(pairs):
 def _json_text(text: str, scrub: Scrub, counts: dict, field: Field | None = None) -> str | None:
     """The document re-serialized with every key and string value scrubbed, or None when it
     is not JSON or holds a duplicate key. A parse keeps only the last of duplicate keys, so
-    the earlier value would never be scanned and the original would pass a tree scan; such a
+    the earlier value would never be scanned and the original would pass a check; such a
     file is counted (json_duplicate_key) and scrubbed as text, which sees every value."""
     try:
         value = json.loads(text, object_pairs_hook=_pairs_hook)

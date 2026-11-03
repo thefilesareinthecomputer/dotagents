@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""sanitize - one deterministic scrubbing engine for copies, answers and trees.
+"""sanitize - one deterministic scrubbing engine for copies, checks and filtered text.
 
 No model runs here. Text goes through fixed passes in a fixed order: secret shapes,
 custom shape checks (email, phone, home path, role code, catalog), the station term
@@ -8,13 +8,17 @@ Every hit becomes a class placeholder and is counted; no matched value is ever
 printed, logged or written to a report.
 
 Modes:
-  answer   text on stdin -> text on stdout; a term-list hit withholds the whole answer (exit 3)
-  copy     a file or folder -> a sanitized copy at --out (alias: corpus)
-  tree     a repo path -> report only, exit 1 on hits
+  filter   text on stdin -> text on stdout; a term-list hit withholds the whole output (exit 3)
+  copy     a file or folder -> a sanitized copy at --out
+  check    a path -> report only, exit 1 on hits; --raw runs the parser-free verifier instead
   doctor   station list present, normalization self-test
+  gate     the commit and push check (gate.py)
 
-Exit codes: 0 clean or sanitized, 1 tree found hits, 2 bad arguments or a missing
-station term list, 3 answer withheld, 4 masker error (Phase 2).
+The old names tree, answer, verify and corpus still run, with a one-line note on stderr.
+
+Exit codes: 0 clean or sanitized, 1 check found hits, 2 bad arguments or a missing
+station term list, 3 filter withheld its output, 4 check left a part uninspected,
+5 the verifier refused a copy.
 
 Stdlib only. The station term list is read from IDENTIFIER_TERMS_FILE or its default
 location and is never copied anywhere; the examples in this file and its tests are
@@ -234,7 +238,7 @@ def add_common(p: argparse.ArgumentParser) -> None:
 # ---------------------------------------------------------------- modes
 
 
-def cmd_answer(args: argparse.Namespace) -> int:
+def cmd_filter(args: argparse.Namespace) -> int:
     opts = Options(args)
     text = sys.stdin.read()
     # The term check runs on the original text: a term inside an address or a path would
@@ -488,7 +492,7 @@ def run_verifier(target: Path, opts: "Options", allow_binary: bool, report: Repo
         raise SanitizeError("the verifier refused the copy: " + " | ".join(what), 5)
 
 
-def cmd_verify(args: argparse.Namespace) -> int:
+def cmd_check_raw(args: argparse.Namespace) -> int:
     opts = Options(args)
     target = Path(args.src).expanduser().resolve()
     if not target.exists():
@@ -501,13 +505,25 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 4 if result["uninspected"] else 0
 
 
-def cmd_tree(args: argparse.Namespace) -> int:
+# Flags that shape the engine's walk; the parser-free pass reads every file and takes none of them.
+CHECK_ONLY_FLAGS = (("tracked", "--tracked"), ("exclude", "--exclude"), ("max_mb", "--max-mb"),
+                    ("include_docx", "--include-docx"))
+
+
+def cmd_check(args: argparse.Namespace) -> int:
+    if args.raw:
+        given = [flag for dest, flag in CHECK_ONLY_FLAGS if getattr(args, dest) not in (None, False)]
+        if given:
+            raise SanitizeError(f"{', '.join(given)} cannot be combined with check --raw", 2)
+        return cmd_check_raw(args)
+    if args.allow_binary:
+        raise SanitizeError("--allow-binary needs check --raw", 2)
     opts = Options(args)
     src = Path(args.src).expanduser().resolve()
     if not src.exists():
         raise SanitizeError("the path given does not exist", 2)
-    max_bytes = int(args.max_mb * 1024 * 1024)
-    report = Report("tree")
+    max_bytes = int((50 if args.max_mb is None else args.max_mb) * 1024 * 1024)
+    report = Report("check")
     for path, rel in iter_files(src, DEFAULT_EXCLUDES + (args.exclude or []), tracked=args.tracked):
         scan_one(path, rel, opts, report, max_bytes)
     print(json.dumps(report.as_dict(), indent=2))
@@ -540,11 +556,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="sanitize", description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    a = sub.add_parser("answer", help="text on stdin to text on stdout; a term hit withholds the answer")
-    add_common(a)
-    a.set_defaults(fn=cmd_answer)
+    f = sub.add_parser("filter", help="text on stdin to text on stdout; a term hit withholds the whole output")
+    add_common(f)
+    f.set_defaults(fn=cmd_filter)
 
-    c = sub.add_parser("copy", aliases=["corpus"], help="write a sanitized copy of a file or folder")
+    c = sub.add_parser("copy", help="write a sanitized copy of a file or folder")
     c.add_argument("src")
     c.add_argument("--out", help="destination (default: a -clean sibling)")
     c.add_argument("--force", action="store_true", help="write into an existing destination")
@@ -555,19 +571,17 @@ def build_parser() -> argparse.ArgumentParser:
     add_common(c)
     c.set_defaults(fn=cmd_copy)
 
-    t = sub.add_parser("tree", help="report hits under a path without writing anything; exit 1 on hits")
+    t = sub.add_parser("check", help="report hits under a path without writing anything; exit 1 on hits, 4 on an uninspected part")
     t.add_argument("src")
-    t.add_argument("--max-mb", type=float, default=50)
-    t.add_argument("--exclude", nargs="*")
+    t.add_argument("--raw", action="store_true",
+                   help="run the parser-free pass over a written copy instead: flat text, zip members and paths against every matcher")
+    t.add_argument("--allow-binary", action="store_true",
+                   help="with --raw: binaries were copied through on purpose; do not count them as uninspected")
+    t.add_argument("--max-mb", type=float, default=None, help="skip files over this size (default 50)")
+    t.add_argument("--exclude", nargs="*", help="path-component globs to skip")
     t.add_argument("--tracked", action="store_true", help="scan only the files git tracks under the path")
     add_common(t)
-    t.set_defaults(fn=cmd_tree)
-
-    v = sub.add_parser("verify", help="the parser-free pass over a written copy: flat text, zip members and paths against every matcher; exit 1 on a hit, 4 on an uninspected part")
-    v.add_argument("src")
-    v.add_argument("--allow-binary", action="store_true", help="binaries were copied through on purpose; do not count them as uninspected")
-    add_common(v)
-    v.set_defaults(fn=cmd_verify)
+    t.set_defaults(fn=cmd_check)
 
     d = sub.add_parser("doctor", help="station list present, normalization self-test, masker status")
     d.set_defaults(fn=cmd_doctor)
@@ -577,8 +591,16 @@ def build_parser() -> argparse.ArgumentParser:
     return ap
 
 
+# Old mode names, rewritten before the parser runs and kept out of --help.
+LEGACY_MODES = {"tree": ["check"], "answer": ["filter"], "verify": ["check", "--raw"], "corpus": ["copy"]}
+
+
 def main(argv: list[str] | None = None) -> int:
-    argv = sys.argv[1:] if argv is None else argv
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv[:1] and argv[0] in LEGACY_MODES:
+        new = LEGACY_MODES[argv[0]]
+        print(f'sanitize: "{argv[0]}" is now "{" ".join(new)}"', file=sys.stderr)
+        argv = new + argv[1:]
     if argv[:1] == ["gate"]:
         # The commit and push check has its own parser, failure mode and exit codes (gate.py).
         import gate

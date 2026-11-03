@@ -129,6 +129,7 @@ Stars/status verified 2026-07-01 where dated; treat undated `verify` cells as un
 | Omnigent | Apache-2.0 | **Meta-harness** (layer *above* harnesses) | Databricks-built: runs Claude Code, Codex, Cursor, OpenCode, Hermes + YAML-defined custom agents behind one orchestration API; OS-level sandboxing (bubblewrap/seatbelt), stacked cost/access policies, sessions shareable across terminal/web/mobile. | **Self-described alpha; 571 open issues - pin versions.** Corporate backing (Databricks + Neon). | [repo](https://github.com/omnigent-ai/omnigent) |
 | QM | MIT | **Meta-harness** (company-scale, layer *above* harnesses) | Y Combinator's multiplayer agent harness, open-sourced 2026-07-31 and run internally across accounting, legal, events and engineering. Per-person and per-room workspaces with scoped memory, files, keychain, permissions, crons and durable sandboxes; Slack + web under one identity. Headless core over Postgres; adapters for Pi, OpenCode, Codex, Claude Code. | **A deployed service, not a local CLI** - `qm init` scaffolds a Fly/AWS deployment repo; BYO model keys, no hosted tier. Skills arrive as git skill packs under `deploy/layers/<org>/`, not from a shared skills tree. YC calls it early and buggy. | [repo](https://github.com/yc-software/qm) |
 | Buzz | Apache-2.0 | **Human-agent team workspace** (Slack-shaped, one Nostr relay) | Block's channels, threads, DMs, git hosting and YAML workflows, with every agent a keyed member signed for by its owner. `buzz-acp` drives Goose, Claude Code, Codex and ten preset harnesses over ACP; agents act through the `buzz` CLI. Relay + Postgres 17 + Redis + S3; Postgres full-text search only. | Pre-1.0. Harnesses default to `bypassPermissions` with every ACP request auto-approved; channel membership is the only access control; workflow approval gates not implemented (verified in code 2026-09-25). No knowledge curation beyond per-agent memory and uncurated notes. A team server you operate, not a local tool. | [repo](https://github.com/block/buzz) |
+| BAND | **Proprietary platform**, MIT SDK | **Hosted agent coordination layer** (rooms, @mention routing) | Thenvoi AI's "Slack for agents": agents join rooms through the [Python SDK](https://github.com/band-ai/band-sdk-python), REST plus a read-only WebSocket, or MCP; one adapter interface drives Claude Code (Agent SDK), Codex (`app-server`), Copilot (SDK), Cursor (ACP) and OpenCode (HTTP). The server owns per-recipient delivery state (claim before a turn, terminal write after), and each harness's resume id is posted into the room so any restart rebuilds from the shared conversation. It bridges both ways to A2A and ACP. The Band Desktop app (formerly Jam, launched 2026-10-15) shows agents, owners, blockers and questions across machines. Read in code 2026-11-01. | Cloud-hosted by default (`app.band.ai`); bring-your-own-cloud is enterprise only, so every room message leaves the machine. Approval defaults vary by adapter (Copilot approves all; any room participant may approve unless restricted). The SDK's A2A gateway listens on all interfaces with no auth. History handoff is an unsummarized transcript. Its open orchestrator, [codeband](https://github.com/band-ai/codeband), is maintenance-only and prompt-enforced. | [site](https://www.band.ai/) |
 | alook | Apache-2.0 | Multi-agent coordination layer | Gives local coding agents email addresses, roles and an org chart; agents route tasks to each other, report via inbox/Kanban. | v0.0.x; **"self-hosted" is partial - the orchestrator is a Cloudflare-hosted component.** Shared-memory claim undocumented. | [repo](https://github.com/alookai/alook) |
 | Grok Build | Apache-2.0 | Coding-agent harness (vendor) | xAI's terminal coding agent: Rust full-screen TUI, headless mode for CI, editor integration over the Agent Client Protocol. | **Squashed periodic exports from an internal monorepo** (1 contributor, 12 commits) - a vendor drop, not a community codebase. Tuned for Grok. | [repo](https://github.com/xai-org/grok-build) |
 | herdr | Apache-2.0 | Multi-agent terminal multiplexer | One Rust binary showing every running agent's state (blocked/working/done); sessions survive detach and restart; socket API lets agents spawn their own panes. | Plugin marketplace - vet extensions separately. Sits beside the harnesses and runs them; it has no agent loop of its own. | [repo](https://github.com/herdrdev/herdr) |
@@ -232,6 +233,34 @@ Picking a Claude model inside Cursor or Copilot does not make the call Anthropic
 **MCP inventory.**
 No single file lists a CLI's MCP servers.
 Account-level connectors and built-in servers have no config entry, and desktop-app installers write entries into a CLI's config without notice, so take inventory from each CLI's own `mcp list`.
+
+### B.3 - Agent communication protocols: which one covers which link (checked 2026-11-01)
+
+Each protocol covers a different link, so a multi-agent system usually speaks more than one.
+Versions and dates come from each project's own site or release page on 2026-11-01; repo facts are in `link-ledger.md`.
+
+| Protocol | Link it covers | Current version | Wire | Governance | Source |
+|---|---|---|---|---|---|
+| MCP | Agent or app to tools and context | Spec 2026-07-28: stateless requests, per-request capability negotiation, opt-in extensions (Tasks, MCP Apps, Skills over MCP) | JSON-RPC 2.0 over stdio or Streamable HTTP | Agentic AI Foundation (AAIF), since 2025-12-09 | [spec](https://modelcontextprotocol.io/specification/2026-07-28), [repo](https://github.com/modelcontextprotocol/modelcontextprotocol) |
+| ACP (Agent Client Protocol) | Client (editor, chat app, orchestrator) to one coding agent | Wire v1; v2 draft (B.1) | JSON-RPC 2.0 over stdio | Zed and JetBrains, interim | [spec](https://agentclientprotocol.com/) |
+| A2A (Agent2Agent) | Agent to agent, each opaque to the other | v1.0.1 (2026-05-28); v1.0.0 (2026-03-12) split the protocol from its transport bindings | JSON-RPC 2.0, gRPC or HTTP+JSON; discovery through an Agent Card at the well-known `agent-card.json` | Linux Foundation project with a technical steering committee; its site announces it joined AAIF | [spec](https://a2a-protocol.org/latest/), [repo](https://github.com/a2aproject/A2A) |
+| AG-UI | Agent to a user-facing frontend (state, tool calls, generative UI) | Described as 1.0 by its maintainers; date not verified | Event stream | CopilotKit-led, not an AAIF project | [repo](https://github.com/ag-ui-protocol/ag-ui) |
+| AGNTCY (SLIM, Agent Directory, OASF) | Agent-to-agent infrastructure: transport, discovery, agent schema | SLIM 2.x; spec versions not verified | SLIM per an IETF draft | Linux Foundation since 2025-07-29; AAIF proposal open | [org](https://github.com/agntcy/slim) |
+| ANP (Agent Network Protocol) | Agent identity and discovery on the open web (W3C DIDs, `did:wba`) | Spec documents at v1.2 | HTTP plus DID documents | Community project and W3C community group; AAIF proposal open | [repo](https://github.com/agent-network-protocol/AgentNetworkProtocol) |
+
+Three other protocols share the ACP acronym and are unrelated to Zed's: IBM's Agent Communication Protocol (merged into A2A, announced 2025-08-29), AGNTCY's Agent Connect Protocol, and OpenAI and Stripe's Agentic Commerce Protocol.
+The [AAIF project list](https://aaif.io/projects) names ten projects as of 2026-10-22, including MCP, A2A, AGENTS.md, goose and Agent Skills (secondary summary; the page itself was not fetched).
+
+**What A2A adds over ACP.** ACP drives an agent as a subprocess the client owns: one client, one session, local stdio.
+A2A treats the other agent as a peer service with its own identity: it is discovered from a published card, receives a task with a lifecycle and a context id, and streams or pushes updates back.
+A hosted coordination layer can bridge the two: BAND (Section B table) maps a room to an A2A context and task id, and an ACP session to a room, so one conversation is reachable from either protocol.
+
+**Stance.**
+Inside one machine, where every agent is a local CLI, drive harnesses over ACP (or the Claude Agent SDK) and keep coordination state in the orchestrator.
+Adopt A2A once an agent must be reachable by agents you do not launch: another machine, another person's agent, or a service boundary.
+That boundary needs authentication the local case does not.
+An A2A endpoint exposed without authentication accepts work from anyone who can reach it, and BAND's own gateway defaults to all interfaces with no auth.
+MCP stays the tool layer under both.
 
 ---
 
@@ -436,6 +465,7 @@ the agent over MCP (or as a skill), so retrieval is targeted instead of exhausti
 | [code-review-graph](https://github.com/tirth8205/code-review-graph) | MIT | Python | SQLite | MCP + CLI | code only | Incremental change tracking aimed specifically at review and blast-radius questions. |
 | [repowise](https://github.com/repowise-dev/repowise) | **AGPL-3.0** | Python | - | CLI | code health, docs, git analytics | Analytics rather than a queryable graph. AGPL. |
 | [GitVizz](https://github.com/adithya-s-k/GitVizz) | **none** | TS | - | web/CLI | repo visualization | No license file (all rights reserved) and untouched since 2026-02-12. Do not vendor. |
+| [Floorplan](https://github.com/haydenschmitty/floorplan) | MIT | JS (Node, zero deps) | `floorplan/graph.json` + self-contained `index.html`, gitignored | Claude Code and Codex skill + plugin; local `serve.mjs` Ask bar | HTTP calls matched to routes across repos; screens; a deterministic health check | **Scripts extract, the model names and groups**: the model writes `architecture.json` and per-file descriptions from script-built worksheets. Refresh keeps a content hash and a signature digest per file, moves descriptions across renames and flags only signature changes for review. The Ask bar runs `claude -p --json-schema` or `codex exec --output-schema` read-only with one answer schema. Read in code 2026-11-01. The map is model-written, so its names and groupings fail Section I.1's reproducibility test, though its edges pass. |
 
 **Shared caveats - apply to the whole category, not one entrant.**
 

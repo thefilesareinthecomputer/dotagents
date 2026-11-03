@@ -45,7 +45,7 @@ Skills hot-reload; a new subagent or command registers after a session restart.
 |---|---|---|---|
 | **Claude Code** | `sync-skills.sh` | Reads skills, subagents and commands; the fullest station spec | [SPEC-CLAUDE-CODE](specs/claude-code/SPEC-CLAUDE-CODE.md) |
 | **Antigravity CLI** | one `skills.json` pointer | Reads `.agents/` per project, not `~/.agents/` globally | [SPEC-ANTIGRAVITY](specs/antigravity/SPEC-ANTIGRAVITY.md) |
-| **Codex CLI** | none | Its privacy switches are a four-key `config.toml` fragment | [SPEC-CODEX](specs/codex/SPEC-CODEX.md) |
+| **Codex CLI** | none | Its privacy switches are a five-key `config.toml` fragment | [SPEC-CODEX](specs/codex/SPEC-CODEX.md) |
 | **GitHub Copilot** | none | Strictest skill parser of the set | [SPEC-COPILOT](specs/copilot/SPEC-COPILOT.md) |
 | **Cursor** | none | Subagents load per repo: `sync-skills.sh --cursor <repo>` | [SPEC-CURSOR](specs/cursor/SPEC-CURSOR.md) |
 | **deepagents** | in code | Skill paths are passed to `create_deep_agent` | [SPEC-DEEPAGENTS](specs/deepagents/SPEC-DEEPAGENTS.md) |
@@ -132,7 +132,7 @@ Each entry's own file is authoritative: a skill's frontmatter `description` is i
 |---|---|
 | `sanitize` | Deterministic scrubbing engine, and the commit and push gate behind the global git hooks. |
 | `my-security-review-checklist` | Pre-merge security gate for agent tooling, including checks for hidden Unicode. |
-| `local-network-hygiene` | Guides hardening of a home or small-office network one setting at a time: router, devices, exposure checks and a DNS sensor. |
+| `scan` | `/scan <path>` updates ClamAV's signatures if needed, scans a file or folder, and checks apps, installers and programs with Gatekeeper, the signer, the quarantine tag and a SHA-256; `--sweep` lists what in a folder was made on the Mac rather than downloaded. Report-only. |
 | `skill-authoring` | House profile for authoring and auditing skills, subagents, commands and hooks. |
 | `agent-cc-configs-sync` | Seeds or reconciles a machine's harness configs and hooks against `specs/`. |
 | `agent-mail` | File-based messages between agents working separate repos on the same machine. |

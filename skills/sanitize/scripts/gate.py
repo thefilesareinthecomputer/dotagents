@@ -35,8 +35,18 @@ import detect  # noqa: E402
 
 EXIT_BLOCK = 3
 ZERO = "0" * 40
-MAX_BYTES = 2 * 1024 * 1024
+# The detectors run at about 0.4 s per MB. Up to FULL_SCAN_BYTES a text file is scanned
+# whole; above it, only the lines within WINDOW_LINES of an added line are scanned, so the
+# time follows the size of the change rather than the file. A text file over MAX_TEXT_BYTES
+# is not read at all, and that blocks: a file the gate cannot check never passes as clean.
+FULL_SCAN_BYTES = 8 * 1024 * 1024
+MAX_TEXT_BYTES = 1024 * 1024 * 1024
+WINDOW_LINES = 64          # wider than a 4096-bit PEM key block, so one stays whole
 MAX_COMMITS = 5000
+# Agent-mail inboxes hold other agents' messages; committing one is refused unless the
+# commit sets this variable to 1, which lifts this rule alone.
+INBOX = re.compile(r"(^|/)\.(claude|agents)/inbox/")
+INBOX_BYPASS = "AGENT_MAIL_COMMIT_INBOX"
 EXCLUDED = ("*.lock", "package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "*.pbxproj",
             "*.min.js", "*.min.css")
 HUNK = re.compile(rb"^@@@* (?:-\d+(?:,\d+)? )+\+(\d+)(?:,(\d+))? @@@*")
@@ -236,20 +246,39 @@ def scan_blob(blobs: Blobs, rev: str, path: str, lines: set[int], terms, label: 
     data = blobs.read(rev, path)
     if data is None:
         return []
-    if len(data) > MAX_BYTES:
-        return [Finding(label + path, 0, "too-large", "skipped", detect.WARN)]
-    text = decode(data)
-    if text is None:
+    if b"\0" in data[:8192]:
         if Path(path).suffix.lower() in BINARY_SUFFIXES:
             return []
         return [Finding(label + path, 0, "binary-skipped", "nul-byte", detect.WARN)]
+    if len(data) > MAX_TEXT_BYTES:
+        return [Finding(label + path, 0, "too-large", "over-1-GiB", detect.BLOCK)]
+    text = decode(data) if len(data) <= FULL_SCAN_BYTES else windowed(data, lines)
     return [Finding(label + f.path, f.line, f.cls, f.rule, f.tier)
             for f in scan_text(path, text, terms, "gate", lines)]
 
 
+def windowed(data: bytes, lines: set[int]) -> str:
+    """The file with every line farther than WINDOW_LINES from an added line blanked, so
+    line numbers still match and only the neighborhood of the change is scanned."""
+    keep: set[int] = set()
+    for n in lines:
+        keep.update(range(n - WINDOW_LINES, n + WINDOW_LINES + 1))
+    return "\n".join(part.decode("utf-8", "replace") if i in keep else ""
+                     for i, part in enumerate(data.split(b"\n"), start=1))
+
+
+def inbox_paths() -> list[Finding]:
+    """Staged files added, changed, copied or renamed under an agent-mail inbox, by path only."""
+    if os.environ.get(INBOX_BYPASS) == "1":
+        return []
+    names = git("diff", "--cached", "--name-only", "-z", "--diff-filter=ACMR").split(b"\0")
+    return [Finding(p, 0, "inbox", "agent-mail", detect.BLOCK)
+            for p in (n.decode("utf-8", "replace") for n in names if n) if INBOX.search(p)]
+
+
 def staged(terms) -> list[Finding]:
     patch = git("diff", "--cached", "-M", *DIFF_FLAGS)
-    findings: list[Finding] = []
+    findings: list[Finding] = inbox_paths()
     blobs = Blobs()
     try:
         for path, lines in added_lines(patch).items():
@@ -263,7 +292,7 @@ def commit_range(rev_args: list[str], terms) -> list[Finding]:
     commits = git("rev-list", "--reverse", *rev_args, "--").decode().split()
     if len(commits) > MAX_COMMITS:
         raise GitError(f"{len(commits)} commits in the range, over the {MAX_COMMITS} the gate scans; "
-                       "check the history with `sanitize.py tree --tracked` and push from your own terminal")
+                       "check the history with `sanitize.py check --tracked` and push from your own terminal")
     findings: list[Finding] = []
     blobs = Blobs()
     try:
@@ -343,8 +372,12 @@ def report(findings: list[Finding], as_json: bool, terms_skipped: bool) -> int:
             print(f"  {display(f.path)}:{f.line}  {what}  {f.tier}", file=err)
     if blocks:
         print(f"sanitize gate: blocked - {len(blocks)} finding(s) that must not be committed or pushed "
-              "(secrets, hidden-character attacks, a message that describes sensitivity). Remove the value "
-              "and try again; the value itself is never printed.", file=err)
+              "(secrets, hidden-character attacks, a message that describes sensitivity, a text file too "
+              "large to check). Remove the value and try again; the value itself is never printed.", file=err)
+        if any(f.cls == "inbox" for f in blocks):
+            print(f"sanitize gate: agent-mail inbox files are kept out of commits. Unstage them, or, to "
+                  f"commit them on purpose, run this one commit as `{INBOX_BYPASS}=1 git commit ...`; "
+                  "that lifts the inbox rule only.", file=err)
         return EXIT_BLOCK
     if warns and not as_json:
         by_class: dict[str, int] = {}
@@ -392,8 +425,10 @@ def main(argv: list[str] | None = None) -> int:
             findings = []
             for raw in args.files:
                 p = Path(raw)
-                data = p.read_bytes()
-                text = decode(data) if len(data) <= MAX_BYTES else None
+                if p.stat().st_size > MAX_TEXT_BYTES:
+                    findings.append(Finding(str(p), 0, "too-large", "over-1-GiB", detect.BLOCK))
+                    continue
+                text = decode(p.read_bytes())
                 if text is not None:
                     findings += scan_text(str(p), text, terms, "review", None)
         return report(findings, args.json, terms_skipped)

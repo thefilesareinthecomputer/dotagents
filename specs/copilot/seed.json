@@ -5,6 +5,9 @@
     {"element": "Skills", "shape": "NATIVE", "path": "~/.agents/skills/"},
     {"element": "Subagents", "shape": "N/A", "note": "*.agent.md differs enough that nothing ports without conversion"},
     {"element": "Commands", "shape": "N/A", "note": "no command tree; the portable route is a skill"},
-    {"element": "Permissions", "shape": "N/A", "note": "no persistent allow or deny list; grants ride every spawn"}
+    {"element": "Permissions", "shape": "N/A", "note": "no persistent allow or deny list; grants ride every spawn"},
+    {"element": "Settings", "shape": "FRAGMENT", "path": "~/.copilot/settings.json", "format": "json",
+     "keys": {"customAgents.defaultLocalOnly": true, "autoUpdate": false, "includeCoAuthoredBy": false,
+              "memory": false}}
   ]
 }

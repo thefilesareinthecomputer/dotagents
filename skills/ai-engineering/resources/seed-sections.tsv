@@ -317,3 +317,16 @@ Ruhan-Wang/Harness_Handbook	harnesses|codeintel
 TencentCloud/TencentDB-Agent-Memory	memory
 Tencent-Hunyuan/Hy-Memory	memory|models
 TencentCloudADP/youtu-agent	frameworks
+haydenschmitty/floorplan	codeintel|skills
+band-ai/band-sdk-python	frameworks|harnesses
+band-ai/codeband	harnesses
+a2aproject/A2A	frameworks|docs
+a2aproject/a2a-python	frameworks
+modelcontextprotocol/modelcontextprotocol	skills|docs
+modelcontextprotocol/registry	skills
+modelcontextprotocol/python-sdk	skills|frameworks
+ag-ui-protocol/ag-ui	frontend|frameworks
+agntcy/slim	frameworks
+agntcy/dir	frameworks
+agntcy/oasf	frameworks
+agent-network-protocol/AgentNetworkProtocol	frameworks|docs

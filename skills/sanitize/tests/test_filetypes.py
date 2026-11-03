@@ -73,7 +73,7 @@ class TestText(unittest.TestCase):
         self.assertEqual(counts, {"term": 1})
 
     def test_undecodable_text_extension_is_skipped_as_undecodable(self):
-        # a text type that did not decode was not inspected, which a tree scan reports apart from a known binary
+        # a text type that did not decode was not inspected, which a check reports apart from a known binary
         out, why, _ = run("a.txt", b"\xff\xfe\x00\x01" * 10)
         self.assertIsNone(out)
         self.assertEqual(why, "undecodable")

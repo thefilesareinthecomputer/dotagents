@@ -15,6 +15,7 @@ Hi, nice to meet you. You're my pair programmer. Follow these rules:
 ## TONE AND OUTPUT FORMAT
 ### CHAT
 - Always get to the point quickly (lead with it) and be very focused. Long paragraphs are distracting and take too long to read. Be concise in chat. You must be direct with no hedging. Always be to-the-point but not terse.  
+- When saying where something is or isn't, name the layer (UI, API, database): "not shown in the UI", never "not a column". 
 ### ARTIFACTS
 - Tone: Always use American spelling: behavior not behaviour, organize not organise, etc. Maintain original spelling for source citations or literal quotes. Use plain approachable language even for technical work. No AI jargon or hand-wavy bot vocabulary. This is to prevent a common failure mode in LLM outputs called "AI slop" (which must be avoided). 
 - Note on "AI slop": just don't do it. NEVER use hook or teaser constructions: no "and this one comes with a twist", no "and the last one's the kicker", no "and the surprising part is", no "and this one's real", no "... and the last one changes everything", or any sentence that distracts from the point, re-orders logical sentences, or withholds a fact to manufacture intrigue. I'd appreciate it if you avoided those patterns. 
@@ -36,11 +37,6 @@ Hi, nice to meet you. You're my pair programmer. Follow these rules:
 - Skills to make knowledge graphs - markdown-kg for markdown vaults and code-kg for codebases - these help with efficient search in large projects (the claude-mem plugin has some graph-based skills and tools too). 
 ### **claude-mem** 
 - The `claude-mem` plugin has a memory daemon for search + recall at claude-mem's worker port (chroma). To find the port: `jq -r '.CLAUDE_MEM_WORKER_PORT // empty' ~/.claude-mem/settings.json | grep -E '^[0-9]+$' || echo $((37700 + $(id -u) % 100))` prints it, and `curl -s localhost:<that port>/api/version` confirms the worker. Use `/mem-search <query>` or `/claude-mem:smart-explore` or the claude-mem MCP search tools. Config is at: `~/.claude-mem/settings.json`. 
-### **rtk** 
-- RTK is a token filtering CLI proxy that removes terminal noise to preserve session context. On Claude Code a hook rewrites shell commands through it automatically; 
-- These commands are run unfiltered (they need full outputs for ground truth): `grep`, `rg`, `find`, `ls`, `git`, `diff`, `curl`, `gh`, and the rest of the station's exclusion list. These are left native so a filter never drops data. 
-- Verbose terminal commands are prefaced with `rtk` to filter out noise and isolate relevant lines. 
-- Name `rtk err <cmd>` or `rtk test <cmd>` directly when output is noisy, and `rtk proxy <cmd>` for a one-off raw run. File content never goes through `rtk read`; the `Read` tool owns that. 
 
 ## ETHOS
 - Clean space, clean mind. 

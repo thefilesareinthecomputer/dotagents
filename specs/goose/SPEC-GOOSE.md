@@ -51,6 +51,7 @@ a source the research pass could not find (findings, section 2).
 | Global | `~/.config/goose/.goosehints`, `~/.config/goose/AGENTS.md` | the documented global context files (neither exists on the laptop) |
 | Global | `~/.config/goose/memory/` | the memory extension's store |
 | Remote control (invariant 7) | `GOOSE_TELEMETRY_ENABLED: false` in `config.yaml`; `goose serve` and `goose acp` never run | telemetry off on the laptop 2026-10-15; `goose --help` at 1.54.0 lists `serve` (ACP over HTTP and WebSocket) and `acp` (ACP on stdio) as its only network-serving subcommands, and both start only by hand |
+| Model egress | `active_provider: ollama` with a `:cloud` model tag in `config.yaml` | every prompt and response goes through the local Ollama app to Ollama's hosted service. Ollama's cloud page states prompt and response data is never logged or trained on and is hosted primarily in the United States (provider's claim, read 2026-11-01). The user accepts this egress (2026-11-01); a local tag keeps prompts on the machine |
 | Relocation | `GOOSE_PATH_ROOT` | moves `config/`, `data/sessions/` and `state/logs/` under one root |
 | Project | `.goosehints`, `AGENTS.md`, from the working directory up to the repo root | context files, local wins |
 | Project | `.goose/skills/`, `.agents/plugins/<name>/hooks/` | project skills and hook plugins |

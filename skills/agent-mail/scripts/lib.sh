@@ -12,7 +12,19 @@ am_now_ts()  { date -u +%Y%m%d%H%M%S; }
 am_now_iso() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
 # am_canon DIR - canonical absolute path of an existing directory (resolves .., symlinks).
-am_canon() { ( cd "$1" 2>/dev/null && pwd -P ); }
+# A leading ~ expands to $HOME, so a home-relative from-repo works as a reply target.
+am_canon() {
+  local p="$1"
+  case "$p" in "~") p="$HOME";; "~/"*) p="$HOME/${p#\~/}";; esac
+  ( cd "$p" 2>/dev/null && pwd -P )
+}
+
+# am_home_rel PATH - PATH with the home folder written as ~, so a message header
+# never names the sender's login. Paths outside the home folder print unchanged.
+am_home_rel() {
+  local h; h=$(cd "$HOME" 2>/dev/null && pwd -P) || h="$HOME"
+  case "$1" in "$h") printf '~';; "$h"/*) printf '~/%s' "${1#"$h"/}";; *) printf '%s' "$1";; esac
+}
 
 # am_valid_name NAME - agent/recipient names: alnum, dash, underscore, dot only.
 am_valid_name() { case "$1" in ''|*[!A-Za-z0-9._-]*) return 1;; *) return 0;; esac; }

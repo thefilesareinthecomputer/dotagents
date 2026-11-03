@@ -1,4 +1,6 @@
 seq	date	url	kind	resolution	state
+111	2026-11-01	https://a2a-protocol.org/latest	manual-override	'adjacent' -> 'docs|frameworks'	hot
+113	2026-11-01	https://aaif.io/projects	manual-override	'adjacent' -> 'docs'	hot
 48	2026-09-18	https://aclanthology.org/2025.findings-acl.1226	manual-override	'adjacent' -> 'papers|media'	hot
 79	2026-09-25	https://agentclientprotocol.com/	manual-override	'adjacent' -> 'docs|harnesses'	hot
 76	2026-09-23	https://aitmpl.com/component/mod/productivity/jev-skill-suggestion	manual-override	'adjacent' -> 'skills'	hot
@@ -15,6 +17,7 @@ seq	date	url	kind	resolution	state
 78	2026-09-25	https://buzz.xyz/	manual-override	'adjacent' -> 'docs|harnesses'	hot
 46	2026-09-18	https://deepmind.google/blog/pushing-the-frontiers-of-audio-generation	manual-override	'adjacent' -> 'media|learning'	cold
 52	2026-09-18	https://deepmind.google/blog/pushing-the-frontiers-of-audio-generation	kept-manual	kept 'media|learning|map', auto said 'adjacent'	hot
+110	2026-11-01	https://docs.band.ai/	manual-override	'adjacent' -> 'docs|harnesses'	hot
 3	2026-07-27	https://docs.cloud.google.com/spanner/docs/graph/overview	manual-override	'docs|frameworks' -> 'docs|adjacent|map'	hot
 90	2026-10-29	https://docs.github.com/en/copilot/how-tos/use-copilot-agents/use-copilot-cli	manual-override	'adjacent|map' -> 'docs|harnesses|map'	hot
 75	2026-09-23	https://docs.typesafe.ai/	manual-override	'adjacent' -> 'serving|docs'	hot
@@ -36,18 +39,28 @@ seq	date	url	kind	resolution	state
 18	2026-08-14	https://github.com/SonarSource/sonarqube-cli	manual-override	'triage' -> 'codeintel|security|harnesses'	hot
 36	2026-09-02	https://github.com/Untrivial-ai/agent-orchestrator	manual-override	'triage' -> 'harnesses|frameworks|adjacent'	hot
 42	2026-09-02	https://github.com/VectifyAI/OpenKB	manual-override	'rag' -> 'rag|ingestion|memory'	hot
+99	2026-11-01	https://github.com/a2aproject/A2A	manual-override	'triage' -> 'frameworks|docs'	hot
+100	2026-11-01	https://github.com/a2aproject/a2a-python	manual-override	'triage' -> 'frameworks'	hot
 4	2026-07-28	https://github.com/affaan-m/ECC	tag-union	'triage' + 'skills|harnesses' -> 'triage|skills|harnesses'	cold
 6	2026-07-28	https://github.com/affaan-m/ECC	manual-override	'triage|skills|harnesses' -> 'skills|harnesses'	cold
 85	2026-10-29	https://github.com/affaan-m/ECC	merge	merged https://github.com/affaan-m/everything-claude-code (moved repo) into https://github.com/affaan-m/ECC	hot
 5	2026-07-28	https://github.com/affaan-m/agentshield	tag-union	'triage' + 'security' -> 'triage|security'	cold
 7	2026-07-28	https://github.com/affaan-m/agentshield	manual-override	'triage|security' -> 'security'	hot
+104	2026-11-01	https://github.com/ag-ui-protocol/ag-ui	manual-override	'triage' -> 'frontend|frameworks'	hot
+108	2026-11-01	https://github.com/agent-network-protocol/AgentNetworkProtocol	manual-override	'triage' -> 'frameworks|docs'	hot
+106	2026-11-01	https://github.com/agntcy/dir	manual-override	'triage' -> 'frameworks'	hot
+107	2026-11-01	https://github.com/agntcy/oasf	manual-override	'triage' -> 'frameworks'	hot
+105	2026-11-01	https://github.com/agntcy/slim	manual-override	'triage' -> 'frameworks'	hot
 89	2026-10-29	https://github.com/anomalyco/opencode	merge	merged https://github.com/sst/opencode (moved repo) into https://github.com/anomalyco/opencode	hot
+97	2026-11-01	https://github.com/band-ai/band-sdk-python	manual-override	'triage' -> 'frameworks|harnesses'	hot
+98	2026-11-01	https://github.com/band-ai/codeband	manual-override	'triage' -> 'harnesses'	hot
 31	2026-09-02	https://github.com/cathrynlavery/diagram-design	manual-override	'triage' -> 'skills|frontend'	hot
 19	2026-08-14	https://github.com/danielmiessler/LifeOS	manual-override	'triage' -> 'harnesses|skills|memory'	hot
 20	2026-08-14	https://github.com/deepseek-ai/deepseek-harness	manual-override	'triage' -> 'harnesses|frameworks|eval'	hot
 21	2026-08-14	https://github.com/google/adk-samples	manual-override	'triage' -> 'frameworks|memory|rag'	hot
 34	2026-09-02	https://github.com/google/sam	manual-override	'triage' -> 'adjacent'	hot
 39	2026-09-02	https://github.com/gridex/gridex	manual-override	'triage' -> 'adjacent'	hot
+96	2026-11-01	https://github.com/haydenschmitty/floorplan	manual-override	'triage' -> 'codeintel|skills'	hot
 80	2026-10-09	https://github.com/huggingface/setfit	manual-override	'triage' -> 'tuning'	hot
 28	2026-09-02	https://github.com/karpathy/llm-council	manual-override	'triage' -> 'frameworks|adjacent'	hot
 1	2026-07-01	https://github.com/langchain-ai/deepagents	tag-union	'frameworks' + 'frameworks|harnesses|map' -> 'frameworks|harnesses|map'	hot
@@ -60,6 +73,9 @@ seq	date	url	kind	resolution	state
 40	2026-09-02	https://github.com/magnitudedev/magnitude	manual-override	'triage' -> 'serving|models'	hot
 41	2026-09-02	https://github.com/microsoft/agent-governance-toolkit	manual-override	'learning' -> 'security|harnesses'	hot
 83	2026-10-09	https://github.com/microsoft/tgrep	manual-override	'triage' -> 'adjacent'	hot
+101	2026-11-01	https://github.com/modelcontextprotocol/modelcontextprotocol	manual-override	'triage' -> 'skills|docs'	hot
+103	2026-11-01	https://github.com/modelcontextprotocol/python-sdk	manual-override	'triage' -> 'skills|frameworks'	hot
+102	2026-11-01	https://github.com/modelcontextprotocol/registry	manual-override	'triage' -> 'skills'	hot
 86	2026-10-29	https://github.com/multica-ai/andrej-karpathy-skills	merge	merged https://github.com/forrestchang/andrej-karpathy-skills (moved repo) into https://github.com/multica-ai/andrej-karpathy-skills	hot
 93	2026-10-29	https://github.com/openclaw/openclaw	manual-override	'harnesses|map' -> 'harnesses|map|avoid'	hot
 29	2026-09-02	https://github.com/opensandbox-group/OpenSandbox	manual-override	'triage' -> 'security|harnesses|serving'	hot
@@ -77,6 +93,7 @@ seq	date	url	kind	resolution	state
 12	2026-08-09	https://github.com/yc-software/qm	manual-override	'harnesses, map' -> 'harnesses|map'	cold
 13	2026-08-14	https://github.com/yc-software/qm	kept-manual	kept 'harnesses|map', auto said 'triage'	hot
 23	2026-08-14	https://github.com/zhaoxuya520/reverse-skill	manual-override	'triage' -> 'skills|eval|security'	hot
+112	2026-11-01	https://modelcontextprotocol.io/specification/2026-07-28	manual-override	'adjacent' -> 'docs|skills'	hot
 84	2026-10-09	https://platform.claude.com/docs/en/models/haiku-5-5/overview	manual-override	'adjacent' -> 'docs|models'	hot
 63	2026-09-18	https://podcast-agent.github.io/demo	manual-override	'adjacent' -> 'media|papers'	hot
 67	2026-09-18	https://podcastfy.readthedocs.io/en/latest/podcastfy.html	manual-override	'docs' -> 'docs|media'	hot
@@ -89,6 +106,7 @@ seq	date	url	kind	resolution	state
 66	2026-09-18	https://trafilatura.readthedocs.io/	manual-override	'docs' -> 'docs|ingestion'	hot
 77	2026-09-23	https://venturebeat.com/security/companies-are-putting-jev-in-charge-of-ai-agent-decisions-and-prompt-injection-can-influence-the-verdict	manual-override	'adjacent' -> 'security'	hot
 91	2026-10-29	https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents	manual-override	'adjacent|map' -> 'docs|learning|map'	hot
+109	2026-11-01	https://www.band.ai/	manual-override	'adjacent' -> 'docs|harnesses'	hot
 62	2026-09-18	https://www.latent.space/p/notebooklm	manual-override	'learning' -> 'media|learning'	hot
 45	2026-09-18	https://www.lmsys.org/blog/2026-06-04-higgs-audio-v3-tts	manual-override	'adjacent' -> 'media|models'	hot
 9	2026-07-28	https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron	manual-override	'docs|adjacent' -> 'docs|models'	hot

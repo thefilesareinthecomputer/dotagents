@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The detector's own files are the easiest place for a real value to hide. This test
-runs tree mode over the skill folder with the station term list and the custom shape
+runs check mode over the skill folder with the station term list and the custom shape
 checks, and fails on any hit. It never reads the list itself; the engine does. Skipped
 where no station list exists (a fresh machine or CI).
 Run: python3 -m unittest discover -s skills/sanitize/tests -v
@@ -25,7 +25,7 @@ class TestSelfGuard(unittest.TestCase):
         if doctor.returncode == 2:
             self.skipTest("no station term list on this machine")
         self.assertEqual(doctor.returncode, 0, doctor.stdout + doctor.stderr)
-        res = subprocess.run([sys.executable, str(SCRIPT), "tree", str(SKILL)], capture_output=True, text=True, env=env)
+        res = subprocess.run([sys.executable, str(SCRIPT), "check", str(SKILL)], capture_output=True, text=True, env=env)
         report = json.loads(res.stdout)
         # The tests plant invented shapes on purpose, and this table names exactly which
         # file holds how many of each class; any hit beyond it, any term-list, ban or path

@@ -71,3 +71,11 @@ Google's hosted models. Under `SPEC.md` invariant 6 that bounds this station to
 ## Station config
 
 Not adapted. Tracked with the goose and Codex station work in `tasks/plan.md`.
+
+**Telemetry.** Gemini CLI defaults `privacy.usageStatisticsEnabled` to `true`
+(doc-derived). A station that runs it sets the key to `false` in
+`~/.gemini/settings.json`. The laptop's file has held that value since
+2026-11-01, although Gemini CLI is not installed there; the file belongs to
+`agy`, whose binary may ignore the key (see
+[`SPEC-ANTIGRAVITY.md`](../antigravity/SPEC-ANTIGRAVITY.md)). Nothing is seeded
+for a retired harness.

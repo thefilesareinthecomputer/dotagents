@@ -109,7 +109,7 @@ message-id: 20260624100000-001     # YYYYMMDDHHMMSS-NNN (UTC); matches filename 
 in-reply-to: ""                    # message-id being replied to ("" if new); threads via this chain
 date: 2026-06-24T10:00:00Z         # ISO-8601 UTC
 from: BlueLake                     # sender agent name
-from-repo: /abs/path/to/sender     # so the recipient can route a reply back (re-resolved at reply time)
+from-repo: ~/path/to/sender        # reply route (re-resolved at reply time); home folder written as ~, absolute only outside it
 to: [GreenCastle]                  # recipient agent name(s)
 subject: "auth refactor"           # YAML-escaped; control chars / quotes / --- rejected or quoted
 type: request                      # request | response | handoff | fyi

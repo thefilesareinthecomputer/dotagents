@@ -280,9 +280,8 @@ def _header_re(table: str) -> re.Pattern:
 
 
 def merge_toml(text: str, keys: dict) -> tuple[str, list[str]]:
-    import tomllib
     try:
-        before = tomllib.loads(text)
+        before = harness_probe.toml_loads(text)
     except ValueError as e:
         raise SeedError(f"the station config.toml does not parse: {e}")
     lines = text.splitlines(keepends=True)
@@ -323,7 +322,7 @@ def merge_toml(text: str, keys: dict) -> tuple[str, list[str]]:
             lines.append(f"[{table}]\n{leaf} = {toml_literal(v)}\n")
     out = "".join(lines)
     try:
-        after = tomllib.loads(out)
+        after = harness_probe.toml_loads(out)
     except ValueError as e:
         raise SeedError(f"the merged config.toml would not parse, nothing written: {e}")
     for k, v in keys.items():

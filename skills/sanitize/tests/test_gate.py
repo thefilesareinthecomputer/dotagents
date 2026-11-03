@@ -303,6 +303,86 @@ class TestPatchParsing(unittest.TestCase):
         self.assertEqual(gate.added_lines(bump), {})
 
 
+class TestInbox(GateCase):
+    def test_an_inbox_file_blocks_by_path(self):
+        for root in (".claude", ".agents"):
+            self.repo.write(f"{root}/inbox/20260101000000-001__hello.md", "a plain message\n")
+        self.repo.git("add", "-A")
+        code, out = self.repo.gate("--staged")
+        self.assertEqual(code, 3, out)
+        self.assertIn(".claude/inbox/20260101000000-001__hello.md:0  inbox  block", out)
+        self.assertIn(".agents/inbox/20260101000000-001__hello.md:0  inbox  block", out)
+        self.assertIn("AGENT_MAIL_COMMIT_INBOX=1", out)
+
+    def test_the_bypass_lifts_the_inbox_rule_and_nothing_else(self):
+        self.repo.write(".claude/inbox/m.md", "a plain message\n")
+        self.repo.git("add", "-A")
+        self.repo.env["AGENT_MAIL_COMMIT_INBOX"] = "1"
+        self.assertEqual(self.repo.gate("--staged"), (0, ""))
+        self.repo.write(".claude/inbox/m.md", f"key {SECRET}\n", mode="a")
+        self.repo.git("add", "-A")
+        code, out = self.repo.gate("--staged")
+        self.assertEqual(code, 3, out)
+        self.assertNotIn("inbox  block", out)
+
+    def test_removing_an_inbox_file_and_other_inbox_names_pass(self):
+        self.repo.write(".claude/inbox/old.md", "x\n")
+        self.repo.env["AGENT_MAIL_COMMIT_INBOX"] = "1"
+        self.repo.commit()
+        del self.repo.env["AGENT_MAIL_COMMIT_INBOX"]
+        self.repo.git("rm", "-q", "--cached", ".claude/inbox/old.md")
+        self.repo.write("docs/inbox/notes.md", "x\n")
+        self.repo.write("claude/inbox/notes.md", "x\n")
+        self.repo.git("add", "docs", "claude")
+        self.assertEqual(self.repo.gate("--staged"), (0, ""))
+
+
+class TestLargeFiles(GateCase):
+    def test_a_large_text_file_is_scanned_around_the_change(self):
+        filler = "".join(f"journal line {i} with ordinary words\n" for i in range(300_000))
+        self.assertGreater(len(filler), 8 * 1024 * 1024)
+        self.repo.write("journal.md", filler)
+        self.repo.commit()
+        self.repo.write("journal.md", f"today's entry, key {SECRET}\n", mode="a")
+        self.repo.git("add", "-A")
+        start = time.monotonic()
+        code, out = self.repo.gate("--staged")
+        self.assertEqual(code, 3, out)
+        self.assertIn("journal.md:300001  secret  block", out)
+        self.assertLess(time.monotonic() - start, 5)
+
+    def test_windowed_text_keeps_line_numbers_and_blanks_far_lines(self):
+        import gate
+        data = b"".join(b"line %d\n" % i for i in range(1, 1001))
+        text = gate.windowed(data, {500})
+        lines = text.split("\n")
+        self.assertEqual(lines[499], "line 500")
+        self.assertEqual(lines[499 - gate.WINDOW_LINES], "line %d" % (500 - gate.WINDOW_LINES))
+        self.assertEqual(lines[499 - gate.WINDOW_LINES - 1], "")
+        self.assertEqual(lines[0], "")
+
+    def test_a_text_file_over_the_cap_blocks_instead_of_passing(self):
+        import gate
+
+        class Blobs:
+            def read(self, rev, path):
+                return b"ordinary text\n" * 20
+
+        with mock.patch.object(gate, "MAX_TEXT_BYTES", 100):
+            found = gate.scan_blob(Blobs(), "", "big.md", {1}, set(), "")
+        self.assertEqual([(f.cls, f.tier) for f in found], [("too-large", "block")])
+
+    def test_a_binary_over_the_cap_is_still_skipped(self):
+        import gate
+
+        class Blobs:
+            def read(self, rev, path):
+                return b"\0" * 200
+
+        with mock.patch.object(gate, "MAX_TEXT_BYTES", 100):
+            self.assertEqual(gate.scan_blob(Blobs(), "", "movie.mp4", {1}, set(), ""), [])
+
+
 class TestFailureMode(unittest.TestCase):
     def test_a_bug_in_the_gate_lets_the_commit_through(self):
         import gate

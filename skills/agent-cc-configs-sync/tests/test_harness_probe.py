@@ -241,5 +241,76 @@ class RemoteControl(unittest.TestCase):
         self.assertIn("remote control", r.stdout.splitlines()[0])
 
 
+class TomlSubset(unittest.TestCase):
+    """The tomllib fallback for Python below 3.11 (stock macOS's 3.9), run on
+    every interpreter so a 3.13-only suite cannot leave it untested."""
+
+    SAMPLE = (
+        'model = "gpt"  # pin\n'
+        "notify = [\"/a b/c\", 'x']\n"
+        "SERVICES = '{\"k\": \"v\"}'\n"
+        "multi = [\n  1,\n  2,\n]\n"
+        'doc = """\nskip = 1\n"""\n'
+        '[plugins."slack@openai-curated"]\nenabled = false\n'
+        "[analytics]\nenabled = false\n"
+        "[otel]\nmetrics_exporter = \"none\"\n"
+        "[[tables]]\nname = \"skipped\"\n"
+        "[history]\npersistence = \"save-all\"\nmax_bytes = 1_000\n"
+        "[features]\nmemories.extra = true\n"
+    )
+
+    def setUp(self):
+        sys.path.insert(0, str(SCRIPT.parent))
+        import harness_probe
+        self.hp = harness_probe
+
+    def test_reads_the_scalars_codex_config_holds(self):
+        t = self.hp._toml_subset(self.SAMPLE)
+        self.assertEqual(t["model"], "gpt")
+        self.assertEqual(t["SERVICES"], '{"k": "v"}')
+        self.assertEqual(t["plugins"]["slack@openai-curated"], {"enabled": False})
+        self.assertEqual(t["analytics"], {"enabled": False})
+        self.assertEqual(t["otel"], {"metrics_exporter": "none"})
+        self.assertEqual(t["history"], {"persistence": "save-all", "max_bytes": 1000})
+        self.assertEqual(t["features"], {"memories": {"extra": True}})
+
+    def test_skips_what_it_does_not_parse(self):
+        t = self.hp._toml_subset(self.SAMPLE)
+        for absent in ("notify", "multi", "doc", "skip", "tables", "name"):
+            self.assertNotIn(absent, t)
+
+    def test_agrees_with_tomllib_on_the_scalars(self):
+        try:
+            import tomllib
+        except ImportError:
+            self.skipTest("tomllib is stdlib from 3.11")
+        full = tomllib.loads(self.SAMPLE)
+        sub = self.hp._toml_subset(self.SAMPLE)
+        for table in ("analytics", "otel", "history", "features", "plugins"):
+            self.assertEqual(sub[table], full[table])
+
+    def test_refuses_a_broken_header(self):
+        with self.assertRaises(ValueError):
+            self.hp._toml_subset("[analytics\nenabled = true\n")
+
+    def test_a_bracket_in_a_string_never_ends_or_opens_a_skip(self):
+        t = self.hp._toml_subset('[analytics]\nnotify = ["echo", "["]\n[otel]\nenabled = false\n')
+        self.assertNotIn("enabled", t.get("analytics", {}))
+        self.assertEqual(t["otel"], {"enabled": False})
+
+    def test_a_header_after_a_commented_multiline_array_is_kept(self):
+        t = self.hp._toml_subset('x = [\n "a",\n] # c\n[analytics]\nenabled = false\n')
+        self.assertEqual(t, {"analytics": {"enabled": False}})
+
+    def test_a_nested_array_element_is_not_read_as_a_header(self):
+        t = self.hp._toml_subset('x = [\n  ["analytics"],\n  ["b", "]"],\n]\n[otel]\nmetrics_exporter = "none"\n')
+        self.assertEqual(t, {"otel": {"metrics_exporter": "none"}})
+
+    def test_fails_closed_on_what_tomllib_refuses(self):
+        for bad in ("[a]\nk = 1\n[a]\nk = 2\n", "[a]\nk = 1\nk = 2\n", "x = [\n 1,\n"):
+            with self.assertRaises(ValueError, msg=bad):
+                self.hp._toml_subset(bad)
+
+
 if __name__ == "__main__":
     unittest.main()

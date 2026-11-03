@@ -88,7 +88,7 @@ case "$type" in request|response|handoff|fyi) ;; *) am_die 64 BAD_ARG "bad --typ
 [ -n "$to" ]   || to=$(basename "$repo")
 am_valid_name "$from" || am_die 64 BAD_ARG "bad --from name: $from"
 am_valid_name "$to"   || am_die 64 BAD_ARG "bad --to name: $to"
-from_repo_c=$(am_canon "$from_repo" 2>/dev/null || printf '%s' "$from_repo")
+from_repo_c=$(am_home_rel "$(am_canon "$from_repo" 2>/dev/null || printf '%s' "$from_repo")")
 subj_y=$(am_yaml_escape "$subject") || exit $?    # propagate INVALID_FIELD out of the subshell
 
 # Atomic, race-safe create: render per attempt, ln() fails if the dest exists.

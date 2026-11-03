@@ -255,9 +255,11 @@ Seed the deny list from the secret-bearing subset of
 naming credentials, keys and state files rather than every ignore entry - written
 as `Read(**/...)` tokens in glob form. The literal form was
 probed and proved dead, with the canary read succeeding until the glob form
-landed. Leave `sandbox.mode` at `disabled` unless it is being changed
-deliberately: enabling it changes how commands run, so it is a decision rather
-than cleanup.
+landed. Enabling `sandbox.mode` changes how commands run, so it is a decision
+rather than cleanup. The user made it on the laptop on 2026-11-01:
+`sandbox.mode` is `enabled` there, with `networkAccess`
+`user_config_with_defaults`. The CLI config is not seeded, so a new station
+makes the same choice by hand.
 
 `.cursorignore` guards Cursor's file-reading tools only. It does not stop the
 agent reading the same file with `cat`, so it is not a secrets control; the deny

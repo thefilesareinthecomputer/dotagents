@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Tests for the copy, tree and doctor modes of skills/sanitize/scripts/sanitize.py.
+"""Tests for the copy, check and doctor modes of skills/sanitize/scripts/sanitize.py,
+and for the legacy mode names.
 
 A fixture tree with planted invented terms is copied and scanned; the original is
 checked byte for byte afterwards, the report is checked for never holding a value.
@@ -139,10 +140,6 @@ class TestCopyFolder(Fixture):
         self.assertEqual(code, 0, err)
         self.assertTrue((self.root / "staging-clean" / "proj-b" / "clean.txt").exists())
 
-    def test_corpus_is_an_alias(self):
-        code, _, err = self.run_cli(["corpus", str(self.src), "--out", str(self.root / "c")])
-        self.assertEqual(code, 0, err)
-
     def test_existing_out_refuses_without_force(self):
         out_dir = self.root / "clean"
         out_dir.mkdir()
@@ -234,12 +231,12 @@ class TestCopyFolder(Fixture):
         self.assertEqual(code, 0, err)
         self.assertIsNone(json.loads((out_dir / "sanitize-report.json").read_text())["verified"])
 
-    def test_verify_command_reads_flat_text_zip_members_and_paths(self):
+    def test_check_raw_reads_flat_text_zip_members_and_paths(self):
         tree = self.root / "written"
         (tree / "zorbulate-dir").mkdir(parents=True)
         (tree / "zorbulate-dir" / "a.txt").write_text("fine\n")
         (tree / "b.json").write_text('{"k": "zorb\\u0075late"}')          # a term behind an escape the flat view does not decode
-        code, out, _ = self.run_cli(["verify", str(tree)])
+        code, out, _ = self.run_cli(["check", "--raw", str(tree)])
         self.assertEqual(code, 1)
         result = json.loads(out)
         self.assertEqual([h["path"] for h in result["hits"]], ["[TERM]-dir/a.txt"])     # a path that is the hit is never printed raw
@@ -247,7 +244,7 @@ class TestCopyFolder(Fixture):
         self.assertFalse(result["ok"])
         self.assertNotIn("zorbulate", json.dumps(result) + out)
         (tree / "link.txt").symlink_to(tree / "b.json")
-        code, out, _ = self.run_cli(["verify", str(tree)])
+        code, out, _ = self.run_cli(["check", "--raw", str(tree)])
         self.assertIn({"path": "link.txt", "why": "link"}, json.loads(out)["uninspected"])
         (tree / "link.txt").unlink()
         # a zip member is read like any other text; an undecodable file is uninspected unless allowed
@@ -258,16 +255,16 @@ class TestCopyFolder(Fixture):
         clean = self.root / "clean-written"
         clean.mkdir()
         (clean / "memo.docx").write_bytes(buf.getvalue())
-        code, out, _ = self.run_cli(["verify", str(clean)])
+        code, out, _ = self.run_cli(["check", "--raw", str(clean)])
         self.assertEqual(code, 1)
         self.assertEqual(json.loads(out)["hits"][0]["classes"]["term"], 2)      # the document text and the member name
         self.assertNotIn("zorbulate", out)
         (clean / "memo.docx").unlink()
         (clean / "blob.bin").write_bytes(bytes(range(256)))
-        code, out, _ = self.run_cli(["verify", str(clean)])
+        code, out, _ = self.run_cli(["check", "--raw", str(clean)])
         self.assertEqual(code, 4)
         self.assertEqual(json.loads(out)["uninspected"], [{"path": "blob.bin", "why": "undecodable"}])
-        code, _, _ = self.run_cli(["verify", str(clean), "--allow-binary"])
+        code, _, _ = self.run_cli(["check", "--raw", str(clean), "--allow-binary"])
         self.assertEqual(code, 0)
 
     def test_out_inside_src_refuses(self):
@@ -326,7 +323,7 @@ class TestCopyFile(Fixture):
         code, out, err = self.run_cli(["copy", str(self.root / "zorbulate-missing")])
         self.assertEqual(code, 2)
         self.assertNotIn("zorbulate", out + err)
-        code, out, err = self.run_cli(["tree", str(self.root / "zorbulate-missing"), "--tracked"])
+        code, out, err = self.run_cli(["check", str(self.root / "zorbulate-missing"), "--tracked"])
         self.assertEqual(code, 2)
         self.assertNotIn("zorbulate", out + err)
         code, out, err = self.run_cli(["copy", str(single), "--out", str(self.src / "proj-b" / "zorbulate-plan.md")])
@@ -344,7 +341,7 @@ class TestCopyFile(Fixture):
             report = json.loads((out_dir / "sanitize-report.json").read_text())
             self.assertIn({"path": "proj-b/locked.txt", "why": "unreadable", "copied": False}, report["skipped"])
             self.assertNotIn("Traceback", err)
-            code, out, err = self.run_cli(["tree", str(self.src)])
+            code, out, err = self.run_cli(["check", str(self.src)])
             self.assertEqual(code, 1)
             self.assertIn("unreadable", out)
         finally:
@@ -359,20 +356,20 @@ class TestCopyFile(Fixture):
         self.assertIn("[TERM]", dst.read_text())
 
 
-class TestTree(Fixture):
+class TestCheck(Fixture):
     def test_hits_exit_1_with_a_report_and_no_edits(self):
-        code, out, _ = self.run_cli(["tree", str(self.src)])
+        code, out, _ = self.run_cli(["check", str(self.src)])
         self.assertEqual(code, 1)
         self.assertEqual(tree_hash(self.src), self.before)
         report = json.loads(out)
-        self.assertEqual(report["mode"], "tree")
+        self.assertEqual(report["mode"], "check")
         self.assertEqual(report["removed"], {"term": 2, "email": 1, "path": 1})
         self.assertIn("proj-a/notes.md", [c["path"] for c in report["files_changed"]])
         self.assertNotIn("zorbulate", out)
         self.assertFalse((self.src / "sanitize-report.json").exists())
 
     def test_clean_tree_exits_0(self):
-        code, out, _ = self.run_cli(["tree", str(self.src / "proj-b" / "clean.txt")])
+        code, out, _ = self.run_cli(["check", str(self.src / "proj-b" / "clean.txt")])
         self.assertEqual(code, 0)
         self.assertEqual(json.loads(out)["removed"], {})
 
@@ -381,16 +378,16 @@ class TestTree(Fixture):
         folder.mkdir()
         (folder / "paper.pdf").write_bytes(b"%PDF-1.4 anything")
         (folder / "pic.png").write_bytes(PNG)
-        code, out, _ = self.run_cli(["tree", str(folder)])
+        code, out, _ = self.run_cli(["check", str(folder)])
         self.assertEqual(code, 4)                      # the PDF was not inspected
         report = json.loads(out)
         self.assertEqual(report["removed"], {})
         self.assertEqual(sorted(s["why"] for s in report["skipped"]), ["binary", "pdf"])
         (folder / "paper.pdf").unlink()
-        code, _, _ = self.run_cli(["tree", str(folder)])
+        code, _, _ = self.run_cli(["check", str(folder)])
         self.assertEqual(code, 0)                      # a known binary type is not text and does not count
         (folder / "notes.txt").write_bytes(b"\xff\xfe\x00bad text")
-        code, out, _ = self.run_cli(["tree", str(folder)])
+        code, out, _ = self.run_cli(["check", str(folder)])
         self.assertEqual(code, 4)
         self.assertIn("undecodable", [s["why"] for s in json.loads(out)["skipped"]])
 
@@ -398,7 +395,7 @@ class TestTree(Fixture):
         folder = self.root / "dup"
         folder.mkdir()
         (folder / "cfg.json").write_text('{"owner": "zorbulate", "owner": "nobody"}')
-        code, out, _ = self.run_cli(["tree", str(folder)])
+        code, out, _ = self.run_cli(["check", str(folder)])
         self.assertEqual(code, 1)
         report = json.loads(out)
         self.assertEqual(report["removed"]["json_duplicate_key"], 1)
@@ -409,13 +406,13 @@ class TestTree(Fixture):
         self.assertEqual((out_dir / "cfg.json").read_text(), '{"owner": "[TERM]", "owner": "nobody"}')
 
     def test_exclude_globs(self):
-        code, out, _ = self.run_cli(["tree", str(self.src), "--exclude", "proj-a", "zorbulate-*", "*.pdf"])
+        code, out, _ = self.run_cli(["check", str(self.src), "--exclude", "proj-a", "zorbulate-*", "*.pdf"])
         self.assertEqual(code, 0, out)
-        code, out, _ = self.run_cli(["tree", str(self.src), "--exclude", "proj-a", "zorbulate-*"])
+        code, out, _ = self.run_cli(["check", str(self.src), "--exclude", "proj-a", "zorbulate-*"])
         self.assertEqual(code, 4, out)      # the fixture's PDF was not inspected
 
     def test_files_changed_carry_per_class_counts(self):
-        _, out, _ = self.run_cli(["tree", str(self.src)])
+        _, out, _ = self.run_cli(["check", str(self.src)])
         changed = {c["path"]: c for c in json.loads(out)["files_changed"]}
         self.assertEqual(changed["proj-a/notes.md"]["classes"], {"email": 1, "term": 1})
 
@@ -427,13 +424,69 @@ class TestTree(Fixture):
         (repo / "untracked.txt").write_text("zorbulate\n")
         subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
         subprocess.run(["git", "-C", str(repo), "add", "tracked.txt"], check=True)
-        code, out, _ = self.run_cli(["tree", str(repo), "--tracked"])
+        code, out, _ = self.run_cli(["check", str(repo), "--tracked"])
         self.assertEqual(code, 0, out)
         self.assertEqual(json.loads(out)["files"], 1)
 
     def test_tracked_outside_a_repo_refuses(self):
-        code, _, err = self.run_cli(["tree", str(self.src), "--tracked"])
+        code, _, err = self.run_cli(["check", str(self.src), "--tracked"])
         self.assertEqual(code, 2)
+
+    def test_raw_refuses_a_flag_that_only_a_normal_check_takes(self):
+        for extra in (["--tracked"], ["--exclude", "*.pdf"], ["--max-mb", "1"], ["--include-docx"]):
+            code, out, err = self.run_cli(["check", "--raw", str(self.src)] + extra)
+            self.assertEqual(code, 2, extra)
+            self.assertEqual(out, "")
+            self.assertEqual(len(err.strip().splitlines()), 1, err)
+            self.assertIn(extra[0], err)
+            self.assertIn("--raw", err)
+
+    def test_allow_binary_without_raw_refuses(self):
+        code, out, err = self.run_cli(["check", str(self.src), "--allow-binary"])
+        self.assertEqual(code, 2)
+        self.assertEqual(out, "")
+        self.assertEqual(len(err.strip().splitlines()), 1, err)
+        self.assertIn("--allow-binary", err)
+
+
+class TestLegacyNames(Fixture):
+    """One test per old mode name: it still runs as the new one and says so on stderr."""
+
+    def test_tree_runs_check(self):
+        code, out, err = self.run_cli(["tree", str(self.src)])
+        self.assertEqual(code, 1)
+        self.assertEqual(json.loads(out)["mode"], "check")
+        self.assertEqual(err, 'sanitize: "tree" is now "check"\n')
+
+    def test_answer_runs_filter(self):
+        code, out, err = self.run_cli(["answer"], "the owner is zorbulate\n")
+        self.assertEqual(code, 3)
+        self.assertEqual(out.strip(), "withheld: the answer touched a protected term")
+        self.assertEqual(err, 'sanitize: "answer" is now "filter"\n')
+
+    def test_verify_runs_check_raw(self):
+        (self.root / "written").mkdir()
+        (self.root / "written" / "blob.bin").write_bytes(bytes(range(256)))
+        code, out, err = self.run_cli(["verify", str(self.root / "written")])
+        self.assertEqual(code, 4)
+        self.assertEqual(json.loads(out)["uninspected"], [{"path": "blob.bin", "why": "undecodable"}])
+        self.assertEqual(err, 'sanitize: "verify" is now "check --raw"\n')
+        code, _, _ = self.run_cli(["verify", str(self.root / "written"), "--allow-binary"])
+        self.assertEqual(code, 0)
+
+    def test_corpus_runs_copy(self):
+        code, _, err = self.run_cli(["corpus", str(self.src), "--out", str(self.root / "c")])
+        self.assertEqual(code, 0, err)
+        self.assertTrue((self.root / "c" / "sanitize-report.json").is_file())
+        self.assertEqual(err, 'sanitize: "corpus" is now "copy"\n')
+
+    def test_legacy_names_stay_out_of_help(self):
+        code, out, _ = self.run_cli(["--help"])
+        self.assertEqual(code, 0)
+        for new in ("filter", "copy", "check", "doctor", "gate"):
+            self.assertIn(new, out)
+        for old in ("tree", "answer", "verify", "corpus"):
+            self.assertNotRegex(out, rf"\b{old}\b")
 
 
 class TestDoctor(Fixture):

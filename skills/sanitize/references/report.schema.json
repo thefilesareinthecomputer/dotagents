@@ -5,7 +5,7 @@
   "type": "object",
   "required": ["mode", "files", "removed", "recall_layer", "files_changed", "skipped", "withheld"],
   "properties": {
-    "mode": {"enum": ["copy", "tree"]},
+    "mode": {"enum": ["copy", "check"]},
     "files": {"type": "integer", "description": "files handled (text, code, JSON, JSONL, CSV, docx)"},
     "removed": {
       "type": "object",
@@ -41,6 +41,6 @@
         }
       }
     },
-    "withheld": {"type": "integer", "description": "answer mode only; always 0 here"}
+    "withheld": {"type": "integer", "description": "filter mode only; always 0 here"}
   }
 }

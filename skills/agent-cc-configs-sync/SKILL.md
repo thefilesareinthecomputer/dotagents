@@ -152,20 +152,19 @@ Check and report; install nothing in this phase:
 
 ```bash
 claude plugin list
-rtk --version && rtk gain >/dev/null && echo rtk-ok
+command -v rtk && echo "rtk still installed: removed from the station 2026-11-01, see spec section 6"
 jq --version; node --version; python3 --version
 curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://localhost:$(jq -r '.CLAUDE_MEM_WORKER_PORT // empty' ~/.claude-mem/settings.json 2>/dev/null | grep -E '^[0-9]+$' || echo $((37700 + $(id -u) % 100)))" || true
 ```
 
-Compare against the spec's sections 2 and 3 (four plugins, jq, rtk, node, python3, claude-mem daemon on its worker port).
+Compare against the spec's sections 2 and 3 (four plugins, jq, node, python3, claude-mem daemon on its worker port).
 Report what is missing or disabled.
 
 ## Phase 5 - External installs (opt-in only)
 
 Only on the user's explicit go-ahead, item by item:
 
-- `brew install jq` / `brew install rtk-ai/tap/rtk`, then rtk config per
-  spec section 2 (grep excluded from the hook).
+- `brew install jq`.
 - `/plugin` marketplaces and installs per section 3 - these run inside Claude
   Code, so name the steps for the user rather than pretending to run them.
 - Seed `~/.claude-mem/settings.json` per section 3.1 - required after every

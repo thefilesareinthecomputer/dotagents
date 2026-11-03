@@ -113,14 +113,135 @@ def _sub(d: dict, key: str) -> dict:
     return v if isinstance(v, dict) else {}
 
 
-def _toml_file(p: Path) -> dict:
-    """Parsed config.toml, or {} when unreadable. tomllib is stdlib from 3.11;
-    an older interpreter gets an empty table and the Codex row reads ON."""
+_TOML_KEY_PART = r'(?:[A-Za-z0-9_-]+|"(?:[^"\\]|\\.)*"|\'[^\']*\')'
+_TOML_KEY = _TOML_KEY_PART + r"(?:\s*\.\s*" + _TOML_KEY_PART + r")*"
+_TOML_TABLE = re.compile(r"^\[\s*(" + _TOML_KEY + r")\s*\]\s*(?:#.*)?$")
+_TOML_ARRAY_TABLE = re.compile(r"^\[\[\s*(" + _TOML_KEY + r")\s*\]\]\s*(?:#.*)?$")
+_TOML_PAIR = re.compile(r"^(" + _TOML_KEY + r")\s*=\s*(.*)$")
+_TOML_SCALAR = re.compile(r'^("(?:[^"\\]|\\.)*"|\'[^\']*\'|true|false|[+-]?\d[\d_]*(?:\.[\d_]+)?(?:[eE][+-]?\d+)?)\s*(?:#.*)?$')
+
+
+def _toml_key_path(key: str) -> list:
+    parts = re.findall(_TOML_KEY_PART, key)
+    return [json.loads(p) if p.startswith('"') else p.strip("'") for p in parts]
+
+
+def _toml_scalar(raw: str):
+    if raw in ("true", "false"):
+        return raw == "true"
+    if raw[0] == '"':
+        return json.loads(raw)
+    if raw[0] == "'":
+        return raw[1:-1]
+    num = raw.replace("_", "")
+    return float(num) if any(c in num for c in ".eE") else int(num)
+
+
+def _toml_depth(s: str) -> int:
+    """Open minus close brackets and braces in one line, counting only those
+    outside quoted strings and before a comment."""
+    depth, quote, i = 0, "", 0
+    while i < len(s):
+        c = s[i]
+        if quote:
+            if c == "\\" and quote == '"':
+                i += 1
+            elif c == quote:
+                quote = ""
+        elif c in "\"'":
+            quote = c
+        elif c == "#":
+            break
+        elif c in "[{":
+            depth += 1
+        elif c in "]}":
+            depth -= 1
+        i += 1
+    return depth
+
+
+def _toml_subset(text: str) -> dict:
+    """A reader for the TOML that Codex's config.toml holds, for interpreters
+    without tomllib: [table] headers and key = value pairs with bare, quoted or
+    dotted keys and scalar values. Arrays, inline tables, multi-line strings and
+    [[array]] tables are skipped, so their keys read as absent. Anything it
+    cannot place - a line that is none of these, a repeated table or key, a
+    value left open at the end - raises ValueError, as tomllib would, so a
+    caller fails closed instead of misfiling a key under the wrong table."""
+    doc: dict = {}
+    table: list | None = []
+    seen_tables: set = set()
+    seen_keys: set = set()
+    fence, depth = "", 0
+    for n, line in enumerate(text.splitlines(), 1):
+        s = line.strip()
+        if fence:
+            if fence in s:
+                fence = ""
+            continue
+        if depth > 0:
+            depth += _toml_depth(s)
+            continue
+        if not s or s.startswith("#"):
+            continue
+        if _TOML_ARRAY_TABLE.match(s):
+            table = None
+            continue
+        m = _TOML_TABLE.match(s)
+        if m:
+            table = _toml_key_path(m.group(1))
+            if tuple(table) in seen_tables:
+                raise ValueError(f"line {n} repeats a table header")
+            seen_tables.add(tuple(table))
+            continue
+        m = _TOML_PAIR.match(s)
+        if not m:
+            raise ValueError(f"line {n} is not TOML this reader understands: {s[:60]}")
+        raw = m.group(2).strip()
+        if not raw:
+            raise ValueError(f"line {n} has no value")
+        opener = next((f for f in ('"""', "'''") if raw.startswith(f)), "")
+        if opener and raw.count(opener) < 2:
+            fence = opener
+            continue
+        if raw[0] in "[{":
+            depth = _toml_depth(raw)
+            continue
+        if table is None:
+            continue
+        sm = _TOML_SCALAR.match(raw)
+        if not sm:
+            continue
+        path = table + _toml_key_path(m.group(1))
+        if tuple(path) in seen_keys:
+            raise ValueError(f"line {n} repeats a key")
+        seen_keys.add(tuple(path))
+        node = doc
+        for part in path[:-1]:
+            node = node.setdefault(part, {})
+            if not isinstance(node, dict):
+                raise ValueError(f"line {n} redefines a key as a table")
+        node[path[-1]] = _toml_scalar(sm.group(1))
+    if fence or depth > 0:
+        raise ValueError("a multi-line value is never closed")
+    return doc
+
+
+def toml_loads(text: str) -> dict:
+    """Parse TOML with tomllib (stdlib from 3.11), else with _toml_subset so
+    stock macOS's 3.9 reads Codex's config.toml too. Raises ValueError."""
     try:
         import tomllib
-        with p.open("rb") as f:
-            return tomllib.load(f)
-    except (ImportError, OSError, ValueError):
+    except ImportError:
+        return _toml_subset(text)
+    return tomllib.loads(text)
+
+
+def _toml_file(p: Path) -> dict:
+    """Parsed config.toml, or {} when unreadable."""
+    try:
+        return toml_loads(p.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
         return {}
 
 

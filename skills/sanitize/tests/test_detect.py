@@ -210,6 +210,7 @@ class TestSeverity(unittest.TestCase):
     def test_gate(self):
         self.assertEqual(detect.severity("gate", self.hit("secret")), "block")
         self.assertEqual(detect.severity("gate", self.hit("term")), "warn")
+        self.assertEqual(detect.severity("gate", self.hit("home_path")), "block")
         self.assertEqual(detect.severity("gate", self.hit("invisible", "bidi-override")), "block")
         self.assertEqual(detect.severity("gate", self.hit("invisible", "exotic-space")), "warn")
         self.assertEqual(detect.severity("gate", self.hit("disclosure")), "block")

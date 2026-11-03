@@ -183,7 +183,7 @@ class TestCustomChecks(unittest.TestCase):
         self.assertEqual(out, "version 2.1.280 and port 8080")
 
 
-class TestAnswerMode(TermFixture):
+class TestFilterMode(TermFixture):
     def run_cli(self, args, stdin_text=""):
         out, err = io.StringIO(), io.StringIO()
         with mock.patch.object(sys, "stdin", io.StringIO(stdin_text)), redirect_stdout(out), redirect_stderr(err):
@@ -191,42 +191,42 @@ class TestAnswerMode(TermFixture):
         return code, out.getvalue(), err.getvalue()
 
     def test_clean_text_passes_through(self):
-        code, out, _ = self.run_cli(["answer"], "the answer is 42\n")
+        code, out, _ = self.run_cli(["filter"], "the answer is 42\n")
         self.assertEqual(code, 0)
         self.assertEqual(out, "the answer is 42\n")
 
-    def test_term_hit_withholds_whole_answer(self):
-        code, out, err = self.run_cli(["answer"], "the owner is zorbulate\n")
+    def test_term_hit_withholds_whole_output(self):
+        code, out, err = self.run_cli(["filter"], "the owner is zorbulate\n")
         self.assertEqual(code, 3)
         self.assertEqual(out.strip(), "withheld: the answer touched a protected term")
         self.assertNotIn("zorbulate", out + err)
 
     def test_a_term_inside_a_shape_still_withholds(self):
         # the email pass would replace the whole address first; the term check runs on the original text
-        code, out, err = self.run_cli(["answer"], "mail zorbulate@example.test for access\n")
+        code, out, err = self.run_cli(["filter"], "mail zorbulate@example.test for access\n")
         self.assertEqual(code, 3)
         self.assertNotIn("zorbulate", out + err)
 
     def test_a_pattern_hit_withholds_too(self):
-        code, out, _ = self.run_cli(["answer", "--patterns", r"PRJ-\d{4}"], "ticket PRJ-1234 is open\n")
+        code, out, _ = self.run_cli(["filter", "--patterns", r"PRJ-\d{4}"], "ticket PRJ-1234 is open\n")
         self.assertEqual(code, 3)
         self.assertEqual(out.strip(), "withheld: the answer touched a protected pattern")
-        code, out, _ = self.run_cli(["answer", "--patterns", r"PRJ-\d{4}"], "no ticket here\n")
+        code, out, _ = self.run_cli(["filter", "--patterns", r"PRJ-\d{4}"], "no ticket here\n")
         self.assertEqual(code, 0)
 
     def test_normalized_term_hit_withholds_too(self):
-        code, out, err = self.run_cli(["answer"], "the owner is z o r b u l a t e\n")
+        code, out, err = self.run_cli(["filter"], "the owner is z o r b u l a t e\n")
         self.assertEqual(code, 3)
         self.assertNotIn("z o r b", out + err)
 
     def test_secret_is_masked_not_withheld(self):
-        code, out, _ = self.run_cli(["answer"], "token ghp_" + "A" * 30 + "\n")
+        code, out, _ = self.run_cli(["filter"], "token ghp_" + "A" * 30 + "\n")
         self.assertEqual(code, 0)
         self.assertEqual(out, "token [SECRET]\n")
 
     def test_missing_station_list_exits_2(self):
         os.environ["IDENTIFIER_TERMS_FILE"] = str(Path(self.tmp.name) / "nowhere.txt")
-        code, _, err = self.run_cli(["answer"], "hello\n")
+        code, _, err = self.run_cli(["filter"], "hello\n")
         self.assertEqual(code, 2)
         self.assertIn("term list", err)
 
@@ -235,21 +235,21 @@ class TestAnswerMode(TermFixture):
         ban.write_text("flombix\n")
         cfg = Path(self.tmp.name) / "corpus.json"
         cfg.write_text(json.dumps({"ban_list": str(ban), "terms": ["grexon"], "patterns": [r"\bQX-\d{4}\b"]}))
-        code, out, _ = self.run_cli(["answer", "--config", str(cfg)], "QX-1234 is fine\n")
+        code, out, _ = self.run_cli(["filter", "--config", str(cfg)], "QX-1234 is fine\n")
         self.assertEqual((code, out), (3, "withheld: the answer touched a protected pattern\n"))   # a pattern the user added is a gate too
-        code, out, _ = self.run_cli(["answer", "--config", str(cfg)], "flombix met grexon\n")
+        code, out, _ = self.run_cli(["filter", "--config", str(cfg)], "flombix met grexon\n")
         self.assertEqual(code, 3)
 
     def test_config_with_unknown_keys_refuses(self):
         cfg = Path(self.tmp.name) / "corpus.json"
         cfg.write_text(json.dumps({"terms": [], "masker": "x"}))
-        code, _, err = self.run_cli(["answer", "--config", str(cfg)], "hi\n")
+        code, _, err = self.run_cli(["filter", "--config", str(cfg)], "hi\n")
         self.assertEqual(code, 2)
         self.assertIn("config", err)
 
     def test_no_station_terms_flag_runs_without_the_list(self):
         os.environ["IDENTIFIER_TERMS_FILE"] = str(Path(self.tmp.name) / "nowhere.txt")
-        code, out, _ = self.run_cli(["answer", "--no-station-terms"], "hello\n")
+        code, out, _ = self.run_cli(["filter", "--no-station-terms"], "hello\n")
         self.assertEqual(code, 0)
         self.assertEqual(out, "hello\n")
 

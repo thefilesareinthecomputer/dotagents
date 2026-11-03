@@ -91,7 +91,7 @@ this table uses no others.
 | Subagents | `LINK` | `~/.claude/agents/` | same script; the only harness reading this tree natively, and Cursor's compatibility path |
 | Commands | `LINK` | `~/.claude/commands/` | markdown; does not port to any other harness |
 | Rules | `POINTER` | `~/.claude/CLAUDE.md` | from `CLAUDE.md.example`, byte parity; the single line `@~/.agents/AGENTS.md`, so the rules body is read from the repo and never copied |
-| Permissions and settings | `FRAGMENT` | `~/.claude/settings.json` | seeded keys ONLY: `permissions`, `env`, the `type` and `command` of `statusLine` and `subagentStatusLine` (a station's own extras in those blocks, such as `padding` or `refreshInterval`, are left alone), `enabledPlugins`, `extraKnownMarketplaces`, `disableRemoteControl`, `attribution`, `autoUpdatesChannel`, plus the managed entries of `hooks`. Station-owned and never touched: `model`, `effortLevel`, `modelSettings`, `theme`, `tui`, `disableDeepLinkRegistration` |
+| Permissions and settings | `FRAGMENT` | `~/.claude/settings.json` | seeded keys ONLY: `permissions`, `env`, the `type` and `command` of `statusLine` and `subagentStatusLine` (a station's own extras in those blocks, such as `padding` or `refreshInterval`, are left alone), `enabledPlugins`, `extraKnownMarketplaces`, `disableRemoteControl`, `deniedMcpServers`, `cleanupPeriodDays`, `attribution`, `autoUpdatesChannel`, plus the managed entries of `hooks`. Station-owned and never touched: `model`, `effortLevel`, `modelSettings`, `theme`, `tui`, `disableDeepLinkRegistration` |
 | Hooks | `COPY` | `~/.claude/hooks/` | scripts from the repository's `hooks/` and this folder's `hooks/`, flat; parity per file, seeded by `seed_hooks.py` |
 | Status lines | `COPY` | `~/.claude/statusline.sh`, `subagent-statusline.sh` | parity |
 | Keybindings | `COPY` | `~/.claude/keybindings.json` | parity |
@@ -136,7 +136,6 @@ which are per-machine state rather than seeded config.
 | Subagent status line | `~/.claude/subagent-statusline.sh` | [`subagent-statusline.sh`](subagent-statusline.sh), §9 |
 | Keybindings | `~/.claude/keybindings.json` | [`keybindings.json`](keybindings.json), §10 |
 | Plugins (4) | installed + enabled in Claude Code | §3 |
-| rtk | `/opt/homebrew/bin/rtk` (or PATH) | `brew install rtk-ai/tap/rtk` |
 | claude-mem daemon | loopback, the worker port, per machine (`CLAUDE_MEM_WORKER_PORT`, else 37700 plus the uid mod 100; the command that prints it is in `AGENTS.md`) | comes with the claude-mem plugin |
 
 ## 2. CLI dependencies
@@ -145,23 +144,6 @@ which are per-machine state rather than seeded config.
 - **git** + **gh** - repo sync and GitHub operations.
 - **jq** - **required**: the shell hooks in §8 parse tool-call JSON with it.
   Hooks fail silently without it. `brew install jq`.
-- **rtk** (Rust Token Killer) - token-optimizing CLI proxy, wired in as a
-  PreToolUse hook on Bash (§7). `brew install rtk-ai/tap/rtk`
-  (tap: `rtk-ai/tap`; the formula shadows `homebrew/core/rtk` - verify with
-  `rtk gain`). Seed its config with `rtk config --create`, then in the generated
-  `config.toml` (macOS: `~/Library/Application Support/rtk/config.toml`) set
-  `[hooks] exclude_commands` to the commands that are read for ground truth,
-  where a filter that drops a line changes the answer rather than shortening it:
-  `grep`, `rg`, `find`, `ls`, `tree`, `wc`, `diff`, `env`, `curl`, `json`,
-  `psql`, `aws`, `gh`, `glab`, `kubectl`, `oc`, `docker`, `log`, `git`. Build,
-  test, lint and package-manager filters stay on; there pass or fail is the whole
-  answer. Confirm with `rtk rewrite '<cmd>'`, which prints nothing for an
-  excluded command. The model-facing guidance is the `rtk` bullet in
-  `~/.agents/AGENTS.md`; no separate RTK.md is seeded. Escape hatch for any
-  command: `rtk proxy <cmd>`
-  (dry-run what the hook would do: `rtk hook check '<cmd>'` - note it exits
-  1 when the command would NOT be rewritten, so append `|| true` when
-  chaining checks with `&&`; rtk ≥0.43.0).
 - **node / npx** - claude-mem's daemon.
 - **python3** - several skills in this repo bundle python scripts/tests.
 
@@ -336,10 +318,13 @@ Inside `~/.agents` itself the repo's own `CLAUDE.md` is a one-line prose reminde
 pointing at `AGENTS.md`, deliberately not an `@` import, since the global pointer
 already loads the file and a second import would load it twice.
 
-## 6. Retired: `~/.claude/RTK.md`
+## 6. Retired: `~/.claude/RTK.md` and rtk
 
-No longer seeded. The model-facing rtk guidance is the `rtk` bullet in
-`AGENTS.md`; the station config is in §3.
+Neither is seeded. rtk, a command-rewriting token filter once wired as a Bash
+PreToolUse hook, was removed on 2026-11-01 (§7 principle 4). A station that
+still has it removes the hook entry, its `Bash(rtk ...)` allow rules and the
+package. For noisy test output, `pytest -q --tb=short -rfE` covers the case
+rtk was kept for.
 
 ## 7. Global `~/.claude/settings.json` - rules in principle, then the template
 
@@ -357,8 +342,16 @@ The principles each block enforces:
    prompt instead, because the text may be a commit message or a pattern
    rather than an access: the user approves a mention and denies a read.
    Conventional non-secret variants (`.env.example` etc.) stay allowed.
-4. **Token efficiency at the tool boundary** - `rtk hook claude` on every
-   Bash call transparently rewrites commands through rtk.
+4. **Unused connectors stay out, transcripts stay in, commands run as typed** - `deniedMcpServers`
+   drops the claude.ai Gmail, Google Calendar and Google Drive connectors,
+   which load their tool names into every session even when disconnected at
+   the account (verified 2026-11-01). `cleanupPeriodDays: 3650` keeps session
+   transcripts instead of the 30-day default cleanup, because the user keeps
+   them as training data for a later personal model. A secret pasted into a
+   session therefore stays on disk under `~/.claude/projects/` until it is
+   purged there by hand. No command-rewriting hook sits on the Bash matcher:
+   rtk was removed on 2026-11-01 after its issue tracker recorded its hook
+   auto-allowing commands past permission prompts.
 5. **The shell is not a file editor** - `deny-bash-file-writes.sh` denies
    shell file-authoring (redirects, `tee`, `sed -i`, interpreter writes,
    heredoc-to-file) and `guard-rm.sh` denies/asks on destructive `rm`, both
@@ -500,8 +493,7 @@ chat-register pair included) and their four companion files, `_require.sh`,
 example list, which are copied but never wired. This folder's `hooks/`, with
 its own `manifest.json`, holds the six that serve Claude Code
 itself (`ask-before-claude-folder-edits.sh`, `read-size-advisory.sh`,
-`memory-routing.sh`, `memory_lint.py`, `cmon_nudge.py` and `voice_reply.py`), and that manifest
-also names the `rtk hook claude` entry. The test that sorts a hook: if Codex
+`memory-routing.sh`, `memory_lint.py`, `cmon_nudge.py` and `voice_reply.py`). The test that sorts a hook: if Codex
 wrote the file or ran the command, should the hook fire. `seed_hooks.py seed` generates the `hooks`
 key of [`settings.json`](settings.json) from the two manifests, and
 `seed_hooks.py apply --harness claude-code` writes the station's key, managed
@@ -1260,7 +1252,7 @@ Git uses it in place through the global `core.hooksPath`, so every harness and t
 `--check` reports the setting, and `--uninstall` removes it only when it points here.
 Every hook name in githooks(5) except `push-to-checkout` and `proc-receive` (git changes its own behavior when those exist) links to `dispatch`, which chains each event to the repo's own hook at `$(git rev-parse --git-common-dir)/hooks/<name>`, so repo hooks and linked worktrees keep working.
 After the repo's hook, `pre-commit`, `commit-msg` and `pre-push` run `sanitize gate` from the sanitize skill.
-Secrets, hidden-character attacks and a message that describes sensitivity block the operation, and identifier-shaped content warns.
+Secrets, hidden-character attacks, home paths with a real login, text files over 1 GiB, a message that describes sensitivity and, at commit, agent-mail inbox files block the operation, and other identifier-shaped content warns.
 A repo that sets its own `core.hooksPath` (husky, lefthook) keeps it, and the gate does not run there.
 A missing `python3` or gate lets the operation through with one stderr line.
 Tests: `tests/station-hooks/test-git-dispatch.py` (throwaway repos, never the station's own config).
@@ -1363,7 +1355,7 @@ key still submits, the failure is layer 2 (terminal), not layer 1.
 ## 11. Bootstrap procedure (new device)
 
 1. Install Claude Code; run it once so `~/.claude/` exists.
-2. `brew install jq rtk-ai/tap/rtk` (plus git/gh/node/python3 if absent).
+2. `brew install jq` (plus git/gh/node/python3 if absent).
 3. Clone the skills repo to `~/.agents` (ask the user for the remote), then
    `bash ~/.agents/sync-skills.sh`.
 4. Seed `~/.claude/CLAUDE.md` (§5).
@@ -1380,8 +1372,7 @@ key still submits, the failure is layer 2 (terminal), not layer 1.
    reading files. Restart the session.
 8a. Register the standard MCP servers (§3.2): the pinned Playwright entry,
    exactly as written there.
-9. **Verify:** `rtk gain` works; a Bash tool call shows rtk filtering; trying
-   to `Read` a `.env` is denied with the stop-and-ask message; editing a file
+9. **Verify:** trying to `Read` a `.env` is denied with the stop-and-ask message; editing a file
    under `~/.claude` triggers the ask prompt; a whole-file `Read` of a file over
    200KB surfaces the size-advisory nudge (and still returns the file - it does
    NOT block); `claude-mem` does not summarize-in-place a `Read` (§3.1);

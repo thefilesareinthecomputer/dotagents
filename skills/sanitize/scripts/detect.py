@@ -486,8 +486,8 @@ PROJECT_PATHS = ("/PROJECTS/", "/_PROJECTS/", "/tasks/", "/DRAFTS/", "/__archive
 
 TIERS = {
     "gate": {
-        "secret": BLOCK, "disclosure": BLOCK,
-        "term": WARN, "home_path": WARN, "email": WARN, "phone": WARN, "key_header": WARN,
+        "secret": BLOCK, "disclosure": BLOCK, "home_path": BLOCK,
+        "term": WARN, "email": WARN, "phone": WARN, "key_header": WARN,
         "work_item": WARN, "role_code": WARN, "catalog": WARN, "guid": WARN, "project_folder": WARN,
         "invisible-attack": BLOCK, "invisible-selector": WARN, "invisible-other": WARN,
     },

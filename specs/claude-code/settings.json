@@ -34,13 +34,6 @@
       "Bash(gh pr list:*)",
       "Bash(gh issue view:*)",
       "Bash(gh issue list:*)",
-      "Bash(rtk --version)",
-      "Bash(rtk gain)",
-      "Bash(rtk config)",
-      "Bash(rtk smart:*)",
-      "Bash(rtk deps:*)",
-      "Bash(brain search:*)",
-      "Bash(brain config get:*)",
       "WebSearch",
       "Read(/plugins/**)"
     ],
@@ -93,7 +86,13 @@
           },
           {
             "type": "command",
-            "command": "rtk hook claude"
+            "command": "python3 ~/.claude/hooks/guard_git_bypass.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/warn_cross_repo_git.py",
+            "timeout": 10
           }
         ]
       },
@@ -156,6 +155,16 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/warn_foreign_edits.py",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {
@@ -178,6 +187,11 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/daemon_restart_storm.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/warn_foreign_edits.py",
             "timeout": 10
           }
         ]
@@ -228,7 +242,17 @@
           },
           {
             "type": "command",
+            "command": "python3 ~/.claude/hooks/warn_foreign_edits.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "python3 ~/.claude/hooks/cmon_nudge.py",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/voice_reply.py",
             "timeout": 5
           }
         ]
@@ -254,10 +278,82 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/warn_foreign_edits.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/warn_foreign_edits.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolBatch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/warn_foreign_edits.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/warn_foreign_edits.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/warn_foreign_edits.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/voice_reply.py",
+            "timeout": 5
+          }
+        ]
       }
     ]
   },
   "disableRemoteControl": true,
+  "deniedMcpServers": [
+    {
+      "serverName": "claude.ai Gmail"
+    },
+    {
+      "serverName": "claude.ai Google Calendar"
+    },
+    {
+      "serverName": "claude.ai Google Drive"
+    }
+  ],
+  "cleanupPeriodDays": 3650,
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline.sh"

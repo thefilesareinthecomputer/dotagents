@@ -16,10 +16,10 @@ authors or forks (**34 skills** `agent-conference`, `agent-cc-configs-sync`,
 `agent-mail`, `agent-review`, `ai-engineering`, `ai-slop-magic-eraser`,
 `cmon`, `code-kg`, `compact-notes`, `compress-media`,
 `deep-research`, `focus`, `frontend-aesthetics`, `gather-learnings`, `get-ready`,
-`hi`, `local-model-task`, `local-network-hygiene`, `markdown-kg`, `meta-loop`,
+`hi`, `local-model-task`, `markdown-kg`, `meta-loop`,
 `my-security-review-checklist`, `notes`, `obsidian`, `pr-review`,
 `project-knowledge-vault`, `reflect`, `repo-device-sync`,
-`sanitize`, `skill-authoring`, `sprint-board`, `support-local`, `task`, `teach-me`,
+`sanitize`, `scan`, `skill-authoring`, `sprint-board`, `support-local`, `task`, `teach-me`,
 `wrap-up`, plus the `obsidian-kg` pointer that forwards to `markdown-kg` for one
 release and loads no description;
 **9 subagents** `my-security-reviewer`, `supervisor`, `ai-engineer`, `advisor`,

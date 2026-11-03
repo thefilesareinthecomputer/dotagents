@@ -2,7 +2,6 @@
   "about": "The hooks key of specs/claude-code/settings.json before the manifests existed (2026-10-13). The oracle: what seed_hooks.py renders for claude-code must equal this in effect, as the set of (event, matcher set, command, timeout).",
   "hooks": {
     "PreToolUse": [
-      {"matcher": "Bash", "hooks": [{"type": "command", "command": "rtk hook claude"}]},
       {"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/deny-bash-file-writes.sh", "timeout": 10}]},
       {"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/guard-rm.sh", "timeout": 10}]},
       {"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/guard-private.sh", "timeout": 10}]},

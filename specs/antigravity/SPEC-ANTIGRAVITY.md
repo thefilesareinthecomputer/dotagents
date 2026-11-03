@@ -127,7 +127,9 @@ does the same for one session. Neither has run on the laptop: on 2026-10-15,
 `/task antigravity` refuses `--remote-control` in its argv. The telemetry switch
 is unverified and remains an open item: the 1.3.5 binary holds no
 `usageStatisticsEnabled` string, so Gemini CLI's opt-out key may be ignored, and
-the sign-in asks for Google telemetry scope.
+the sign-in asks for Google telemetry scope. The laptop's shared
+`~/.gemini/settings.json` has held `"privacy": {"usageStatisticsEnabled": false}`
+since 2026-11-01; whether `agy` reads it is still unverified.
 
 Authentication is Google Sign-In on first run, cached in the system keyring.
 The interactive session requires a TTY; print mode does not. At 1.3.3 the CLI

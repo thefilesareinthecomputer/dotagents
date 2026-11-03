@@ -240,8 +240,7 @@ class EndToEnd(unittest.TestCase):
         (self.home / ".codex" / "config.toml").write_text('model = "gpt"\n\n[features]\nmemories = false\n\n[projects."/x"]\ntrust_level = "trusted"\n')
         r = run("apply", "--harness", "codex", "--force", "--element", "Privacy and hygiene", *self.home_arg)
         self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
-        import tomllib
-        t = tomllib.loads((self.home / ".codex" / "config.toml").read_text())
+        t = seed.harness_probe.toml_loads((self.home / ".codex" / "config.toml").read_text())
         self.assertEqual(t["projects"]["/x"]["trust_level"], "trusted")
         self.assertEqual(t["features"], {"memories": False, "daemon_auto_start": False})
         self.assertEqual(t["analytics"], {"enabled": False})

@@ -140,5 +140,17 @@ err=$(AGENT_MAIL_SCANNER="$TMP/none.py" bash "$SEND" --to-repo "$R6" --from A --
 rc_is "no scanner installed -> sends" 0 "$rc"
 printf '%s' "$err" | grep -q 'WARNING' && ok "no scanner -> warning" || no "no scanner -> warning"
 
+echo "== home-relative from-repo =="
+H="$TMP/home"; mkdir -p "$H/dev/sender/.claude/inbox" "$H/dev/peer/.claude/inbox"
+out=$(HOME="$H" bash "$SEND" --to-repo "$H/dev/peer" --from-repo "$H/dev/sender" --from A --to B --subject x --body-file "$B" 2>/dev/null)
+grep -q '^from-repo: "~/dev/sender"$' "$out" && ok "from-repo under home is written as ~/" || no "from-repo under home is written as ~/"
+Hc=$(cd "$H" && pwd -P)
+{ grep -qF "$H" "$out" || grep -qF "$Hc" "$out"; } && no "message never holds the home path" || ok "message never holds the home path"
+reply=$(awk -F': ' '/^from-repo:/{gsub(/"/,"",$2); print $2; exit}' "$out")
+HOME="$H" bash "$SEND" --to-repo "$reply" --from B --to A --subject re --type response --body-file "$B" >/dev/null 2>&1
+rc_is "a ~/ from-repo resolves as a reply target" 0 $?
+out=$(HOME="$H" bash "$SEND" --to-repo "$H/dev/peer" --from-repo "$R6" --from A --to B --subject x --body-file "$B" 2>/dev/null)
+grep -qF "from-repo: \"$(cd "$R6" && pwd -P)\"" "$out" && ok "from-repo outside home stays absolute" || no "from-repo outside home stays absolute"
+
 echo "----"; printf 'pass=%d fail=%d\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -7,7 +7,7 @@ freshness - are handled by `scripts/ledger.py`; this file is the
 research-and-curate workflow around it.
 
 Contents: [Why this exists](#why-this-exists) · [The engine](#the-engine-read-before-using) ·
-[Seed sources](#seed-sources-where-to-look-first) · [Ground truth before prose](#ground-truth-before-prose-run-this-first) ·
+[Seed sources](#seed-sources-where-to-look-first) · [Reading a repo](#reading-a-repo-in-this-order) · [Ground truth before prose](#ground-truth-before-prose-run-this-first) ·
 [Recording experience](#recording-experience-the-third-job) · [Workflow](#workflow) · [Guardrails](#guardrails)
 
 ## Why this exists
@@ -73,10 +73,27 @@ Big aggregators worth re-scanning each pass - high signal, low noise:
 - [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills)
 - **Claude superpowers / Claude Code skill collections** (e.g. [affaan-m/ECC](https://github.com/affaan-m/ECC), formerly `everything-claude-code`; awesome-claude-code-toolkit) - match the owner, since same-name copies are common
 - [Sumanth077/ai-engineering-toolkit](https://github.com/Sumanth077/ai-engineering-toolkit)
-- **DeepWiki** - `https://deepwiki.com/<owner>/<repo>` lets you *interrogate any GitHub repo* conversationally; use it to verify what a repo actually does, its status, and its license before classifying it.
 
 For anything moving (versions, GA/maintenance, license), use `WebSearch` or the
 `deep-research` skill and cite the date. Never assert currency from memory.
+
+## Reading a repo (in this order)
+
+1. **Read the remote in place.** The repo facts come from `gh api` (next section).
+   The README, docs and source come through `gh api repos/<owner>/<repo>/readme`,
+   `.../contents/<path>` and `.../git/trees/<ref>?recursive=1`. Nothing lands on disk.
+2. **Clone only a repo you have already judged safe, and only when reading in
+   place stops scaling.** The judgment comes first: a known owner, a license, real
+   history, and nothing against it in `advisories.tsv`. Then `git clone --depth 1`
+   into a new, empty folder under `/tmp`, never install, build, test or run
+   anything from it, and read it with `reader` subagents and `code-kg`, which
+   parses without executing. Delete the clone once its findings are written
+   down, and confirm it is gone before the pass ends.
+3. **Ask DeepWiki last, with targeted questions.** Once steps 1 and 2 have
+   produced a write-up, list what the source left unanswered and put those
+   questions to `https://deepwiki.com/<owner>/<repo>`. Fold the answers into the
+   write-up as DeepWiki-sourced claims; they fill gaps and never replace what the
+   source showed.
 
 ## Ground truth before prose (run this first)
 
@@ -151,7 +168,7 @@ rather than here.
 ## Workflow
 
 1. **Scope.** "Find new tools in layer X", "check staleness", or "fold in these links".
-2. **Discover.** Scan the seed sources and/or run `deep-research`/`WebSearch`. For each candidate repo, confirm via DeepWiki/web what it is, its status, and license.
+2. **Discover.** Scan the seed sources and/or run `deep-research`/`WebSearch`. For each candidate repo, establish what it is, its status and its license per "Reading a repo".
 3. **Dedupe-ingest.** Pipe findings through `ledger.py ingest`. Anything already known reports `unchanged` - that's the duplicate guard working. Genuinely new URLs are added; github/deepwiki repos with no `seed-sections` entry land in `triage`.
 4. **Research every new row - never ingest-and-stop.** A pasted link is not
    knowledge until someone has read the project, and this applies with full force
