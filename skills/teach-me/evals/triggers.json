@@ -17,11 +17,11 @@
 
   {"name": "re-cert-a-topic", "should_trigger": true,
    "query": "Am I still solid on consensus protocols, or have I lost it since we last went through this?",
-   "why": "Re-cert on a topic with an existing LEARNING file: a fresh inline cert from the re-test pack plus at least one new transfer question."},
+   "why": "Re-cert on a topic learned earlier: a fresh inline cert from that session's re-test pack plus at least one new transfer question."},
 
   {"name": "study-guide-request", "should_trigger": true,
    "query": "Write me a study guide on options pricing that I can work through on the plane, then test me when I'm back.",
-   "why": "Guide-first mode. The guide goes to LEARNING with status guide, and certification still happens inline in a later session."},
+   "why": "Guide-first mode. The guide is given in the chat with status guide, and certification still happens inline in a later session."},
 
   {"name": "explain-to-others", "should_trigger": true,
    "query": "I have to present the new pricing model to the board on Friday and defend it. Drill me on it.",

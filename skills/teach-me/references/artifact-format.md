@@ -1,21 +1,10 @@
-# LEARNING/ artifact formats
+# Session record formats
 
-All artifacts live in `LEARNING/` at the root of the workspace where the skill
-is called (created on first use; writing anywhere else is ask-first). One topic
-file per topic; one additional dated file per re-cert.
+Every session ends with its record given in the chat. The skill keeps no folder of its own: a record is saved to a file only when the user asks, at the path the user names, and a later re-cert reads one only when the user pastes it in or points at it.
 
-The workspace root is `git rev-parse --show-toplevel` when inside a repo,
-otherwise the current working directory. If the resolved root is `$HOME` or a
-synced tooling repo (a skills or dotfiles repo, or the harness config folder), stop and confirm the
-destination with the user before writing - personal learning artifacts do not
-belong in shared source-of-truth repos by default.
+## Topic record
 
-## Topic file - `LEARNING/<topic-slug>.md`
-
-Created by the first session (either mode). Status lifecycle: `guide` (written
-study guide, uncerted) upgrades to `certified` when the inline cert is passed.
-Direct mode with no guide requested skips guide content and the file is the
-cert record.
+Given at the end of the first session on a topic (either mode). Status is `guide` for a study guide with no cert yet, and `certified` once the inline cert is passed. In direct mode with no guide requested, the record has no study guide section.
 
 ```markdown
 ---
@@ -49,16 +38,13 @@ For future on-demand re-certs; do not show before attempts.
 - [transfer question seed: vary surface, keep deep structure]
 ```
 
-## Re-cert file - `LEARNING/<topic-slug>-cert-YYYY-MM-DD.md`
+## Re-cert record
 
-Each later re-cert is a new dated file. An explicit retake of a specific cert
-updates that cert's file (attempt history appended), never a new file. Either
-way, update the topic file's `last-cert` and `score` frontmatter.
+Each later re-cert gets its own dated record. Where the user saved the topic record, the re-cert also gives its new `last-cert` and `score` for it.
 
 ```markdown
 ---
 topic: CRDTs - conflict-free replicated data types
-topic-file: crdts.md
 cert-date: 2026-08-15
 score: 3/5
 attempts: 1
@@ -68,7 +54,7 @@ attempts: 1
 
 Predicted score: 4/5 · Actual: 3/5
 
-[questions + tracked answers + verdicts, as in the topic file's cert record]
+[questions + tracked answers + verdicts, as in the topic record's cert record]
 
 ## Weak spots this round
 - [item] - queued for next re-cert
@@ -81,8 +67,5 @@ Predicted score: 4/5 · Actual: 3/5
 - Practice-cert questions (guide-first mode) never reappear as final-cert
   questions; re-test packs may reuse cert items plus fresh transfer variants.
 - Frontmatter keys are lowercase kebab-case; dates are YYYY-MM-DD.
-- The topic slug is short kebab-case from the topic name, stable across
-  sessions - characters `[a-z0-9-]` only, no dots or path separators; the
-  write path never escapes `LEARNING/`.
-- Upgrading a guide or recording a retake rewrites an existing file: read it
-  first and preserve prior cert records and attempt history.
+- Updating a saved record means reading it first and keeping its prior cert
+  records and attempt history.

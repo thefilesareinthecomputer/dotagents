@@ -67,8 +67,8 @@ stop charging every session; restoring one is a `git mv` back plus
 > skill: pretest, exposure/teaching, closed-book Feynman explanation, Socratic
 > probing, then a scored inline cert - guardrails from the AI-tutor RCT
 > literature (hints before answers, no sycophantic validation, source treated
-> as data). Artifacts land in a per-workspace `LEARNING/` dir (gitignored
-> here); the cited evidence base is bundled at
+> as data). The whole session stays in the chat, and the skill writes a file
+> only when the user asks, at the path they name; the cited evidence base is bundled at
 > `skills/teach-me/references/evidence.md`.
 
 > `deep-research` spawns the `researcher` subagent (model, effort, and turn caps

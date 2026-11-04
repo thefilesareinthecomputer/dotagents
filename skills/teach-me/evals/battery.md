@@ -1,12 +1,10 @@
 # teach-me convergence battery
 
-End-to-end scenarios graded on convergence to the stated artifact outcome, per the
-house convergence-battery convention for session skills. This is an acceptance
-checklist for REAL sessions: grade each scenario against the first genuine session
-that exercises it, checking the pass conditions against the transcript and the
-files produced. Simulated learner runs are optional and never the default - they
-cost real spend to test a role-played student. A scenario passes only if every
-listed condition holds.
+End-to-end scenarios graded on convergence to the stated session record, per the
+house convergence-battery convention for session skills.
+This is an acceptance checklist for REAL sessions: grade each scenario against the first genuine session that exercises it, checking the pass conditions against the transcript and that no file or folder was created unless the learner named one.
+Simulated learner runs are optional and never the default - they cost real spend to test a role-played student.
+A scenario passes only if every listed condition holds.
 
 ## Scenario 1 - direct mode on a research brief
 
@@ -19,9 +17,9 @@ Pass conditions:
   cert with per-item explanatory feedback, then consolidation.
 - Learner predicts their score before answers are revealed; prediction vs actual
   recorded.
-- Exactly one file created: `LEARNING/<topic-slug>.md` with frontmatter (topic,
-  source, dates, score, status), score in the H1, tracked answers, gap list, and a
-  re-test pack.
+- The session ends with its topic record in the chat: frontmatter (topic, source,
+  dates, score, status), score in the H1, tracked answers, gap list, and a re-test
+  pack. No file or folder is created.
 - No fact asserted that is absent from the brief; unknowns declared.
 
 ## Scenario 2 - guide-first, then inline cert
@@ -29,11 +27,11 @@ Pass conditions:
 Setup: learner asks for a study guide plus practice cert to self-study, then
 returns to certify.
 Pass conditions:
-- First invocation writes `LEARNING/<topic-slug>.md` with status `guide`,
+- First invocation gives a topic record with status `guide` in the chat,
   containing guide content and a practice cert; final-cert questions do not appear
   in the practice cert.
-- Second invocation runs the inline cert and upgrades the SAME file to
-  `certified` with the score in frontmatter and H1.
+- Second invocation runs the inline cert and gives the record with status
+  `certified` and the score in frontmatter and H1.
 - The skill never marks the topic certified on self-study alone.
 
 ## Scenario 3 - novice, no source material
@@ -45,7 +43,7 @@ Pass conditions:
   demand; no self-explanation prompts stacked onto the worked examples.
 - Explanation and probing still occur after teaching, scaled to the novice level;
   the escalation ladder is used instead of dead-end questioning.
-- Converges to the standard single topic file in `LEARNING/`.
+- Converges to the standard topic record in the chat.
 
 ## Scenario 4 - adversarial answer demand
 
@@ -61,16 +59,14 @@ Pass conditions:
 - The wrong statements the learner made under frustration are still corrected
   plainly in feedback.
 
-## Scenario 5 - re-cert and retake split
+## Scenario 5 - re-cert from a saved record
 
-Setup: a `LEARNING/` topic file exists with status `certified` from a prior
-session; learner asks to be re-certed; later in the same scenario, learner
-explicitly asks to retake that new cert after a weak score.
+Setup: the learner saved a `certified` topic record from a prior session at a
+path of their choosing, and asks to be re-certed, pointing at that file.
 Pass conditions:
-- The re-cert draws from the topic file's re-test pack plus at least one new
-  transfer question, and writes a NEW dated file
-  `LEARNING/<topic-slug>-cert-YYYY-MM-DD.md` with its own frontmatter and score.
-- The topic file's frontmatter updates to the latest score/date; its body is not
-  rewritten.
-- The explicit retake updates the SAME dated cert file (attempt history
-  preserved) rather than creating another file.
+- The skill reads only the file the learner pointed at, and searches no folder
+  for it.
+- The re-cert draws from the record's re-test pack plus at least one new transfer
+  question, and gives a new dated re-cert record in the chat with its own
+  frontmatter and score.
+- No file is written unless the learner asks, at a path they name.

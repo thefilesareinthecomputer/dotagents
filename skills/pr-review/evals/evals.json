@@ -4,14 +4,13 @@
         {
             "id": 1,
             "prompt": "Draft a reply to the author on the dedupe PR. They pushed a fix for the merge key and asked if we're good to go.",
-            "expected_output": "The skill settles ownership, settled decisions and open items from the PR thread and notes first, reads the user's latest posted comments, then writes a fenced draft in the PR section's COMMENTS-DRAFT block in raw notes-pr-reviews.md and runs the linter.",
+            "expected_output": "The skill reads the diff and the thread, checks ownership, what is settled and whose decision each point is, and gives a short draft in the chat: an approval if the fix is right, or at most two changes of one or two lines each. Where the PR already has a section in notes-pr-reviews.md, the draft also goes in its COMMENTS-DRAFT block.",
             "expectations": [
                 "pr-review triggers because this is a comment written back to a PR author",
-                "Before drafting it answers what the reader knows, what is settled, who owns each request, what the user will do themselves, whose decision each open item is, and who else the merge affects, from the project vault, the PR thread and the notes",
-                "Anything it cannot answer is returned to the user as a named assumption attached to the draft, not written into the comment",
-                "It reads the user's most recent posted comments in the project's notes-pr-reviews.md and imitates them",
-                "The draft is written inside the `**COMMENTS-DRAFT**` block of the PR's `## PR-STORY-<id>-<initials>-<YYYY-MM-DD>` section, each comment opened with the `(<file> LINES x-y)` label of the lines it targets, and no new sections are added",
-                "`scripts/comment_lint.py` is run on the draft text and its length report is shown, not treated as a gate",
+                "The draft is in the chat and is either a plain approval or at most two changes, each one or two short lines",
+                "No request in the draft asks the author for work that is the reviewer's, and no settled decision is reopened",
+                "Anything it cannot tell from the diff and thread is returned to the user as a named assumption beside the draft, not written into the comment",
+                "Where the PR already has a section in notes-pr-reviews.md, the draft also goes in its `**COMMENTS-DRAFT**` block, and no new section is created unasked",
                 "The comment is lowercase by default, has no numbered list of questions, and never mentions this conversation or how the finding was reached"
             ],
             "should_trigger": true
@@ -96,6 +95,29 @@
                 "Every edit promised in the thread, including earlier replies, is listed for the user outside the comment",
                 "A design question the reviewer opens gets the user's lean and a live conversation, not an argument in the thread",
                 "The replies are edited in place in the PR section's existing COMMENTS-DRAFT block, one per incoming comment in thread order, with no new sections added"
+            ],
+            "should_trigger": true
+        },
+        {
+            "id": 9,
+            "prompt": "Review my colleague's PR that renames the config loader and updates its two callers. I read it and it looks right to me - draft my comment.",
+            "expected_output": "A clear approval in one or two lines, such as \"looks good - approving\", with at most one line on what works. No invented findings and no nits.",
+            "expectations": [
+                "pr-review triggers because a comment is being written back to a PR author",
+                "The draft is a plain approval when the change is ready",
+                "It invents no finding to look thorough, and holds no approval for a nit or a style preference"
+            ],
+            "should_trigger": true
+        },
+        {
+            "id": 10,
+            "prompt": "Draft my review of this PR. I found a wrong default timeout, a missed null check in the parser, three naming nits, and I'd have structured the tests differently.",
+            "expected_output": "A draft with at most two changes, the wrong timeout and the missed null check, each one or two lines with its reason, worded as a peer's suggestion. The naming nits and the test-structure preference are left out.",
+            "expectations": [
+                "pr-review triggers because a review comment is being drafted",
+                "The draft holds at most two changes, chosen for changing the outcome: the timeout and the null check",
+                "Each change is one or two lines with its reason, phrased as a suggestion rather than an order",
+                "The naming nits and the test-structure preference are not in the draft"
             ],
             "should_trigger": true
         }
