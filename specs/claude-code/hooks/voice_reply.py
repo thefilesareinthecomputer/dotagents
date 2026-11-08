@@ -7,8 +7,8 @@ command the user configures. Off unless the config file says enabled.
 The model decides what is worth hearing, not the hook: while voice is on,
 UserPromptSubmit asks it to end the reply with one <speak>...</speak> line -
 what it did or found and what it needs from the user next. Stop speaks that
-line only, never the status line, code or the full reply. A reply without one
-is announced as on screen.
+line only when it ends the reply, never the status line, code, the full reply
+or a tag quoted from a file mid-reply. A reply without one is silent.
 
 UserPromptSubmit also stops whatever is still playing, so a new message cuts
 the old answer off.
@@ -17,17 +17,19 @@ Interactive terminal sessions only (CLAUDE_CODE_ENTRYPOINT=cli): a headless
 `claude -p` run (the bench, /task, app seats) gets no instruction and no
 speech, so its output stays unchanged.
 
-Config: ~/.claude/voice.json, or CLAUDE_VOICE_CONFIG:
+Config: ~/.claude/voice.json, and nowhere else:
     {"enabled": true, "command": ["/path/to/speaker", "..."]}
-It names a command every session runs, so it lives inside ~/.claude, where
-ask-before-claude-folder-edits.sh asks the user before any file-tool write.
-The command gets the text as its last argument, or "--stop". The text never
-begins with a dash, so "--stop" is the only option it can see. It runs
-detached, so the hook returns at once; the speaker owns its own lifetime and
-single-instance playback.
+It names a command every session runs, so it lives inside ~/.claude, beside
+the settings, and an edit to it deserves the same care as an edit to them. No
+variable of the hook's own can point it at another file; only HOME, which also
+decides which settings.json runs the hook, moves it.
+The command gets the text on stdin, or "--stop" as its one argument. The text
+never goes in argv, where any local account could read it in ps and the
+speaker could take it for an option. It runs detached, so the hook returns at
+once; the speaker owns its own lifetime and single-instance playback.
 
 `voice_reply.py on|off|status` is the /voice command's toggle: it rewrites
-only `enabled`, and `off` also stops playback.
+only `enabled`; `on` says "Voice is on." aloud and `off` stops playback.
 
 As a hook it fails open by construction: no config, a bad config, a missing
 command, a malformed payload - every path exits 0 with no output. Stdlib only.
@@ -43,11 +45,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-DEFAULT_CONFIG = Path.home() / ".claude" / "voice.json"
-SPEAK = re.compile(r"<speak>(.*?)</speak>", re.DOTALL | re.IGNORECASE)
-MARKS = re.compile(r"[*_`#>]+")
+CONFIG = Path.home() / ".claude" / "voice.json"
+# The last <speak> line, and only when nothing but whitespace follows it.
+SPEAK = re.compile(r"<speak>((?:(?!<speak>).)*?)</speak>\s*\Z", re.DOTALL | re.IGNORECASE)
+# Markdown marks; an underscore only where it opens or closes a word, so `voice_reply` survives.
+MARKS = re.compile(r"[*`#>]+|(?<!\w)_+|_+(?!\w)")
 CONTROL = re.compile(r"[\x00-\x1f\x7f]")
-FALLBACK = "The reply is on screen."
 MAX_CHARS = 400
 
 INSTRUCTION = (
@@ -57,10 +60,6 @@ INSTRUCTION = (
     "No file paths, code, commands, URLs or symbols in it; say them in words or "
     "say they are on screen. The line is read aloud and the rest is not."
 )
-
-
-def config_path() -> Path:
-    return Path(os.environ.get("CLAUDE_VOICE_CONFIG") or DEFAULT_CONFIG)
 
 
 def read_config(path: Path) -> dict | None:
@@ -79,7 +78,7 @@ def speaker(cfg: dict) -> list[str] | None:
 
 
 def load_config() -> list[str] | None:
-    cfg = read_config(config_path())
+    cfg = read_config(CONFIG)
     if cfg is None or cfg.get("enabled") is not True:
         return None
     return speaker(cfg)
@@ -88,11 +87,12 @@ def load_config() -> list[str] | None:
 def toggle(arg: str) -> int:
     """`voice_reply.py on|off|status`, run by the /voice command. It changes
     only `enabled`; the speaker command changes only through a guarded edit."""
-    path = config_path()
+    path = CONFIG
     cfg = read_config(path)
     if arg == "status":
         state = "on" if cfg and cfg.get("enabled") is True and speaker(cfg) else "off"
-        print(f"Voice is {state}." if cfg else f"Voice is off: no config at {path}.")
+        print(f"Voice is {state}, for interactive sessions only; a headless claude -p run stays silent."
+              if cfg else f"Voice is off: no config at {path}.")
         return 0
     if cfg is None or speaker(cfg) is None:
         print(f"No speaker command in {path}. Add one before turning voice on or off.")
@@ -103,28 +103,39 @@ def toggle(arg: str) -> int:
         f.write(json.dumps(cfg, indent=2) + "\n")
     os.chmod(tmp, path.stat().st_mode & 0o777)
     os.replace(tmp, path)
+    message = f"Voice is {arg}."
     if arg == "off":
-        launch(speaker(cfg), "--stop")
-    print(f"Voice is {arg}.")
+        stop(speaker(cfg))
+    else:
+        launch(speaker(cfg), message)  # heard at once, so the user knows it works before any reply
+    print(message)
     return 0
 
 
-def launch(cmd: list[str], arg: str) -> None:
+def launch(cmd: list[str], text: str | None = None) -> None:
+    """Start the speaker detached: with `text` on stdin, or with no input when None."""
     try:
-        subprocess.Popen(cmd + [arg], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                         stderr=subprocess.DEVNULL, start_new_session=True)
-    except OSError:
+        proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL if text is None else subprocess.PIPE,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        if text is not None:
+            # At most MAX_CHARS, well under a pipe's buffer, so this never waits on the speaker.
+            with proc.stdin:
+                proc.stdin.write(text.encode())
+    except OSError:  # includes BrokenPipeError from a speaker that exits at once
         pass
 
 
+def stop(cmd: list[str]) -> None:
+    launch(cmd + ["--stop"])
+
+
 def spoken(text: str) -> str:
-    found = SPEAK.findall(text)
+    """The speak line that ends the reply, cleaned, or "" when there is none."""
+    found = SPEAK.search(text)
     if not found:
-        return FALLBACK
-    # The text is model output, so it may never read as an option to the
-    # speaker: no leading dash, no control characters, bounded length.
-    text = " ".join(CONTROL.sub(" ", MARKS.sub("", found[-1])).split())
-    return text[:MAX_CHARS].lstrip("-–— ") or FALLBACK
+        return ""
+    # The text is model output: no control characters, bounded length.
+    return " ".join(CONTROL.sub(" ", MARKS.sub("", found.group(1))).split())[:MAX_CHARS]
 
 
 def main() -> int:
@@ -140,7 +151,7 @@ def main() -> int:
     event = payload.get("hook_event_name", "")
 
     if event == "UserPromptSubmit":
-        launch(cmd, "--stop")
+        stop(cmd)
         print(json.dumps({
             "suppressOutput": True,
             "hookSpecificOutput": {"hookEventName": event, "additionalContext": INSTRUCTION},
@@ -149,7 +160,9 @@ def main() -> int:
 
     if event == "Stop":
         text = payload.get("last_assistant_message")
-        launch(cmd, spoken(text if isinstance(text, str) else ""))
+        line = spoken(text if isinstance(text, str) else "")
+        if line:
+            launch(cmd, line)
     return 0
 
 

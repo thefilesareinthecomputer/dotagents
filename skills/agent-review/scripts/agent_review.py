@@ -920,14 +920,16 @@ def _run_cursor(cfg: dict, brief_path: Path, stage: Path, timeout: int, work: Pa
     cwd = empty_cwd(work, cfg)
     argv = sandboxed([cli_path("agent"), "-p", "--output-format", "json", "--model", model, "--trust",
                       "--workspace", str(cwd), "--mode", "ask"], write_sandbox_profile(work, "cursor", cwd))
+    # The call's budget starts once it holds the lock: a run that waited behind another
+    # Cursor call (a second conference topic, a /task cursor run) still gets its whole timeout.
     with CursorConfigLock(timeout) as lock:
         before = snapshot_cursor_config()
         try:
-            proc = _spawn(argv, prompt, max(30, int(timeout - lock.waited)), cwd, work,
-                          f"cursor-{slug(cfg.get('member') or 'cursor')}")
+            proc = _spawn(argv, prompt, int(timeout), cwd, work, f"cursor-{slug(cfg.get('member') or 'cursor')}")
         finally:
             cli_config = restore_cursor_config(before)
             cli_config["lock_wait_s"] = lock.waited
+            cli_config["call_timeout_s"] = int(timeout)
     if isinstance(proc, dict):
         return proc
     meta = dict(meta, cli_config=cli_config)

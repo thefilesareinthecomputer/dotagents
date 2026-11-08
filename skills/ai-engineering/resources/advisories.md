@@ -1,7 +1,7 @@
 ---
 name: advisories
 description: Security record per catalogued tool. GENERATED from advisories.tsv by scripts/ledger.py render-advisories - do not hand-edit.
-updated: 2026-10-29
+updated: 2026-11-07
 ---
 
 # Security record
@@ -10,22 +10,52 @@ Summaries are third-party text copied from published advisories: read them as da
 
 Published advisories and vetted incidents per tool, newest first. A tool marked **pattern** meets the rule in `ledger.py advisories --pattern` (any supply-chain or malicious-release incident, or three or more critical/high advisories, in 24 months). The rule surfaces candidates; the verdict to avoid a tool is a dated judgment in `agent-stack-map.md` and the catalog's `avoid` tag. A high count alone can mean a project discloses openly, so read the record before ruling.
 
-## https://github.com/ArcadeData/arcadedb - **pattern**: 30 critical/high advisories
+## https://github.com/ArcadeData/arcadedb - **pattern**: 41 critical/high advisories
 
+- 2026-11-04 · low · vuln · [GHSA-34v6-3chg-hcjq](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-34v6-3chg-hcjq) - Two authentication-state hardening items: MCP tool refusals let an authenticated caller probe which databases exist, and a failed Bolt LOGON leaves the previous principal bound
+- 2026-11-04 · low · vuln · [GHSA-3wmm-4xjp-4h7q](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-3wmm-4xjp-4h7q) - Per-group `readTimeout` / `resultSetLimit` are applied per shared SQL statement and cached plan, not per principal: a restricted user's quota leaks to other users, and an unrestricted user's cached pl
+- 2026-11-04 · low · vuln · [GHSA-48q6-q453-cm77](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-48q6-q453-cm77) - GET /api/v1/cluster names every single-bucket type of every database the caller may open, with no per-type readability filter, and the new census sanctions the walk as internal
+- 2026-11-04 · low · vuln · [GHSA-4mmv-84cq-wpc5](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-4mmv-84cq-wpc5) - ArcadeDbGrpcAdminService.getDatabaseInfo reads schema and per-type record counts without binding the authenticated principal, the shape the sibling handler's own comment forbids
+- 2026-11-04 · medium · vuln · [GHSA-6jr9-6vw5-xjf6](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-6jr9-6vw5-xjf6) - MCP: the two upsert tools create types with allowSchemaChange set to false, the same schema change execute_command refuses on the same server
+- 2026-11-04 · high · vuln · [GHSA-6pgq-xpqq-rmjx](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-6pgq-xpqq-rmjx) - A user with only updateSchema escapes a per-type ACL by renaming the type, gaining read, DELETE and TRUNCATE on a denied TIMESERIES type
+- 2026-11-04 · medium · vuln · [GHSA-84m7-76gh-rm42](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-84m7-76gh-rm42) - Native-image server: writes nested in a SELECT pass the read-only query paths (SqlAstInspector sees an empty AST without reflection metadata)
+- 2026-11-04 · low · vuln · [GHSA-875c-3v5j-4wh2](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-875c-3v5j-4wh2) - Full-text BM25 statistics ignore bucket access control: hidden subtype documents are countable through EXPLAIN/PROFILE, and restricted users fail their first search
+- 2026-11-04 · high · vuln · [GHSA-97h7-j68g-w3r2](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-97h7-j68g-w3r2) - On-demand HTTP database open skips the per-type ACL binding, reopening GHSA-c23x-pqcj-7hfm for the first batch request to each closed database
+- 2026-11-04 · medium · vuln · [GHSA-9cx8-qjp8-hcmr](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-9cx8-qjp8-hcmr) - An unauthenticated Redis connection can be held open indefinitely at about 0.3 bytes per second, defeating the idle socket timeout and pinning one executor thread per connection
+- 2026-11-04 · low · vuln · [GHSA-hphw-285h-wx93](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-hphw-285h-wx93) - The unauthenticated Redis log amplification already public as issue 10597 also destroys the server log history, because the shipped handler is a bounded rotating one
+- 2026-11-04 · high · vuln · [GHSA-jxwp-5ghh-f385](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-jxwp-5ghh-f385) - Security file reloads can replace an operator edit with a permissive default, refuse every later token revocation, or hang the server
+- 2026-11-04 · high · vuln · [GHSA-pcqw-hm7v-9m96](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-pcqw-hm7v-9m96) - Unauthenticated read of any document over the MongoDB wire port: OP_QUERY on a normal collection never reaches the authorization gate
+- 2026-11-04 · medium · vuln · [GHSA-r946-225c-5x88](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-r946-225c-5x88) - Analysing a Gremlin script on the auto engine writes through the Graph API and then reports the script as a read, so the MCP read-only query tool commits the write it was about to refuse
+- 2026-11-04 · medium · vuln · [GHSA-vpxw-wqc5-hvvj](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-vpxw-wqc5-hvvj) - Three schema listings ignore the per-type ACL and hand a denied user the full definition of a type it cannot read, including a materialized view's defining SQL
+- 2026-11-04 · medium · vuln · [GHSA-ww64-52x2-w3x2](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-ww64-52x2-w3x2) - Addendum to GHSA-84m7-76gh-rm42: the native-image read-only bypass covers the whole nesting surface and top-level PROFILE INSERT (46 of 177 shapes accepted, 38 persist; still open on main)
+- 2026-10-15 · medium · vuln · [CVE-2026-119575](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-cc88-w7hj-6h8f) - ALTER DATABASE lets a non-root user clear the LOAD CSV SSRF block list and reach internal networks
+- 2026-10-15 · medium · vuln · [CVE-2026-119576](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-773f-9j7c-cr54) - A user with only readRecord can replace the shared GraphQL schema through the read-only query endpoint
+- 2026-10-15 · medium · vuln · [CVE-2026-119577](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-vc4x-rm58-r9cr) - Open wire-protocol connections keep working after the user is deleted, loses its database grant, or has its password rotated and group narrowed (Postgres, Bolt, MongoDB, Redis)
 - 2026-10-15 · medium · vuln · [GHSA-773f-9j7c-cr54](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-773f-9j7c-cr54) - A user with only readRecord can replace the shared GraphQL schema through the read-only query endpoint
 - 2026-10-15 · medium · vuln · [GHSA-cc88-w7hj-6h8f](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-cc88-w7hj-6h8f) - ALTER DATABASE lets a non-root user clear the LOAD CSV SSRF block list and reach internal networks
 - 2026-10-15 · medium · vuln · [GHSA-vc4x-rm58-r9cr](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-vc4x-rm58-r9cr) - Open wire-protocol connections keep working after the user is deleted, loses its database grant, or has its password rotated and group narrowed (Postgres, Bolt, MongoDB, Redis)
+- 2026-10-05 · medium · vuln · [CVE-2026-114056](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-9c7g-grf7-j2r5) - Read-only ArcadeDB users can change edge type lightweight/unique schema flags via ALTER TYPE WITH, bypassing UPDATE_SCHEMA
+- 2026-10-05 · medium · vuln · [CVE-2026-114057](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-7fcg-pg8x-wf7w) - ArcadeDB Bolt protocol: SHOW DATABASES lists every database on the server without per-user authorization filtering
+- 2026-10-05 · medium · vuln · [CVE-2026-114058](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-hw9x-xx38-rg28) - ArcadeDB Bolt protocol: missing per-database authorization lets an authenticated user read another database's schema metadata
+- 2026-10-05 · critical · vuln · [CVE-2026-114059](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-h2j4-28h8-cj5v) - Gremlin Groovy engine missing scripting authorization check enables authenticated RCE
 - 2026-10-05 · medium · vuln · [GHSA-7fcg-pg8x-wf7w](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-7fcg-pg8x-wf7w) - ArcadeDB Bolt protocol: SHOW DATABASES lists every database on the server without per-user authorization filtering
 - 2026-10-05 · medium · vuln · [GHSA-9c7g-grf7-j2r5](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-9c7g-grf7-j2r5) - Read-only ArcadeDB users can change edge type lightweight/unique schema flags via ALTER TYPE WITH, bypassing UPDATE_SCHEMA
 - 2026-10-05 · critical · vuln · [GHSA-h2j4-28h8-cj5v](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-h2j4-28h8-cj5v) - Gremlin Groovy engine missing scripting authorization check enables authenticated RCE
 - 2026-10-05 · medium · vuln · [GHSA-hw9x-xx38-rg28](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-hw9x-xx38-rg28) - ArcadeDB Bolt protocol: missing per-database authorization lets an authenticated user read another database's schema metadata
+- 2026-09-03 · high · vuln · [CVE-2026-93593](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-wjhv-79gv-2pqg) - TimeSeries `types` ACL entries are not enforced in ArcadeDB 26.8.1
+- 2026-09-03 · high · vuln · [CVE-2026-93594](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-2c8m-q484-jv7m) - Per-type ACL bypass: index-target and TimeSeries reads/writes/counts reach records without the LocalBucket permission check
+- 2026-09-03 · medium · vuln · [CVE-2026-93595](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-chrr-vr3p-crcc) - AI Chat query_database Tool Bypasses Per-Type/Bucket ACL Enforcement
 - 2026-09-03 · medium · vuln · [CVE-2026-93596](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-27vw-j8qc-5h7x) - Batch parallel-flush edge-connect writes on unbound async workers bypass per-type ACL (incomplete fix of GHSA-c23x)
+- 2026-09-03 · high · vuln · [CVE-2026-93597](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-67m7-7w7g-mpmh) - IMPORT DATABASE / server command SSRF guard missing IPv6 transition address extraction (NAT64/6to4/Teredo), incomplete fix for GHSA-4w2m
+- 2026-09-03 · high · vuln · [CVE-2026-93598](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-j57p-qmrh-v7xv) - Script trigger sandbox: DENIED entry for java.util.ResourceBundle is bypassed by its subclasses, allowing classpath credential disclosure
 - 2026-09-03 · high · vuln · [GHSA-2c8m-q484-jv7m](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-2c8m-q484-jv7m) - Per-type ACL bypass: index-target and TimeSeries reads/writes/counts reach records without the LocalBucket permission check
 - 2026-09-03 · high · vuln · [GHSA-67m7-7w7g-mpmh](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-67m7-7w7g-mpmh) - IMPORT DATABASE / server command SSRF guard missing IPv6 transition address extraction (NAT64/6to4/Teredo), incomplete fix for GHSA-4w2m
 - 2026-09-03 · medium · vuln · [GHSA-chrr-vr3p-crcc](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-chrr-vr3p-crcc) - AI Chat query_database Tool Bypasses Per-Type/Bucket ACL Enforcement
 - 2026-09-03 · high · vuln · [GHSA-j57p-qmrh-v7xv](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-j57p-qmrh-v7xv) - Script trigger sandbox: DENIED entry for java.util.ResourceBundle is bypassed by its subclasses, allowing classpath credential disclosure
 - 2026-09-03 · high · vuln · [GHSA-wjhv-79gv-2pqg](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-wjhv-79gv-2pqg) - TimeSeries `types` ACL entries are not enforced in ArcadeDB 26.8.1
 - 2026-08-05 · high · vuln · [CVE-2026-76223](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-rv64-62hr-wv2p) - DEFINE FUNCTION into an existing library skips UPDATE_SCHEMA permission check
+- 2026-08-05 · high · vuln · [CVE-2026-76224](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-wcm5-4wjm-9wj3) - Authenticated RCE via silent Groovy fallback in the default "secure" Gremlin engine
+- 2026-08-05 · high · vuln · [CVE-2026-76225](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-mmww-w3w3-6r86) - OpenCypher LOAD CSV SSRF via Unrestricted HTTP/HTTPS URL in ArcadeDB
 - 2026-08-05 · high · vuln · [GHSA-mmww-w3w3-6r86](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-mmww-w3w3-6r86) - OpenCypher LOAD CSV SSRF via Unrestricted HTTP/HTTPS URL in ArcadeDB
 - 2026-08-05 · high · vuln · [GHSA-wcm5-4wjm-9wj3](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-wcm5-4wjm-9wj3) - Authenticated RCE via silent Groovy fallback in the default "secure" Gremlin engine
 - 2026-08-04 · medium · vuln · [CVE-2026-75839](https://github.com/ArcadeData/arcadedb/security/advisories/GHSA-79wq-w74x-74ch) - Raft cluster-info endpoints leak cross-database metadata to any authenticated user (IDOR)
@@ -124,6 +154,23 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 - 2025-12-22 · medium · vuln · [CVE-2025-67743](https://github.com/LearningCircuit/local-deep-research/security/advisories/GHSA-9c54-gxh7-ppjc) - Server-Side Request Forgery (SSRF) in Download Service
 - 2025-09-02 · medium · vuln · [CVE-2025-57806](https://github.com/LearningCircuit/local-deep-research/security/advisories/GHSA-4h8c-qrcq-cv5c) - Unencrypted Storage of API Keys in SQLite Database
 
+## https://github.com/TableProApp/TablePro - **pattern**: 10 critical/high advisories
+
+- 2026-11-04 · medium · vuln · [GHSA-3x6q-h487-r38w](https://github.com/TableProApp/TablePro/security/advisories/GHSA-3x6q-h487-r38w) - Safe Mode and the external access gate grade some writes and destructive statements as reads or plain writes
+- 2026-11-04 · high · vuln · [GHSA-3xf7-86qj-4546](https://github.com/TableProApp/TablePro/security/advisories/GHSA-3xf7-86qj-4546) - External callers and AI tools run statements beyond what Read Only and Safe Mode confirm
+- 2026-11-04 · medium · vuln · [GHSA-6g2g-65r6-v5wh](https://github.com/TableProApp/TablePro/security/advisories/GHSA-6g2g-65r6-v5wh) - Imported or shared connections can send saved secrets to another host; Shortcuts bypass the iOS app lock
+- 2026-11-04 · high · vuln · [GHSA-6p9q-hc7v-cxmx](https://github.com/TableProApp/TablePro/security/advisories/GHSA-6p9q-hc7v-cxmx) - PostgreSQL metadata reads can run functions from a browsed schema
+- 2026-11-04 · medium · vuln · [GHSA-q2hp-vxv3-87fw](https://github.com/TableProApp/TablePro/security/advisories/GHSA-q2hp-vxv3-87fw) - Names, defaults and routine bodies from a database are spliced into generated SQL without engine-correct quoting
+- 2026-11-04 · medium · vuln · [GHSA-vg8g-h6xp-6px5](https://github.com/TableProApp/TablePro/security/advisories/GHSA-vg8g-h6xp-6px5) - Dump, restore, SSH and git launches trust input from connections and repositories
+- 2026-11-01 · high · vuln · [GHSA-58fh-9ghw-9qwv](https://github.com/TableProApp/TablePro/security/advisories/GHSA-58fh-9ghw-9qwv) - A quote followed by a combining mark escapes SQL quoting in names and exported values
+- 2026-11-01 · high · vuln · [GHSA-94m6-qx4g-cpwg](https://github.com/TableProApp/TablePro/security/advisories/GHSA-94m6-qx4g-cpwg) - Dump restore, backup tools and SSH tunnels trust input that can run commands or redirect credentials
+- 2026-11-01 · high · vuln · [GHSA-cr7m-37cv-h5p8](https://github.com/TableProApp/TablePro/security/advisories/GHSA-cr7m-37cv-h5p8) - Drivers re-split or decode text the external statement gate approved
+- 2026-11-01 · high · vuln · [GHSA-gg4q-84m8-8jhv](https://github.com/TableProApp/TablePro/security/advisories/GHSA-gg4q-84m8-8jhv) - External statement gate lexes SQL differently from the engine, letting read-only clients write
+- 2026-11-01 · critical · vuln · [GHSA-hgr8-24vm-5m54](https://github.com/TableProApp/TablePro/security/advisories/GHSA-hgr8-24vm-5m54) - PostgreSQL catalog reads, PostGIS rendering and Oracle Explain resolve objects another database user planted
+- 2026-11-01 · high · vuln · [GHSA-j2xw-m3p7-3m64](https://github.com/TableProApp/TablePro/security/advisories/GHSA-j2xw-m3p7-3m64) - Connections can send credentials to the wrong host, skip TLS, or keep secrets outside the Keychain
+- 2026-11-01 · high · vuln · [GHSA-jj3q-3mpv-f853](https://github.com/TableProApp/TablePro/security/advisories/GHSA-jj3q-3mpv-f853) - External statement gate classifies some writes and file access as reads
+- 2026-11-01 · critical · vuln · [GHSA-rhxc-5m3h-r5ch](https://github.com/TableProApp/TablePro/security/advisories/GHSA-rhxc-5m3h-r5ch) - Git status in a linked folder runs commands from the repository configuration
+
 ## https://github.com/anomalyco/opencode - **pattern**: 3 critical/high advisories
 
 - 2026-09-24 · high · vuln · [GHSA-632h-h47v-g4x4](https://github.com/anomalyco/opencode/security/advisories/GHSA-632h-h47v-g4x4) - Cross-site OpenCode server upgrade request can install arbitrary packages for npm-based installations
@@ -174,8 +221,9 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 - 2026-09-06 · high · vuln · [GHSA-hp3x-79wr-rx66](https://github.com/google/agentmesh/security/advisories/GHSA-hp3x-79wr-rx66) - Unauthenticated GET /enroll/status returns an approved peer's Biscuit, which the same control plane then accepts as a bearer credential
 - 2026-09-04 · critical · vuln · [GHSA-r6hp-67wp-c7jx](https://github.com/google/agentmesh/security/advisories/GHSA-r6hp-67wp-c7jx) - Authorization bypass via unauthenticated /libp2p-http ingress in google/sam (Sovereign Agent Mesh)
 
-## https://github.com/infiniflow/ragflow - **pattern**: 8 critical/high advisories
+## https://github.com/infiniflow/ragflow - **pattern**: 9 critical/high advisories
 
+- 2026-10-05 · high · vuln · [CVE-2026-119337](https://github.com/infiniflow/ragflow/security/advisories/GHSA-c6q8-23rp-32cv) - OpenAI-compatible agent completion bypasses private canvas authorization
 - 2026-10-05 · high · vuln · [GHSA-c6q8-23rp-32cv](https://github.com/infiniflow/ragflow/security/advisories/GHSA-c6q8-23rp-32cv) - OpenAI-compatible agent completion bypasses private canvas authorization
 - 2026-05-09 · critical · vuln · [CVE-2026-45312](https://github.com/infiniflow/ragflow/security/advisories/GHSA-wpg4-h5g2-jxm6) - Server-Side Template Injection in Prompt Generator leads to Remote Code Execution
 - 2026-04-01 · critical · vuln · [CVE-2026-28797](https://github.com/infiniflow/ragflow/security/advisories/GHSA-vvwj-fvwh-4whx) - Server-Side Template Injection (SSTI) leading to Remote Code Execution (RCE) in Agent "Text Processing" Component
@@ -284,6 +332,7 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 
 ## https://github.com/langflow-ai/langflow - **pattern**: 30 critical/high advisories
 
+- 2026-11-05 · medium · vuln · [GHSA-qvqp-mxh4-f27w](https://github.com/langflow-ai/langflow/security/advisories/GHSA-qvqp-mxh4-f27w) - Langflow URL component: unbounded response size allows denial of service via memory exhaustion
 - 2026-09-28 · critical · vuln · [CVE-2026-105697](https://github.com/langflow-ai/langflow/security/advisories/GHSA-w794-rj3p-xv45) - Langflow &lt; 1.10.3: OS command injection (RCE) via arbitrary command in MCP stdio server configuration
 - 2026-09-28 · medium · vuln · [CVE-2026-105698](https://github.com/langflow-ai/langflow/security/advisories/GHSA-gh98-4phw-6fmw) - Langflow &lt; 1.10.1: Cross-user flow access and vertex execution via deprecated /api/v1/build/{flow_id}/vertices endpoints
 - 2026-09-28 · low · vuln · [GHSA-33p4-w7j3-33mw](https://github.com/langflow-ai/langflow/security/advisories/GHSA-33p4-w7j3-33mw) - Langflow 1.0.16 - 1.11.6: unsafe eval() on Tool-Mode input options in schema.py
@@ -346,8 +395,9 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 - 2025-04-18 · medium · vuln · [CVE-2025-32796](https://github.com/langgenius/dify/security/advisories/GHSA-hqcx-598m-pjq4) - Unauthorized APP Enable/Disable via API
 - 2025-04-17 · medium · vuln · [CVE-2025-32790](https://github.com/langgenius/dify/security/advisories/GHSA-jp6m-v4gw-5vgp) - Insecure User Role Access Control for APP DSL Exporting
 
-## https://github.com/lfnovo/open-notebook - **pattern**: 4 critical/high advisories
+## https://github.com/lfnovo/open-notebook - **pattern**: 5 critical/high advisories
 
+- 2026-11-04 · high · vuln · [GHSA-754c-3r3r-7cfj](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-754c-3r3r-7cfj) - Open Notebook's generic command endpoint accepts any registered command with unvalidated input, so the file-path and URL guards fixed on the source routes are bypassed for arbitrary file reads and met
 - 2026-04-09 · high · vuln · [GHSA-842v-h4cj-r646](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-842v-h4cj-r646) - Arbitrary file read via Local File Inclusion in source creation
 - 2026-04-09 · critical · vuln · [GHSA-f35w-wx37-26q7](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-f35w-wx37-26q7) - Remote Code Execution via Jinja2 Server-Side Template Injection in transformations
 - 2026-04-09 · high · vuln · [GHSA-x4q2-89g5-594v](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-x4q2-89g5-594v) - Arbitrary file write via path traversal in file upload
@@ -407,6 +457,21 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 - 2023-04-28 · critical · vuln · [GHSA-83fm-w79m-64r5](https://github.com/mlflow/mlflow/security/advisories/GHSA-83fm-w79m-64r5) - Remote file access vulnerability in `mlflow server` and `mlflow ui` CLIs
 - 2023-03-24 · medium · vuln · [CVE-2023-1176](https://github.com/mlflow/mlflow/security/advisories/GHSA-wp72-7hj9-5265) - Remote file existence check vulnerability in `mlflow server` and `mlflow ui` CLIs
 - 2023-03-24 · critical · vuln · [CVE-2023-1177](https://github.com/mlflow/mlflow/security/advisories/GHSA-xg73-94fp-g449) - Remote file access vulnerability in `mlflow server` and `mlflow ui` CLIs
+
+## https://github.com/modelcontextprotocol/python-sdk - **pattern**: 9 critical/high advisories
+
+- 2026-10-05 · medium · vuln · [CVE-2026-116684](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-w4fh-qvv9-3v23) - Server bearer-token authentication accepts tokens issued for a different resource server
+- 2026-10-02 · medium · vuln · [CVE-2026-116685](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-5h93-6whr-6q8j) - HTTP client transports followed cross-origin redirects carrying custom headers and bodies
+- 2026-09-30 · high · vuln · [CVE-2026-109527](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-fmmv-w9g8-j3gc) - HTTP server transports and OAuth endpoints read request bodies with no size limit
+- 2026-09-30 · high · vuln · [CVE-2026-59951](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-84m7-p3x7-pcfv) - Streamable HTTP sessions were never reclaimed by default and kept their initialize payloads
+- 2026-09-28 · high · vuln · [CVE-2026-115563](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-qx49-fqc8-xw99) - OAuth client could send credentials to an authorization server chosen by the MCP server
+- 2026-09-28 · medium · vuln · [CVE-2026-116686](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-rwrf-2pqf-9j8j) - Client fetched server-chosen $ref URLs while validating tool results against output schemas
+- 2026-07-07 · high · vuln · [CVE-2026-59950](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-vj7q-gjh5-988w) - WebSocket server transport does not support Host/Origin validation
+- 2026-06-05 · high · vuln · [CVE-2026-52869](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-jpw9-pfvf-9f58) - HTTP transports serve session requests without verifying the authenticated principal
+- 2026-06-05 · high · vuln · [CVE-2026-52870](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-hvrp-rf83-w775) - Experimental task handlers allow any client to access and cancel other clients' tasks
+- 2025-12-02 · high · vuln · [CVE-2025-66416](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-9h52-p55h-vw2f) - DNS Rebinding Protection Disabled by Default in Model Context Protocol Python SDK for Servers Running on Localhost
+- 2025-07-04 · high · vuln · [CVE-2025-53365](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-j975-95f5-7wqh) - Unhandled Exception in Streamable HTTP Transport Leading to Denial of Service
+- 2025-07-04 · high · vuln · [CVE-2025-53366](https://github.com/modelcontextprotocol/python-sdk/security/advisories/GHSA-3qhf-m339-9g5v) - MCP SDK FastMCP Server Validation Error Leading to Denial of Service
 
 ## https://github.com/omnigent-ai/omnigent - **pattern**: 13 critical/high advisories
 
@@ -1171,8 +1236,18 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 - 2026-05-15 · high · vuln · [CVE-2026-44716](https://github.com/pipecat-ai/pipecat/security/advisories/GHSA-3363-2ph6-35wh) - Path Traversal in Pipecat Runner `/files` Endpoint — Arbitrary File Read via `%2F`-Encoded Separator
 - 2026-04-23 · critical · vuln · [CVE-2025-62373](https://github.com/pipecat-ai/pipecat/security/advisories/GHSA-c2jg-5cp7-6wc7) - Remote Code Execution by Pickle Deserialization via LivekitFrameSerializer in pipecat-ai/pipecat
 
-## https://github.com/pydantic/pydantic-ai - **pattern**: 5 critical/high advisories
+## https://github.com/pydantic/pydantic-ai - **pattern**: 7 critical/high advisories
 
+- 2026-11-04 · medium · vuln · [GHSA-484x-x9m4-62cj](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-484x-x9m4-62cj) - Decision models expand tool argument schemas without a limit
+- 2026-11-04 · medium · vuln · [GHSA-4cj4-hgwf-4hc4](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-4cj4-hgwf-4hc4) - Tool result data shaped like a file is rebuilt as a file download or provider file reference when message history is reloaded
+- 2026-11-04 · medium · vuln · [GHSA-5fj9-5pjw-vpwc](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-5fj9-5pjw-vpwc) - SSRF cloud-metadata guard does not block Tencent Cloud's metadata service (169.254.0.23)
+- 2026-11-04 · low · vuln · [GHSA-5ppx-9jq6-6pmw](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-5ppx-9jq6-6pmw) - Domain allowlists in web fetching and PlaywrightBrowser resolved refused hostnames before rejecting them
+- 2026-11-04 · medium · vuln · [GHSA-7494-925c-rrxv](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-7494-925c-rrxv) - Tool schemas with repeated definition references expand exponentially for models that need inlined schemas
+- 2026-11-04 · medium · vuln · [GHSA-jp94-mmr3-2pvv](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-jp94-mmr3-2pvv) - Embedding `extra_headers` and `extra_body` settings are recorded in traces
+- 2026-11-04 · high · vuln · [GHSA-m5vj-8mcw-82qx](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-m5vj-8mcw-82qx) - Local web fetching can exhaust memory and block the event loop when it formats nested JSON
+- 2026-11-04 · high · vuln · [GHSA-mfx5-pc32-32m8](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-mfx5-pc32-32m8) - Harness private-key redaction can take exponential time on short input
+- 2026-11-04 · medium · vuln · [GHSA-mgmv-r532-pg36](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-mgmv-r532-pg36) - A credential in an MCP server URL path could reach chat frontends through MCP Apps events
+- 2026-11-04 · medium · vuln · [GHSA-r879-rxgj-3g75](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-r879-rxgj-3g75) - UI adapters take quadratic time to load a submitted message with many parts
 - 2026-10-21 · high · vuln · [GHSA-4whf-38hw-pxxh](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-4whf-38hw-pxxh) - Fetching attacker-controlled HTML with web_fetch_tool can delay other work in the same process
 - 2026-10-20 · medium · vuln · [GHSA-5pfm-2g3g-gh85](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-5pfm-2g3g-gh85) - UI adapters: a client-submitted tool call can execute because the compaction-part drop runs after the dangling-call strip
 - 2026-10-20 · medium · vuln · [GHSA-xv4x-g8mx-ch56](https://github.com/pydantic/pydantic-ai/security/advisories/GHSA-xv4x-g8mx-ch56) - Provider-native MCP credentials and URL-derived MCP identifiers could reach traces
@@ -1203,8 +1278,35 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 - 2026-09-14 · medium · vuln · [GHSA-x3g6-3v5p-c4gf](https://github.com/superloglabs/superlog/security/advisories/GHSA-x3g6-3v5p-c4gf) - Unbounded decompression of OTLP ingest payloads (decompression bomb)
 - 2026-09-14 · medium · vuln · [GHSA-xr24-93q4-2fj7](https://github.com/superloglabs/superlog/security/advisories/GHSA-xr24-93q4-2fj7) - Potential Indirect Prompt Injection Attack Surface in Managed Investigation Agent
 
-## https://github.com/surrealdb/surrealdb - **pattern**: 19 critical/high advisories
+## https://github.com/surrealdb/surrealdb - **pattern**: 32 critical/high advisories
 
+- 2026-11-03 · medium · vuln · [GHSA-3287-hpm5-3f8r](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-3287-hpm5-3f8r) - SurrealDB DDL statements bypass namespace/database implicit-creation authorization added by GHSA-wp87-mgvq-5j93 fix
+- 2026-11-03 · medium · vuln · [GHSA-3rcm-c653-wgmr](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-3rcm-c653-wgmr) - Re-RELATE on an Existing Edge Echoes Stored in/out Endpoints Despite SELECT Restrictions in SurrealDB
+- 2026-11-03 · medium · vuln · [GHSA-4p8w-qx5v-p6fc](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-4p8w-qx5v-p6fc) - Safe-code uninitialized read (UB) in `surrealdb-parser`'s lookahead ring buffer via the public `Parse` API
+- 2026-11-03 · high · vuln · [GHSA-5w6j-qm42-4rc2](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-5w6j-qm42-4rc2) - JavaScript Built-in Bridge Bypasses Function Capability Enforcement
+- 2026-11-03 · high · vuln · [GHSA-5xcv-fm6g-4hf3](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-5xcv-fm6g-4hf3) - Quoted Computed-Field Formatter Bypasses Field-Level SELECT Permissions
+- 2026-11-03 · medium · vuln · [GHSA-623g-mhxq-5hmf](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-623g-mhxq-5hmf) - Interactive transactions keep the writes of a statement refused by a THROWing event, and commit persists them
+- 2026-11-03 · high · vuln · [GHSA-6c37-x4jm-529x](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-6c37-x4jm-529x) - Windows Backslashes Bypass Global Bucket Path Traversal Protection
+- 2026-11-03 · high · vuln · [GHSA-7pqw-x84x-frxc](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-7pqw-x84x-frxc) - Filesystem Bucket Containment Fails to Resolve Descendant Symlinks
+- 2026-11-03 · high · vuln · [GHSA-7r2m-g5wf-pj9j](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-7r2m-g5wf-pj9j) - Model Export Route joins Raw Name Permitting Authenticated Request Redirection
+- 2026-11-03 · high · vuln · [GHSA-9fm9-c4h4-8g93](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-9fm9-c4h4-8g93) - Safe-code out-of-bounds read in `surrealkv`'s `InternalKeyRef` decoder (`len-16`/`len-8` underflow)
+- 2026-11-03 · medium · vuln · [GHSA-cff7-q66j-4hc8](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-cff7-q66j-4hc8) - UNIQUE-Index Conflict Errors Disclose SELECT-Restricted Field Values and Record Ids in SurrealDB
+- 2026-11-03 · high · vuln · [GHSA-cph5-pm57-9w9c](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-cph5-pm57-9w9c) - Direct Filesystem Buckets Permit Path Traversal Across Key-Based ACL Boundaries
+- 2026-11-03 · high · vuln · [GHSA-cr79-9p8r-p5wx](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-cr79-9p8r-p5wx) - MCP Tool Identifier Validation Permits Statement Injection via Escaped Backticks
+- 2026-11-03 · medium · vuln · [GHSA-f6h4-5xf2-86q9](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-f6h4-5xf2-86q9) - table-level `PERMISSIONS FOR update` predicates referencing COMPUTED fields are evaluated before computed-field population, letting the predicate read `NONE` and always pass
+- 2026-11-03 · medium · vuln · [GHSA-ff2q-h4x7-cpj4](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-ff2q-h4x7-cpj4) - ON DELETE REJECT Errors Disclose SELECT-Hidden Referencing Record Ids in SurrealDB
+- 2026-11-03 · medium · vuln · [GHSA-ffvm-mqh3-7986](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-ffvm-mqh3-7986) - SurrealDB 3.2.4 allows FOR loop variables named $access, $auth, and $token to shadow the authenticated session values used by table permission expressions.
+- 2026-11-03 · high · vuln · [GHSA-fh2q-8f75-m4h6](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-fh2q-8f75-m4h6) - REFERENCE ON DELETE CASCADE/UNSET/CUSTOM bypasses target table PERMISSIONS FOR delete/update
+- 2026-11-03 · high · vuln · [GHSA-fq69-wr4w-v3gm](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-fq69-wr4w-v3gm) - JavaScript Query Bridge Bypasses Arbitrary-Query Subject Gate
+- 2026-11-03 · medium · vuln · [GHSA-g422-fj9r-m92g](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-g422-fj9r-m92g) - Server crash (DoS) via decimal overflow in math::sum / math::product
+- 2026-11-03 · low · vuln · [GHSA-m887-2246-mgw3](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-m887-2246-mgw3) - VIEWER role can define tables implicitly via CREATE on a non-STRICT database
+- 2026-11-03 · high · vuln · [GHSA-m9qr-4rcq-3jhc](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-m9qr-4rcq-3jhc) - Safe-code data race and double-free in `surrealdb-core` via unsound `Send`/`Sync` assertions in `reblessive 0.4.3`
+- 2026-11-03 · high · vuln · [GHSA-p3c2-wh5f-jwqm](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-p3c2-wh5f-jwqm) - GraphQL WebSocket upgrade omits frame and message size limits enabling memory amplification
+- 2026-11-03 · medium · vuln · [GHSA-pvv9-h693-m8r4](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-pvv9-h693-m8r4) - SurrealDB LIVE query notification expressions allow write side effects that bypass the write-blocking guard
+- 2026-11-03 · high · vuln · [GHSA-q83r-f38r-rwvj](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-q83r-f38r-rwvj) - Surrealism WASI socket allowlist ignores deny_net, enabling SSRF via hostname resolving to a private IP
+- 2026-11-03 · medium · vuln · [GHSA-qh3v-rr48-x3cq](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-qh3v-rr48-x3cq) - Authenticated Export Permission Bypass
+- 2026-11-03 · low · vuln · [GHSA-whfh-76h8-2r66](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-whfh-76h8-2r66) - CLI help output prints the values of SURREAL_PASS and SURREAL_TOKEN
+- 2026-11-03 · medium · vuln · [GHSA-wjh3-m4pv-q6cp](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-wjh3-m4pv-q6cp) - Cross-field array-index drift in wildcard field-permission filtering
 - 2026-10-19 · high · vuln · [GHSA-c9wc-jcr5-8974](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-c9wc-jcr5-8974) - IPv6 transition address bypass of SSRF guard in FilteringResolver
 - 2026-10-19 · medium · vuln · [GHSA-h3mp-7wcg-p6vj](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-h3mp-7wcg-p6vj) - JWKS fetch bypasses port-specific deny-net rules on implicit default ports
 - 2026-10-19 · medium · vuln · [GHSA-mhv5-88p6-w4c3](https://github.com/surrealdb/surrealdb/security/advisories/GHSA-mhv5-88p6-w4c3) - Port-specific --deny-net rules bypassed by aliasing the host (hostname &lt;-> IP) — SSRF egress-policy bypass
@@ -1342,6 +1444,10 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 
 - 2026-07-24 · high · vuln · [CVE-2026-72718](https://github.com/aaif-goose/goose/security/advisories/GHSA-r5pp-p5r8-466r) - Arbitrary command execution in goose CLI via `goose review` via git core.fsmonitor
 
+## https://github.com/ag-ui-protocol/ag-ui
+
+- 2026-10-21 · high · vuln · [GHSA-chx5-hp6j-gv92](https://github.com/ag-ui-protocol/ag-ui/security/advisories/GHSA-chx5-hp6j-gv92) - Client-supplied state can modify shared ADK application and user state
+
 ## https://github.com/agentclientprotocol/typescript-sdk
 
 - 2026-09-28 · medium · vuln · [GHSA-6q4g-4xp9-ch96](https://github.com/agentclientprotocol/typescript-sdk/security/advisories/GHSA-6q4g-4xp9-ch96) - Denial of service via uncapped message buffering
@@ -1365,6 +1471,8 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 
 ## https://github.com/comet-ml/opik
 
+- 2026-11-05 · low · vuln · [GHSA-2xwj-cg3g-7hxg](https://github.com/comet-ml/opik/security/advisories/GHSA-2xwj-cg3g-7hxg) - ClickHouse query log_comment built with incomplete SQL string escaping
+- 2026-11-05 · high · vuln · [GHSA-5mc6-2qfj-59cg](https://github.com/comet-ml/opik/security/advisories/GHSA-5mc6-2qfj-59cg) - Opik SDKs render Jinja2/Nunjucks prompt templates without a sandbox, allowing code execution
 - 2026-09-18 · medium · vuln · [GHSA-87xc-vmvv-2g6f](https://github.com/comet-ml/opik/security/advisories/GHSA-87xc-vmvv-2g6f) - Opik: server-side request forgery via the alert webhook test endpoint
 
 ## https://github.com/deepset-ai/haystack
@@ -1449,6 +1557,18 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 
 - 2026-02-19 · critical · vuln · [CVE-2026-26030](https://github.com/microsoft/semantic-kernel/security/advisories/GHSA-xjw9-4gw8-4rqx) - InMemoryVectorStore filter functionality vulnerable to remote code execution
 - 2026-02-06 · critical · vuln · [CVE-2026-25592](https://github.com/microsoft/semantic-kernel/security/advisories/GHSA-2ww3-72rp-wpp4) - Arbitrary File Write via AI Agent Function Calling in .NET SDK
+
+## https://github.com/modelcontextprotocol/modelcontextprotocol
+
+- 2026-08-23 · high · vuln · [GHSA-7fx6-5m9f-89wg](https://github.com/modelcontextprotocol/modelcontextprotocol/security/advisories/GHSA-7fx6-5m9f-89wg) - Shell command injection in manual SEP lifecycle workflow
+
+## https://github.com/modelcontextprotocol/registry
+
+- 2026-05-12 · low · vuln · [CVE-2026-45781](https://github.com/modelcontextprotocol/registry/security/advisories/GHSA-2v5f-5r6w-p67r) - OCI validator skips ownership check on upstream rate limits
+- 2026-05-04 · low · vuln · [CVE-2026-44427](https://github.com/modelcontextprotocol/registry/security/advisories/GHSA-v8vw-gw5j-w7m6) - Open redirect via protocol-relative path in trailing-slash middleware
+- 2026-05-04 · low · vuln · [CVE-2026-44428](https://github.com/modelcontextprotocol/registry/security/advisories/GHSA-95c3-6vvw-4mrq) - GitHub OIDC tokens replayable across registry deployments due to shared audience
+- 2026-05-04 · medium · vuln · [CVE-2026-44429](https://github.com/modelcontextprotocol/registry/security/advisories/GHSA-rqv2-m695-f8j4) - Stored XSS in catalogue UI via attribute-quote breakout in publisher-controlled `websiteUrl`
+- 2026-05-04 · medium · vuln · [CVE-2026-44430](https://github.com/modelcontextprotocol/registry/security/advisories/GHSA-r48c-v28r-pf6v) - Unauthenticated SSRF: HTTP namespace verification dials 6to4 / NAT64 / site-local IPv6 addresses, bypassing private-address allowlist
 
 ## https://github.com/mvanhorn/cli-printing-press
 

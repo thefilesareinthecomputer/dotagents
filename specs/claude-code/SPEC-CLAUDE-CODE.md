@@ -500,8 +500,9 @@ key of [`settings.json`](settings.json) from the two manifests, and
 entries only. The build plan and the hook-input captures are in
 `tasks/SPEC-HARNESS-SEEDING.md`.
 
-Twenty-six wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
-`guard-rm.sh`, `block-env-files.sh`), the `~/.claude`-edit prompt
+Twenty-seven wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
+`guard-rm.sh`, `block-env-files.sh`), the clipboard-read prompt
+(`ask-clipboard-reads.sh`), the `~/.claude`-edit prompt
 (`ask-before-claude-folder-edits.sh`), the SessionStart inbox check
 (`agent-mail-check.sh`), the reply-length nudge (`cmon_nudge.py`), the spoken reply summary
 (`voice_reply.py`), the daily harness-release notice (`harness_version_check.py`), the large-file
@@ -553,6 +554,25 @@ read. Requires `jq` via `_require.sh`. Tests:
 `tests/station-hooks/test-block-env-files.sh` (17 cases).
 
 Script: [`claude-code/hooks/block-env-files.sh`](hooks/block-env-files.sh).
+
+### `ask-clipboard-reads.sh`
+
+PreToolUse guard on Bash. The clipboard often holds what the user copied last,
+such as a password from a password manager, and a shell command can read it
+without the user knowing. A command whose text names a clipboard reader
+(`pbpaste`, AppleScript's `the clipboard` and `clipboard info`, `NSPasteboard`,
+`pyperclip`, `clipboardy`, `xclip`, `xsel`, `wl-paste`, `Get-Clipboard`) gets
+**ask**, for the same reason as the `.env` Bash case: the text may be a mention
+rather than a read. Writing the clipboard (`pbcopy`) is silent. It matches by
+text, so it catches the plain routes, not a deliberately hidden one; the
+OS-level control is **System Settings > Privacy & Security > Paste from Other
+Apps**, set per app, which covers every program a terminal starts (the
+`kTCCServicePasteboard` service, present on macOS 26.6). Verified live
+2026-11-07: a fresh headless session's `type pbpaste` came back as a permission
+denial with this hook's reason. Requires `jq` via `_require.sh`. Tests:
+`tests/station-hooks/test-ask-clipboard-reads.sh` (19 cases, ugrep and BSD grep).
+
+Script: [`hooks/ask-clipboard-reads.sh`](../../hooks/ask-clipboard-reads.sh).
 
 ### `ask-before-claude-folder-edits.sh`
 
@@ -753,28 +773,33 @@ UserPromptSubmit and Stop - advisory only, never blocks. It reads a short
 spoken summary of each reply aloud through a local speaker command. It runs
 only in interactive terminal sessions (`CLAUDE_CODE_ENTRYPOINT=cli`, observed
 on 2.1.310; a headless `claude -p` run sees `sdk-cli`), so the bench, `/task`
-and app seats are unaffected. It is off unless `~/.claude/voice.json` (or
-`CLAUDE_VOICE_CONFIG`) holds `{"enabled": true, "command": [...]}`; the
-station seeds no config, so a machine without one stays silent. The config
+and app seats are unaffected. It is off unless `~/.claude/voice.json` holds
+`{"enabled": true, "command": [...]}`; no variable of the hook's own can point it
+at another file, and the station seeds no config, so a machine without one stays
+silent. The config
 names a command every session runs, so it lives inside `~/.claude`, where
 `ask-before-claude-folder-edits.sh` asks before any file-tool write, and the
 station repo's `.gitignore` keeps it out of git. The spoken text comes from the
 model rather than the hook. While voice is on, UserPromptSubmit stops any playback and asks the
 model to end its reply with one `<speak>...</speak>` line saying what it did
 and what it needs next. Stop takes that line from the payload's
-`last_assistant_message`, strips markdown marks and passes it to the command
-as its last argument; a reply without the line is spoken as "The reply is on
-screen." The spoken text is model output, so the hook strips control
-characters, caps it at 400 characters and never lets it begin with a dash;
-`--stop` is the only option the command ever sees. The command runs detached
+`last_assistant_message` only when it ends the reply, so a tag quoted from a
+file mid-reply is never spoken, strips markdown marks (keeping underscores
+inside words) and writes it to the command's stdin; a reply without the line
+is silent. The
+text never goes in argv, where any local account could read it in `ps` and the
+speaker could take it for an option, so `--stop` is the only argument the
+command ever gets. The spoken text is model output, so the hook strips control
+characters and caps it at 400 characters. The command runs detached
 so the hook returns at once, and the speaker, the user's own program outside
 this repo, owns its own lifetime and single-instance playback. The hook fails
 open on every path: no config, a bad config, a missing command or garbage
 stdin each give silence and exit 0. The `/voice on|off|status` command runs the
 same script with that argument. It rewrites only `enabled`, so a toggle never
-touches the speaker command, and `off` also stops playback; the change applies
-from the next reply. The tests are in `tests/station-hooks/test-voice-reply.py`
-(17 cases).
+touches the speaker command; `on` says "Voice is on." aloud at once, `off`
+stops playback, and `status` notes that headless runs stay silent. The change
+applies from the next reply. The tests are in
+`tests/station-hooks/test-voice-reply.py` (19 cases).
 
 Script: [`claude-code/hooks/voice_reply.py`](hooks/voice_reply.py).
 

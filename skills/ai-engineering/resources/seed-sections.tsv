@@ -278,6 +278,8 @@ boson-ai/higgs-audio	media|models
 nari-labs/dia	media|models
 nari-labs/dia2	media|models
 hexgrad/kokoro	media|models
+thewh1teagle/kokoro-onnx	media|serving
+SYSTRAN/faster-whisper	media|serving
 resemble-ai/chatterbox	media|models
 OpenMOSS/MOSS-TTSD	media|models
 souzatharsis/podcastfy	media|learning

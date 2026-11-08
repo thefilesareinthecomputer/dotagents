@@ -81,6 +81,11 @@
           },
           {
             "type": "command",
+            "command": "bash ~/.claude/hooks/ask-clipboard-reads.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "python3 ~/.claude/hooks/reject_bad_commit_message.py",
             "timeout": 10
           },

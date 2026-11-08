@@ -6,7 +6,10 @@ object {text, usage, model, exit_code, error}.
 AGENT_REVIEW_FAKE_RESPONSES is a JSON object keyed by harness: {"stage1": text, "stage2":
 "<labels in rank order, e.g. CAB>" | "invalid" | null, "repair": "<labels>" | null (the answer
 to a ranking-block repair brief; absent or null means the repair fails too), "chair": text,
-"fail": bool}.
+"fail": bool, "fail_when": "<text>", "offline": "<the CLI's error>"}. `fail` fails every stage
+but leaves the ready check passing, so a test can fail a member mid-run; `fail_when` fails only
+the calls whose brief holds that text, such as one topic's question; `offline` fails the ready
+check itself.
 The stage is read from the brief's first heading. A stage-2 ranking is built from the
 labels the brief shows, so the fake never knows who wrote what.
 """
@@ -32,7 +35,14 @@ def main():
                                  "effort": effort, "cwd": os.getcwd(), "at": time.time(), "delay": delay}) + "\n")
     if delay:
         time.sleep(delay)
-    if spec.get("fail"):
+    if brief.startswith("# Ready check"):
+        if spec.get("offline"):
+            print(json.dumps({"text": None, "usage": None, "model": model, "exit_code": 4, "error": spec["offline"]}))
+        else:
+            print(json.dumps({"text": "READY", "usage": {"input_tokens": 30, "output_tokens": 1}, "model": model,
+                              "exit_code": 0, "error": None}))
+        return 0
+    if spec.get("fail") or (spec.get("fail_when") and spec["fail_when"] in brief):
         print(json.dumps({"text": None, "usage": None, "model": model, "exit_code": 4, "error": "fake failure"}))
         return 0
     usage = {"input_tokens": 100, "output_tokens": 20}

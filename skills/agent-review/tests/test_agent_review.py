@@ -437,7 +437,8 @@ class TestOneShotRunners(Base):
         self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
         self.assertEqual(cfg.read_bytes(), before)
         self.assertEqual(json.loads((self.out / "run.json").read_text())["usage"]["cli_config"],
-                         {"existed": True, "changed_by_run": True, "restored": True, "lock_wait_s": 0.0})
+                         {"existed": True, "changed_by_run": True, "restored": True, "lock_wait_s": 0.0,
+                          "call_timeout_s": 1500})
         self.assertEqual(sorted(p.name for p in self.cursor_home.iterdir()), ["cli-config.json", "cli-config.lock"])
 
     def test_two_cursor_runs_take_turns_on_the_config_lock(self):
@@ -459,6 +460,26 @@ class TestOneShotRunners(Base):
         shutil.rmtree(self.out)
         r = subprocess.run(args, env=env, text=True, capture_output=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+
+    def test_a_call_that_waited_for_the_lock_still_gets_its_whole_timeout(self):
+        # Two topics of one conference each seat Cursor; the second waits for the first. The
+        # wait must not come out of its own budget, or it times out having barely started.
+        if not Path("/usr/bin/sandbox-exec").exists():
+            self.skipTest("no sandbox-exec on this host")
+        import fcntl
+        import threading
+        self.cursor_home.mkdir(exist_ok=True)
+        held = os.open(self.cursor_home / "cli-config.lock", os.O_CREAT | os.O_RDWR, 0o600)
+        fcntl.flock(held, fcntl.LOCK_EX)
+        threading.Timer(2.0, os.close, [held]).start()
+        env = dict(self.env, AGENT_REVIEW_CURSOR_LOCK_WAIT="30")
+        args = [sys.executable, str(SCRIPT), "run", "--harness", "cursor", "--brief", str(self.brief), "--out", str(self.out),
+                "--file", str(self.src / "pkg" / "a.py"), "--timeout", "300"]
+        r = subprocess.run(args, env=env, text=True, capture_output=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+        cli_config = json.loads((self.out / "run.json").read_text())["usage"]["cli_config"]
+        self.assertGreaterEqual(cli_config["lock_wait_s"], 1.5)
+        self.assertEqual(cli_config["call_timeout_s"], 300)
 
     def test_review_output_never_follows_a_link(self):
         # a dangling symlink planted at the predictable review name is refused, not written through

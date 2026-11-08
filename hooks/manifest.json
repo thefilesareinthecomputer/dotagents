@@ -27,6 +27,12 @@
       "bindings": [{"event": "PreToolUse", "matcher": ["file-read", "file-write", "shell", "search"]}]
     },
     {
+      "script": "ask-clipboard-reads.sh",
+      "harnesses": ["claude-code"],
+      "requires": ["jq"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["shell"], "timeout": 10}]
+    },
+    {
       "script": "reject_words.py",
       "harnesses": ["claude-code"],
       "bindings": [{"event": "PreToolUse", "matcher": ["file-write"], "timeout": 5}]

@@ -958,6 +958,56 @@ gone; the remaining difference is a server versus a library. No published benchm
 ranks open models on two-host dialogue writing; EQ-Bench's creative and longform
 boards are the nearest proxy and are judge-scored.
 
+### L.1 - On-device dictation and spoken replies on a 16 GB Mac (researched 2026-11-05)
+
+For live dictation and reading short replies aloud on Apple Silicon, mlx-audio
+0.5.4 runs both directions from one install, and the picks are Parakeet TDT 0.6B v2
+for speech-to-text and Kokoro-82M for text-to-speech. Memory decides the pick rather
+than accuracy, because the leading open models are within about two points of word
+error rate of each other while their resident size varies several-fold.
+
+| Speech-to-text | English WER, Open ASR Leaderboard | MLX repo and download | License |
+|---|---|---|---|
+| **Parakeet TDT 0.6B v2** (English only) - the pick | about 6.0 | [mlx-community/parakeet-tdt-0.6b-v2](https://huggingface.co/mlx-community/parakeet-tdt-0.6b-v2), 2.47 GB F32 | CC-BY-4.0 |
+| Parakeet TDT 0.6B v3 (25 languages) | about 6.3 | [mlx-community/parakeet-tdt-0.6b-v3](https://huggingface.co/mlx-community/parakeet-tdt-0.6b-v3), 2.51 GB F32 | CC-BY-4.0 |
+| Qwen3-ASR 1.7B / 0.6B | about 5.4 for 1.7B; 0.6B not published on the board | [collection](https://huggingface.co/collections/mlx-community/qwen3-asr): 0.6B 4-bit 713 MB, 8-bit 1.01 GB; 1.7B 4-bit 1.61 GB | Apache-2.0 |
+| Whisper large-v3-turbo | about 7.6 | [mlx-community/whisper-large-v3-turbo-q4](https://huggingface.co/mlx-community/whisper-large-v3-turbo-q4), 464 MB | not stated on the MLX card; MIT on the upstream `openai/whisper-large-v3-turbo` card |
+| Apple SpeechTranscriber (macOS 26) | vendor-reported only | a system framework API, not mlx-audio; per Argmax, it adds no model memory to the calling process | Apple platform |
+
+| Text-to-speech | Standing | MLX repo and download | License |
+|---|---|---|---|
+| **Kokoro-82M** - the pick | 10th on Artificial Analysis's open-weights board (Elo 1061) and level with the far larger Chatterbox on TTS Arena; both from search summaries, 2026-11-05 | [mlx-community/Kokoro-82M-bf16](https://huggingface.co/mlx-community/Kokoro-82M-bf16), 389 MB; 54 voices, each name starting with a letter for its accent | Apache-2.0 |
+| Pocket TTS (100M) | streams, about 200 ms to first audio on an M4 (one source) | [mlx-community/pocket-tts](https://huggingface.co/mlx-community/pocket-tts), 240 MB; 8-bit 140 MB | weights CC-BY-4.0 (the MLX card and its base, `kyutai/pocket-tts`); code MIT (`kyutai-labs/pocket-tts`) |
+| Soprano 1.1 (80M) | streams; about 700 MB peak RAM on a Ryzen CPU benchmark (one source) | [mlx-community/Soprano-1.1-80M-bf16](https://huggingface.co/mlx-community/Soprano-1.1-80M-bf16), 284 MB | not stated on the MLX card |
+| Chatterbox Turbo, Qwen3-TTS, Spark-TTS | too slow or too large for a 16 GB machine's background use, or a non-commercial weight license (Spark-TTS) | | |
+
+Two widely used runtimes outside MLX come up for the same job, and both run on the
+Mac's CPU rather than its GPU (READMEs read 2026-11-07).
+[SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-whisper) is the standard
+fast Whisper on Linux and Windows, but its GPU path is CUDA only.
+[thewh1teagle/kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) runs the same
+Kokoro-82M through ONNX Runtime with no PyTorch or MLX, about 80 MB quantized.
+Choose it over the MLX build when the install has to stay small or also run on Linux
+and Windows; on Apple Silicon alone the MLX builds above keep the GPU.
+
+Measured with mlx-audio 0.5.4 on an M1 with 16 GB (field notes dated 2026-11-06 in
+[`field-notes.md`](field-notes.md)): Parakeet v2 loads in 3.2 s and transcribes
+8.2 s of speech in 0.2 to 0.5 s, peaking at 1.7 to 1.9 GB resident across two runs
+(1.65 GB for a local bfloat16 cast, same transcript); Kokoro speaks the same
+sentence in 6.3 s with the load, peaking at 450 MB. Because the load dominates, a
+dictation tool that releases the model after every call should start loading it
+while the user is still speaking. The published real-time factors are GPU-server
+or M3/M4 figures and do not transfer to an M1.
+
+The word error rates in the speech-to-text table come from secondary snapshots of the
+[Open ASR Leaderboard](https://huggingface.co/spaces/hf-audio/open_asr_leaderboard),
+dated 2026-05-22 and 2026-10-09, and from the table in arXiv 2510.06961 (v3's figure),
+all read 2026-11-05 through search summaries rather than the live page. The download
+sizes and licenses come from the Hugging Face API and GitHub (2026-11-05 and -06). Each of Apple's
+SpeechTranscriber speed and accuracy claims comes from one vendor or press
+source ([Argmax](https://www.argmaxinc.com/blog/apple-and-argmax),
+[MacStories](https://www.macstories.net/stories/hands-on-how-apples-new-speech-apis-outpace-whisper-for-lightning-fast-transcription/)).
+
 ---
 
 ## Section M - Knowledge graphs and markdown knowledge bases as agent grounding (researched 2026-10-29)

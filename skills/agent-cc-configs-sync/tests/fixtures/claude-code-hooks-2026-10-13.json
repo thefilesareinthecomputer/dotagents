@@ -6,6 +6,7 @@
       {"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/guard-rm.sh", "timeout": 10}]},
       {"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/guard-private.sh", "timeout": 10}]},
       {"matcher": "Read|Edit|Write|MultiEdit|NotebookEdit|Update|Create|Bash|Grep|Glob", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/block-env-files.sh"}]},
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/ask-clipboard-reads.sh", "timeout": 10}]},
       {"matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/ask-before-claude-folder-edits.sh"}]},
       {"matcher": "Read", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/read-size-advisory.sh", "timeout": 5}]},
       {"matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/memory-routing.sh", "timeout": 5}]},

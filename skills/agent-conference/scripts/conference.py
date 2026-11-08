@@ -3,9 +3,11 @@
 about a fixed set of files, blind-reviews each other, and a chair synthesizes.
 
 Commands:
-  run    --question <file|-> --file <path> [--file ...] [--members claude,codex,cursor,antigravity,deepseek,glm]
+  run    --question <file|-> [--question <file> ...] --file <path> [--file ...] [--members claude,codex,cursor,antigravity,deepseek,glm]
          [--model member=name ...] [--effort level | member=level ...] [--out <dir>]
          [--topic SLUG] [--reviews-dir <dir>] [--no-sanitize] [--chair claude|session] [--timeout 1500]
+  check  [--members ...] [--model ...] [--effort ...] [--chair claude|session]
+                              the ready check alone, to recheck after fixing a seat
   resume --run <dir>          carry on a run that paused (exit 5) for the user member's text
   tally  --run <dir>          recompute the ranking table from the stage-2 reviews
   clean  [--run <dir> | --older-than-days N]
@@ -25,9 +27,11 @@ inlined into one request each. The staging, the harness table and the read-only
 runners come from the agent-review skill; this script adds the fan-out, the blinding,
 the tally and the chair. No member writes anything.
 
-A member whose CLI is not installed is skipped up front and the run continues with the
-rest (exit 3, `skipped` in run.json); fewer than two available members is exit 4 before
-anything is created. A missing claude CLI turns the chair into `session`.
+Every run starts with a ready check: one short call per seat, the headless chair
+included. A seat that is not installed, not logged in, refused its model or did not
+answer stops the run with exit 6 before anything is staged, so the user fixes it and
+rechecks with `check`. A seat that fails later (a timeout, a dropped connection) is
+recorded and the run goes on with the rest (exit 3).
 """
 
 from __future__ import annotations
@@ -42,6 +46,7 @@ import secrets
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -81,8 +86,12 @@ DEFAULT_TIMEOUT = 1500
 MAX_TIMEOUT = 1800
 # A ranking-block repair returns one JSON block; it never needs the stage budget.
 REPAIR_TIMEOUT = 300
+# The ready check is one short call per seat; a slow CLI start still fits.
+READY_TIMEOUT = 180
+READY_BRIEF = ("# Ready check\n\nThis is a connection check before a panel review. "
+               "Reply with the single word READY and nothing else.\n")
 
-EXIT_OK, EXIT_ARGS, EXIT_PARTIAL, EXIT_FAILED, EXIT_WAITING = 0, 2, 3, 4, 5
+EXIT_OK, EXIT_ARGS, EXIT_PARTIAL, EXIT_FAILED, EXIT_WAITING, EXIT_NOT_READY = 0, 2, 3, 4, 5, 6
 
 
 class ConferenceError(Exception):
@@ -143,6 +152,65 @@ def roster(members: list[str], models: dict[str, str], efforts: dict[str, str], 
             raise ConferenceError(f"{m}: {exc}")
         cfgs[m]["member"] = m
     return cfgs
+
+
+# ----------------------------------------------------------- ready check ---
+
+def ready_check(cfgs: dict, chair_cfg: dict | None) -> dict[str, dict]:
+    """One short real call per seat, in parallel, so a missing CLI, a lapsed login, a refused
+    model or a spent quota shows up before the run spends anything, never as a seat that
+    drops out mid-run. The chair shares the claude member's result when they are the same
+    model at the same effort. Returns seat -> {model, ready, why, elapsed_s}."""
+    seats = dict(cfgs)
+    if chair_cfg:
+        seats["chair"] = chair_cfg
+    results: dict[str, dict] = {}
+    calls: dict[str, dict] = {}
+    for seat, cfg in seats.items():
+        if is_user(seats, seat):
+            results[seat] = {"model": "you", "ready": True, "why": "you answer in person", "elapsed_s": 0}
+        elif why := ar.availability(cfg):
+            results[seat] = {"model": cfg["model"], "ready": False, "why": why, "elapsed_s": 0}
+        elif seat == "chair" and "claude" in calls and (calls["claude"]["model"], calls["claude"]["effort"]) == (
+                cfg["model"], cfg["effort"]):
+            continue
+        else:
+            calls[seat] = cfg
+    work = state_dir() / ("ready-" + secrets.token_hex(4))
+    stage = work / "stage"
+    stage.mkdir(parents=True)
+    ar.git(["init", "-q"], stage)
+    try:
+        briefs = {}
+        for seat in calls:
+            briefs[seat] = work / f"ready-{seat}.md"
+            briefs[seat].write_text(READY_BRIEF, encoding="utf-8")
+        with ThreadPoolExecutor(max_workers=max(1, len(calls))) as pool:
+            futures = {s: pool.submit(ar.run_harness, cfg, briefs[s], stage, READY_TIMEOUT, work) for s, cfg in calls.items()}
+            for seat, fut in futures.items():
+                res = fut.result()
+                ok = bool((res.get("text") or "").strip()) and not res.get("error")
+                why = None if ok else " ".join(str(res.get("error") or "no reply").split())[:300]
+                results[seat] = {"model": calls[seat]["model"], "ready": ok, "why": why, "elapsed_s": res.get("elapsed_s")}
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    if chair_cfg and "chair" not in results:
+        results["chair"] = dict(results["claude"])
+    return {s: results[s] for s in seats}
+
+
+def report_ready(results: dict[str, dict]) -> bool:
+    """Print one line per seat; True when every seat is ready."""
+    for seat, r in results.items():
+        state = "ready" if r["ready"] else "NOT READY"
+        detail = r["why"] or f"{r['elapsed_s']} s"
+        print(f"  {seat:<12} {r['model']:<24} {state:<9}  {detail}")
+    down = [s for s, r in results.items() if not r["ready"]]
+    if down:
+        print(f"{len(down)} seat(s) not ready: {', '.join(down)}. Nothing else ran. Fix each one, then recheck with "
+              "`conference.py check` and the same --members, --model and --chair, or leave a seat out with --members.")
+    sys.stdout.flush()  # the table lands before the error line on stderr
+    return not down
 
 
 # ---------------------------------------------------------------- stages ---
@@ -464,54 +532,117 @@ def chair_brief(question: str, rels: list[str], answers: dict, reviews: dict, ta
 
 # ---------------------------------------------------------------- commands ---
 
-def cmd_run(a: argparse.Namespace) -> int:
-    question = sys.stdin.read() if a.question == "-" else Path(a.question).read_text(encoding="utf-8")
-    if not question.strip():
-        raise ConferenceError("the question is empty")
+def seats(a: argparse.Namespace) -> tuple[list[str], dict, dict, str, dict | None, dict, str | None]:
+    """The panel `run` and `check` share. Returns (members, cfgs, models, chair, chair_cfg,
+    efforts, effort); chair_cfg is None when the chair is the session."""
     members = [m.strip() for m in a.members.split(",") if m.strip()]
     if len(members) < 2:
         raise ConferenceError("a conference needs at least two members")
     if len(members) > len(LABELS):
         raise ConferenceError(f"at most {len(LABELS)} members")
+    if a.chair not in ("claude", "session"):
+        raise ConferenceError("--chair is claude or session")
     models, _ = parse_pairs(a.model, "model")
     efforts, effort = parse_pairs(a.effort, "effort")
     cfgs = roster(members, models, efforts, effort)
+    chair_cfg = None
+    if a.chair == "claude":
+        try:
+            chair_cfg = ar.resolve("claude", models.get("claude"), efforts.get("claude") or effort)
+        except ar.ReviewError as exc:
+            raise ConferenceError(f"chair: {exc}")
+    return members, cfgs, models, a.chair, chair_cfg, efforts, effort
+
+
+def checked(cfgs: dict, chair_cfg: dict | None) -> None:
+    """Run the ready check and stop with exit 6 unless every seat answered."""
+    print(f"ready check: {len(cfgs) + bool(chair_cfg)} seats")
+    try:
+        results = ready_check(cfgs, chair_cfg)
+    except ar.ReviewError as exc:
+        raise ConferenceError(str(exc))
+    if not report_ready(results):
+        raise ConferenceError("not every seat is ready; nothing was staged or spent past the ready check",
+                              EXIT_NOT_READY)
+
+
+def cmd_check(a: argparse.Namespace) -> int:
+    _, cfgs, _, _, chair_cfg, _, _ = seats(a)
+    checked(cfgs, chair_cfg)
+    return EXIT_OK
+
+
+def read_questions(a: argparse.Namespace) -> dict[str, str]:
+    """Topic slug -> question text. One question may come from stdin and take --topic; with
+    several, each is a file and its stem names the topic."""
+    if len(a.question) > 1:
+        if a.topic:
+            raise ConferenceError("--topic names a single question; with several, each file's stem names its topic")
+        if "-" in a.question:
+            raise ConferenceError("stdin holds one question; give several as files")
+    questions: dict[str, str] = {}
+    for q in a.question:
+        text = sys.stdin.read() if q == "-" else Path(q).read_text(encoding="utf-8")
+        if not text.strip():
+            raise ConferenceError(f"the question in {q} is empty")
+        try:
+            slug = ar.slug(a.topic or ("stdin" if q == "-" else Path(q).stem))
+        except ar.ReviewError as exc:
+            raise ConferenceError(str(exc))
+        # Case-blind, since macOS folders are: Foo and foo would share one topic folder.
+        if slug.lower() in {t.lower() for t in questions}:
+            raise ConferenceError(f"two questions share the topic name {slug!r}; rename one of the files")
+        questions[slug] = text
+    return questions
+
+
+# Exit codes from several topics fold into one: a failed topic outranks one still waiting for
+# the user, which outranks a partial one.
+WORST = [EXIT_ARGS, EXIT_FAILED, EXIT_WAITING, EXIT_PARTIAL, EXIT_OK]
+_print_lock = threading.Lock()
+
+
+def say(ctx: dict, line: str) -> None:
+    """A status line, tagged with its topic when several topics run at once."""
+    with _print_lock:
+        print(ctx.get("tag", "") + line, flush=True)
+
+
+def _run_topic(ctx: dict) -> int:
+    """One topic's stages. Any failure stays inside the topic, so the others finish and the
+    run still records every topic's exit code."""
+    try:
+        return _continue(ctx, answers=None)
+    except ConferenceError as exc:
+        say(ctx, f"  failed  : {exc}")
+        return exc.code
+    except Exception as exc:  # noqa: BLE001 - one topic's crash must not take the others' record with it
+        say(ctx, f"  failed  : {type(exc).__name__}: {exc}")
+        return EXIT_FAILED
+
+
+def cmd_run(a: argparse.Namespace) -> int:
+    questions = read_questions(a)
+    members, cfgs, models, chair, chair_cfg, efforts, effort = seats(a)
     # The review round may run at its own level: ranking five answers against the files is
     # a different job from writing one. Each member is re-resolved through the same path, so
     # a model that names its level, or a member pinned by --effort, keeps what it had.
     stage2_effort = a.stage2_effort
     review_cfgs = roster(members, models, efforts, stage2_effort) if stage2_effort else None
-    if a.chair not in ("claude", "session"):
-        raise ConferenceError("--chair is claude or session")
-    # A member whose CLI is not installed here is skipped before anything is spent, and
-    # the run goes on with the rest; a login or model refusal still shows up as a stage-1
-    # failure, which drops that member the same way.
-    try:
-        skipped = {m: why for m in members if not is_user(cfgs, m) and (why := ar.availability(cfgs[m]))}
-    except ar.ReviewError as exc:
-        raise ConferenceError(str(exc))
-    members = [m for m in members if m not in skipped]
-    cfgs = {m: cfgs[m] for m in members}
-    if review_cfgs:
-        review_cfgs = {m: review_cfgs[m] for m in members}
-    if len(members) < 2:
-        raise ConferenceError("fewer than two members are available on this machine; skipped: "
-                           + "; ".join(f"{m} ({why})" for m, why in skipped.items()), EXIT_FAILED)
-    chair = a.chair
-    chair_fallback = None
-    if chair == "claude":
-        chair_cfg = ar.resolve("claude", models.get("claude"), efforts.get("claude") or effort)
-        chair_fallback = ar.availability(chair_cfg)
-        if chair_fallback:
-            chair = "session"
     timeout = int(a.timeout)
     if not 60 <= timeout <= MAX_TIMEOUT:
         raise ConferenceError(f"--timeout must be between 60 and {MAX_TIMEOUT}")
     try:
         paths, rels = ar.validate_files(a.file, a.root)
-        topic = ar.slug(a.topic or ("stdin" if a.question == "-" else Path(a.question).stem))
     except ar.ReviewError as exc:
         raise ConferenceError(str(exc))
+    # Every seat answers a short call before anything is staged, so a seat that is not
+    # installed, not logged in or refused its model stops the run here for the user to fix,
+    # instead of leaving the panel one short. A seat can still fail mid-run (a timeout, a
+    # dropped connection); that is recorded and the run goes on with the rest.
+    checked(cfgs, chair_cfg)
+    skipped: dict[str, str] = {}
+    chair_fallback = None
 
     run_id = _dt.datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(3)
     out = Path(a.out).expanduser().resolve() if a.out else state_dir() / run_id
@@ -524,7 +655,6 @@ def cmd_run(a: argparse.Namespace) -> int:
     if not ar.ensure_writable(rdir):
         print(f"  reviews dir {rdir} is not writable; the outputs stay in the run folder")
         rdir, rule = None, "fallback-run-folder"
-    (out / "question.md").write_text(question, encoding="utf-8")
     try:
         stage, sanitized = ar.stage_files(paths, rels, out, sanitize=not a.no_sanitize)
     except ar.ReviewError as exc:
@@ -534,18 +664,36 @@ def cmd_run(a: argparse.Namespace) -> int:
     (out / "files.json").write_text(json.dumps(rels, indent=1), encoding="utf-8")
 
     started = time.time()
-    print(f"conference {run_id}: {len(members)} members, {len(rels)} files, out {out}")
-    for m, why in skipped.items():
-        print(f"  skipped {m:<12} {why}")
-    run_extra = {"skipped": skipped, "chair": chair, "chair_fallback": chair_fallback, "topic": topic, "sanitize": sanitized,
-                 "reviews_dir": str(rdir) if rdir else str(out), "reviews_dir_rule": rule, "reviews": None,
-                 "stage2_effort": stage2_effort, "efforts": efforts,
-                 "resume": {"timeout": timeout, "chair_cfg": chair_cfg if chair == "claude" else None, "started": started},
-                 "status": "running"}
-    ctx = {"out": out, "run_id": run_id, "cfgs": cfgs, "review_cfgs": review_cfgs, "members": members, "rels": rels, "question": question,
-           "redaction": redaction, "timeout": timeout, "chair": chair, "chair_cfg": chair_cfg if chair == "claude" else None,
-           "chair_fallback": chair_fallback, "rdir": rdir, "run_extra": run_extra, "started": started, "stage": stage}
-    return _continue(ctx, answers=None)
+    multi = len(questions) > 1
+    print(f"conference {run_id}: {len(members)} members, {len(rels)} files, "
+          + (f"{len(questions)} topics ({', '.join(questions)}), " if multi else "") + f"out {out}", flush=True)
+
+    def topic_ctx(topic: str, question: str) -> dict:
+        # With several topics each gets its own run folder under topics/, a complete run of its
+        # own that tally and resume read like any other, all sharing the one staged copy.
+        tout = out / "topics" / topic if multi else out
+        tout.mkdir(parents=True, exist_ok=True)
+        (tout / "question.md").write_text(question, encoding="utf-8")
+        run_extra = {"skipped": skipped, "chair": chair, "chair_fallback": chair_fallback, "topic": topic,
+                     "sanitize": sanitized, "reviews_dir": str(rdir) if rdir else str(tout), "reviews_dir_rule": rule,
+                     "reviews": None, "stage2_effort": stage2_effort, "efforts": efforts,
+                     "resume": {"timeout": timeout, "chair_cfg": chair_cfg, "started": started}, "status": "running"}
+        return {"out": tout, "run_id": run_id, "cfgs": cfgs, "review_cfgs": review_cfgs, "members": members, "rels": rels,
+                "question": question, "redaction": redaction, "timeout": timeout, "chair": chair, "chair_cfg": chair_cfg,
+                "chair_fallback": chair_fallback, "rdir": rdir, "run_extra": run_extra, "started": started, "stage": stage,
+                "tag": f"[{topic}] " if multi else ""}
+
+    ctxs = {topic: topic_ctx(topic, q) for topic, q in questions.items()}
+    if not multi:
+        return _continue(next(iter(ctxs.values())), answers=None)
+    with ThreadPoolExecutor(max_workers=len(ctxs)) as pool:
+        codes = dict(zip(ctxs, pool.map(_run_topic, ctxs.values())))
+    (out / "run.json").write_text(json.dumps({
+        "run_id": run_id, "files": rels, "members": members,
+        "topics": {t: {"out": str(ctxs[t]["out"]), "exit": c} for t, c in codes.items()}}, indent=1), encoding="utf-8")
+    for topic, code in codes.items():
+        print(f"  topic {topic:<20} exit {code}  {ctxs[topic]['out']}")
+    return next(c for c in WORST if c in codes.values())
 
 
 def _pause(ctx: dict, stage_name: str, why: str, answers: dict, reviews: dict) -> int:
@@ -557,9 +705,9 @@ def _pause(ctx: dict, stage_name: str, why: str, answers: dict, reviews: dict) -
     ctx["run_extra"]["alias"] = alias
     _write_run(ctx["out"], ctx["run_id"], ctx["cfgs"], ctx["rels"], answers, reviews, {}, None, ctx["started"],
                EXIT_WAITING, ctx["run_extra"])
-    print(f"  waiting : {why}")
-    print(f"  brief   : {ctx['out'] / stage_name / (USER_MEMBER + '-brief.md')}")
-    print(f"  then    : conference.py resume --run {ctx['out']}")
+    say(ctx, f"  waiting : {why}")
+    say(ctx, f"  brief   : {ctx['out'] / stage_name / (USER_MEMBER + '-brief.md')}")
+    say(ctx, f"  then    : conference.py resume --run {ctx['out']}")
     return EXIT_WAITING
 
 
@@ -580,7 +728,7 @@ def _continue(ctx: dict, answers: dict | None) -> int:
             return _pause(ctx, "stage1", why, answers, {})
     for m in members:
         state = "ok" if answers[m].get("text") else f"FAILED ({answers[m].get('error')})"
-        print(f"  stage 1 {m:<12} {answers[m]['elapsed_s']:>7}s  {state}{words_note(answers[m])}{ar.scan_note(answers[m].get('scan'))}")
+        say(ctx, f"  stage 1 {m:<12} {answers[m]['elapsed_s']:>7}s  {state}{words_note(answers[m])}{ar.scan_note(answers[m].get('scan'))}")
     answered = [m for m in members if answers[m].get("text")]
     if len(answered) < 2:
         ctx["run_extra"]["status"] = "failed"
@@ -602,14 +750,14 @@ def _continue(ctx: dict, answers: dict | None) -> int:
             return _pause(ctx, "stage2", why, answers, reviews)
     for m in members:
         if m not in reviews:
-            print(f"  stage 2 {m:<12} {'':>7}   dropped (no stage-1 answer to review with)")
+            say(ctx, f"  stage 2 {m:<12} {'':>7}   dropped (no stage-1 answer to review with)")
             continue
         parsed = reviews[m].get("parsed") or {}
         if parsed.get("valid"):
             state = "ok (ranking block repaired on a second call)" if parsed.get("repaired") else "ok"
         else:
             state = f"excluded ({parsed.get('why')}" + (f"; repair: {parsed['repair_why']}" if parsed.get("repair_why") else "") + ")"
-        print(f"  stage 2 {m:<12} {reviews[m]['elapsed_s']:>7}s  {state}{words_note(reviews[m])}{ar.scan_note(reviews[m].get('scan'))}")
+        say(ctx, f"  stage 2 {m:<12} {reviews[m]['elapsed_s']:>7}s  {state}{words_note(reviews[m])}{ar.scan_note(reviews[m].get('scan'))}")
     return _finish(ctx, answers, reviews)
 
 
@@ -633,13 +781,13 @@ def _finish(ctx: dict, answers: dict, reviews: dict) -> int:
         if res.get("text"):
             (out / "synthesis.md").write_text(res["text"], encoding="utf-8")
             synthesis = str(out / "synthesis.md")
-            print(f"  chair   claude       {res['elapsed_s']:>7}s  ok")
+            say(ctx, f"  chair   claude       {res['elapsed_s']:>7}s  ok")
         else:
-            print(f"  chair   claude       {res['elapsed_s']:>7}s  FAILED ({res.get('error')}); write the synthesis from chair-brief.md")
+            say(ctx, f"  chair   claude       {res['elapsed_s']:>7}s  FAILED ({res.get('error')}); write the synthesis from chair-brief.md")
     elif chair_fallback:
-        print(f"  chair   session: claude is unavailable ({chair_fallback}); write synthesis.md from chair-brief.md")
+        say(ctx, f"  chair   session: claude is unavailable ({chair_fallback}); write synthesis.md from chair-brief.md")
     else:
-        print("  chair   session: write synthesis.md from chair-brief.md")
+        say(ctx, "  chair   session: write synthesis.md from chair-brief.md")
 
     partial = (bool(skipped) or bool(chair_fallback) or len(answered) < len(members)
                or tally["valid_reviews"] < len(members) or (chair == "claude" and not synthesis))
@@ -653,17 +801,18 @@ def _finish(ctx: dict, answers: dict, reviews: dict) -> int:
             _write_run(out, ctx["run_id"], cfgs, rels, answers, reviews, tally, synthesis, ctx["started"], EXIT_FAILED, run_extra)
             raise ConferenceError(f"the run finished but its copies could not be published: {exc}", EXIT_FAILED)
     _write_run(out, ctx["run_id"], cfgs, rels, answers, reviews, tally, synthesis, ctx["started"], code, run_extra)
-    print(f"  order   : {' > '.join(tally['order'])}")
+    say(ctx, f"  order   : {' > '.join(tally['order'])}")
     if run_extra["reviews"]:
-        print(f"  reviews : {run_extra['reviews']['dir']}" + (
-            f"\n  synth   : {run_extra['reviews']['synthesis']}" if run_extra["reviews"].get("synthesis") else ""))
+        say(ctx, f"  reviews : {run_extra['reviews']['dir']}")
+        if run_extra["reviews"].get("synthesis"):
+            say(ctx, f"  synth   : {run_extra['reviews']['synthesis']}")
     dropped = {m: answers[m].get("error") for m in members if m not in answered}
     if skipped or dropped or tally.get("invalid_reviews"):
-        print("  without : " + "; ".join(
+        say(ctx, "  without : " + "; ".join(
             [f"{m} skipped ({why})" for m, why in skipped.items()]
             + [f"{m} failed stage 1 ({err})" for m, err in dropped.items()]
             + [f"{m} review excluded" for m in tally.get("invalid_reviews", [])]))
-    print(f"  out     : {out}")
+    say(ctx, f"  out     : {out}")
     return code
 
 
@@ -676,6 +825,9 @@ def cmd_resume(a: argparse.Namespace) -> int:
     if not run_path.exists():
         raise ConferenceError(f"{out} holds no run.json")
     run = json.loads(run_path.read_text(encoding="utf-8"))
+    if "topics" in run:
+        raise ConferenceError("this run holds several topics; resume each waiting one with --run "
+                              + " or ".join(v["out"] for v in run["topics"].values() if v.get("exit") == EXIT_WAITING))
     if run.get("status") != "waiting":
         raise ConferenceError(f"run {run.get('run_id')} is not waiting (status {run.get('status')!r})")
     stored = run["members"]
@@ -711,6 +863,10 @@ def cmd_resume(a: argparse.Namespace) -> int:
            "timeout": int(resume.get("timeout") or DEFAULT_TIMEOUT), "chair": run["chair"], "chair_cfg": resume.get("chair_cfg"),
            "chair_fallback": run.get("chair_fallback"), "rdir": rdir, "run_extra": run_extra,
            "started": float(resume.get("started") or time.time()), "stage": out / "stage"}
+    # A topic of a several-topic run reads the one staged copy two levels up; the path is
+    # derived from the layout, never read from run.json, so an edited record cannot move it.
+    if not ctx["stage"].is_dir() and out.parent.name == "topics":
+        ctx["stage"] = out.parent.parent / "stage"
     print(f"conference {run['run_id']}: resuming, waiting for {run.get('waiting_for')}")
     return _continue(ctx, answers=_load_results(out, "stage1", members))
 
@@ -797,7 +953,9 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="conference.py", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run", help="run the three stages over a question and a file set")
-    r.add_argument("--question", required=True, help="file holding the question and context, or - for stdin")
+    r.add_argument("--question", action="append", required=True,
+                   help="file holding the question and context, or - for stdin; repeat it for several topics in one run, "
+                        "each named by its file's stem")
     r.add_argument("--file", action="append", required=True, help="a file the panel may read; repeatable")
     r.add_argument("--root", help="directory the files are relative to (default: their common parent)")
     r.add_argument("--members", default=",".join(DEFAULT_MEMBERS),
@@ -813,6 +971,12 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--chair", default="claude", help="claude runs the chair headless; session leaves chair-brief.md for you")
     r.add_argument("--timeout", default=DEFAULT_TIMEOUT, help=f"seconds per member per stage, max {MAX_TIMEOUT}")
     r.set_defaults(fn=cmd_run)
+    ck = sub.add_parser("check", help="ready check: one short call per seat, to confirm every one answers before a run")
+    ck.add_argument("--members", default=",".join(DEFAULT_MEMBERS), help="the same members the run will seat")
+    ck.add_argument("--model", action="append", help="member=name, as for run")
+    ck.add_argument("--effort", action="append", help="a level, or member=level, as for run")
+    ck.add_argument("--chair", default="claude", help="claude checks the headless chair too; session has nothing to check")
+    ck.set_defaults(fn=cmd_check)
     t = sub.add_parser("tally", help="recompute the tally from a run's stage-2 reviews")
     t.add_argument("--run", required=True)
     rs = sub.add_parser("resume", help="carry on a run that paused for the user member's answer or review")

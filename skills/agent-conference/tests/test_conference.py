@@ -55,8 +55,20 @@ class Base(unittest.TestCase):
             args += ["--file", f]
         return subprocess.run(args, env=env, text=True, capture_output=True, timeout=120)
 
-    def calls(self):
+    def all_calls(self):
         return [json.loads(l) for l in self.record.read_text().splitlines()] if self.record.exists() else []
+
+    def calls(self):
+        """The stage calls, without the ready check every run starts with."""
+        return [c for c in self.all_calls() if not Path(c["brief"]).name.startswith("ready-")]
+
+    def ready_calls(self):
+        return [c for c in self.all_calls() if Path(c["brief"]).name.startswith("ready-")]
+
+    def check(self, responses=None, members=MEMBERS, extra=()):
+        env = dict(self.env, AGENT_REVIEW_FAKE_RESPONSES=json.dumps(responses or {}))
+        return subprocess.run([sys.executable, str(SCRIPT), "check", "--members", ",".join(members), *extra],
+                              env=env, text=True, capture_output=True, timeout=120)
 
 
 class TestStaging(Base):
@@ -336,10 +348,11 @@ class TestStages(Base):
 
     def test_a_repair_starts_when_its_reviewer_finishes_not_after_the_barrier(self):
         # cursor loses its block and finishes first; glm is slow. The repair call must be
-        # recorded before glm's review returns, which the fake's record timestamps show.
+        # recorded before glm's review returns, which the fake's record timestamps show. The
+        # delay leaves room for a fake process to start on a loaded, swapping machine.
         responses = {m: {"stage2": ALL} for m in MEMBERS}
         responses["cursor"] = {"stage2": None, "repair": ALL}
-        responses["glm"]["stage2_delay"] = 3
+        responses["glm"]["stage2_delay"] = 8
         r = self.run_conference(responses)
         self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
         calls = self.calls()
@@ -409,46 +422,160 @@ class TestStages(Base):
         self.assertIn("fewer than two", r.stderr)
         self.assertTrue((self.out / "run.json").exists())
 
-    def test_unavailable_member_is_skipped_and_the_run_is_partial(self):
-        self.env["AGENT_REVIEW_FAKE_MISSING"] = "codex"
-        responses = {m: {"stage2": ONE_DOWN} for m in MEMBERS}
-        r = self.run_conference(responses)
-        self.assertEqual(r.returncode, 3, r.stderr + r.stdout)
-        self.assertIn("skipped", r.stdout)
-        self.assertIn("codex", r.stdout)
-        self.assertFalse((self.out / "stage1" / "codex-brief.md").exists())
-        self.assertFalse((self.out / "stage2" / "codex-brief.md").exists())
-        run = json.loads((self.out / "run.json").read_text())
-        self.assertEqual(list(run["skipped"]), ["codex"])
-        self.assertNotIn("codex", run["members"])
-        tally = json.loads((self.out / "tally.json").read_text())
-        self.assertEqual(sorted(tally["answered"]), sorted(m for m in MEMBERS if m != "codex"))
-        self.assertEqual(tally["valid_reviews"], len(MEMBERS) - 1)
-        self.assertTrue((self.out / "synthesis.md").exists())
-        self.assertNotIn("codex", [c["member"] for c in self.calls()])
+class TestTopics(Base):
+    """Several questions in one run: one ready check and one staged copy, then each topic runs
+    the stages on its own, with its own blinding, tally, synthesis and published copies."""
 
-    def test_too_few_available_members_exits_4_before_staging(self):
-        self.env["AGENT_REVIEW_FAKE_MISSING"] = "codex,cursor,antigravity,deepseek,glm"
-        r = self.run_conference()
-        self.assertEqual(r.returncode, 4, r.stderr + r.stdout)
-        self.assertIn("fewer than two members are available", r.stderr)
-        self.assertIn("codex", r.stderr)
+    def setUp(self):
+        super().setUp()
+        self.ux = self.tmp / "ux.md"
+        self.ux.write_text("UX question: is f pleasant to call?\n")
+        self.hard = self.tmp / "hardening.md"
+        self.hard.write_text("Hardening question: can f fail?\n")
+        self.rd = self.tmp / "rd"
+
+    def run_topics(self, responses=None, extra=(), questions=None):
+        if responses is None:
+            responses = {m: {"stage2": ALL} for m in MEMBERS}
+        env = dict(self.env, AGENT_REVIEW_FAKE_RESPONSES=json.dumps(responses))
+        args = [sys.executable, str(SCRIPT), "run", "--out", str(self.out), "--members", ",".join(MEMBERS),
+                "--reviews-dir", str(self.rd), "--file", str(self.src / "pkg" / "a.py"), *extra]
+        for q in questions or (self.ux, self.hard):
+            args += ["--question", str(q)]
+        return subprocess.run(args, env=env, text=True, capture_output=True, timeout=180)
+
+    def test_each_topic_runs_its_own_stages_on_one_shared_stage(self):
+        r = self.run_topics()
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+        self.assertTrue((self.out / "stage" / "a.py").exists())
+        for topic, text in (("ux", "UX question"), ("hardening", "Hardening question")):
+            t = self.out / "topics" / topic
+            self.assertIn(text, (t / "question.md").read_text())
+            for name in ("blinding.json", "tally.json", "synthesis.md", "run.json"):
+                self.assertTrue((t / name).exists(), f"{topic}/{name}")
+            self.assertFalse((t / "stage").exists())  # one staged copy serves every topic
+            self.assertIn(text, (t / "stage1" / "codex-brief.md").read_text())
+            self.assertRegex(r.stdout, rf"(?m)^\[{topic}\]\s+stage 1 codex")
+            self.assertTrue(list(self.rd.glob(f"*-conference-{topic}/synthesis.md")), topic)
+        # every member answers and reviews once per topic; the ready check runs once per seat
+        stage1 = [c for c in self.calls() if "/stage1/" in c["brief"]]
+        self.assertEqual(len(stage1), 2 * len(MEMBERS))
+        self.assertEqual(len(self.ready_calls()), len(MEMBERS))
+        run = json.loads((self.out / "run.json").read_text())
+        self.assertEqual({t: v["exit"] for t, v in run["topics"].items()}, {"ux": 0, "hardening": 0})
+
+    def test_blinding_is_independent_per_topic(self):
+        self.run_topics()
+        ux = json.loads((self.out / "topics" / "ux" / "blinding.json").read_text())
+        hard = json.loads((self.out / "topics" / "hardening" / "blinding.json").read_text())
+        self.assertNotEqual({m: b["seed"] for m, b in ux.items()}, {m: b["seed"] for m, b in hard.items()})
+
+    def test_a_member_failing_one_topic_keeps_its_other_answer(self):
+        responses = {m: {"stage2": ALL} for m in MEMBERS}
+        responses["codex"]["fail_when"] = "UX question"
+        r = self.run_topics(responses)
+        self.assertEqual(r.returncode, 3, r.stderr + r.stdout)
+        self.assertFalse((self.out / "topics" / "ux" / "stage1" / "codex.md").exists())
+        self.assertTrue((self.out / "topics" / "hardening" / "stage1" / "codex.md").exists())
+        run = json.loads((self.out / "run.json").read_text())
+        self.assertEqual({t: v["exit"] for t, v in run["topics"].items()}, {"ux": 3, "hardening": 0})
+
+    def test_topic_names_come_from_the_files_and_must_be_distinct(self):
+        r = self.run_topics(extra=["--topic", "both"])
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("--topic", r.stderr)
+        twin = self.tmp / "other" / "ux.md"
+        twin.parent.mkdir()
+        twin.write_text("another UX question\n")
+        r = self.run_topics(questions=[self.ux, twin])
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("ux", r.stderr)
+        self.assertFalse(self.out.exists())
+
+    def test_topic_names_differing_only_in_case_are_refused(self):
+        # macOS folders ignore case, so Foo and foo would write into one topic folder at once.
+        upper = self.tmp / "upper" / "Ux.md"
+        upper.parent.mkdir()
+        upper.write_text("another UX question\n")
+        r = self.run_topics(questions=[self.ux, upper])
+        self.assertEqual(r.returncode, 2, r.stderr + r.stdout)
+        self.assertFalse(self.out.exists())
+
+    def test_one_topic_crashing_still_leaves_every_topics_exit_code(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("conference_topics", SCRIPT)
+        cf = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cf)
+        from unittest import mock
+        with mock.patch.object(cf, "_continue", side_effect=OSError("disk full")), \
+                mock.patch("sys.stdout"):
+            self.assertEqual(cf._run_topic({"tag": "[x] "}), cf.EXIT_FAILED)
+
+    def test_a_paused_topic_resumes_on_the_shared_stage(self):
+        responses = {m: {"stage2": "ABC"} for m in ("claude", "codex")}
+        responses["claude"]["chair"] = "Synthesis."
+        r = self.run_topics(responses, extra=["--members", "claude,codex,user"])
+        self.assertEqual(r.returncode, 5, r.stderr + r.stdout)
+        topic = self.out / "topics" / "ux"
+        self.assertIn(str(self.out / "stage"), (topic / "stage1" / "user-brief.md").read_text())
+        (topic / "stage1" / "user.md").write_text(TestUserMember.ANSWER)
+        env = dict(self.env, AGENT_REVIEW_FAKE_RESPONSES=json.dumps(responses))
+        r = subprocess.run([sys.executable, str(SCRIPT), "resume", "--run", str(topic)], env=env, text=True,
+                           capture_output=True, timeout=120)
+        self.assertEqual(r.returncode, 5, r.stderr + r.stdout)  # on to the user's review, with the stage found
+        self.assertTrue((topic / "stage2" / "user-brief.md").exists())
+
+
+class TestReadyCheck(Base):
+    """Every seat answers a one-word call before anything else runs, so a lapsed login or a
+    missing CLI stops the run at the start instead of shrinking the panel in silence."""
+
+    def test_check_reports_every_seat_ready(self):
+        r = self.check()
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+        for m in MEMBERS + ["chair"]:
+            self.assertRegex(r.stdout, rf"(?m)^  {m}\s+\S+\s+ready")
+        self.assertEqual(sorted({c["member"] for c in self.ready_calls()}), sorted(MEMBERS))
+        self.assertEqual(self.calls(), [])  # a check spends nothing past the ready calls
+
+    def test_an_offline_seat_stops_the_run_before_anything_is_staged_or_spent(self):
+        responses = {m: {"stage2": ALL} for m in MEMBERS}
+        responses["cursor"] = {"offline": "Error: Authentication required. Please run 'agent login' first."}
+        r = self.run_conference(responses)
+        self.assertEqual(r.returncode, 6, r.stderr + r.stdout)
+        self.assertRegex(r.stdout, r"(?m)^  cursor\s+\S+\s+NOT READY\s+Error: Authentication required")
+        self.assertIn("conference.py check", r.stdout)  # how to recheck once it is fixed
         self.assertFalse(self.out.exists())
         self.assertEqual(self.calls(), [])
 
-    def test_chair_falls_back_to_session_when_claude_is_unavailable(self):
+    def test_a_check_after_the_fix_passes(self):
+        offline = {"cursor": {"offline": "Error: Authentication required."}}
+        self.assertEqual(self.check(offline).returncode, 6)
+        self.assertEqual(self.check().returncode, 0)
+
+    def test_a_missing_cli_stops_the_run_and_is_never_called(self):
+        self.env["AGENT_REVIEW_FAKE_MISSING"] = "codex"
+        r = self.run_conference()
+        self.assertEqual(r.returncode, 6, r.stderr + r.stdout)
+        self.assertRegex(r.stdout, r"(?m)^  codex\s+\S+\s+NOT READY\s+fake: \S+ not installed")
+        self.assertFalse(self.out.exists())
+        self.assertNotIn("codex", [c["member"] for c in self.ready_calls()])
+
+    def test_the_chair_is_checked_and_a_session_chair_needs_no_check(self):
         self.env["AGENT_REVIEW_FAKE_MISSING"] = "claude"
-        responses = {m: {"stage2": ONE_DOWN} for m in MEMBERS}
+        responses = {m: {"stage2": "ABC"} for m in MEMBERS}
         r = self.run_conference(responses, extra=["--members", "codex,cursor,antigravity"])
-        self.assertEqual(r.returncode, 3, r.stderr + r.stdout)
-        self.assertIn("chair   session", r.stdout)
-        self.assertIn("claude", r.stdout)
+        self.assertEqual(r.returncode, 6, r.stderr + r.stdout)
+        self.assertRegex(r.stdout, r"(?m)^  chair\s+\S+\s+NOT READY")
+        r = self.run_conference(responses, extra=["--members", "codex,cursor,antigravity", "--chair", "session"])
+        self.assertNotEqual(r.returncode, 6, r.stderr + r.stdout)
         self.assertTrue((self.out / "chair-brief.md").exists())
-        self.assertFalse((self.out / "synthesis.md").exists())
-        run = json.loads((self.out / "run.json").read_text())
-        self.assertEqual(run["chair"], "session")
-        self.assertIn("claude", run["chair_fallback"])
-        self.assertEqual(run["skipped"], {})
+
+    def test_the_user_seat_is_not_called(self):
+        r = self.check(members=["claude", "codex", "user"])
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+        self.assertRegex(r.stdout, r"(?m)^  user\s+.*you")
+        self.assertNotIn("user", [c["member"] for c in self.ready_calls()])
 
     def test_chair_session_leaves_the_brief_and_no_synthesis(self):
         responses = {m: {"stage2": ALL} for m in MEMBERS}

@@ -4,6 +4,7 @@ seq	date	url	kind	resolution	state
 48	2026-09-18	https://aclanthology.org/2025.findings-acl.1226	manual-override	'adjacent' -> 'papers|media'	hot
 79	2026-09-25	https://agentclientprotocol.com/	manual-override	'adjacent' -> 'docs|harnesses'	hot
 76	2026-09-23	https://aitmpl.com/component/mod/productivity/jev-skill-suggestion	manual-override	'adjacent' -> 'skills'	hot
+123	2026-11-06	https://artificialanalysis.ai/text-to-speech/leaderboard/provider-voice/open-weights	manual-override	'adjacent' -> 'media|eval'	hot
 53	2026-09-18	https://arxiv.org/abs/2307.14335	manual-override	'papers' -> 'papers|media'	hot
 54	2026-09-18	https://arxiv.org/abs/2408.09869	manual-override	'papers' -> 'papers|ingestion'	hot
 58	2026-09-18	https://arxiv.org/abs/2503.00455	manual-override	'papers' -> 'papers|media'	hot
@@ -17,6 +18,7 @@ seq	date	url	kind	resolution	state
 78	2026-09-25	https://buzz.xyz/	manual-override	'adjacent' -> 'docs|harnesses'	hot
 46	2026-09-18	https://deepmind.google/blog/pushing-the-frontiers-of-audio-generation	manual-override	'adjacent' -> 'media|learning'	cold
 52	2026-09-18	https://deepmind.google/blog/pushing-the-frontiers-of-audio-generation	kept-manual	kept 'media|learning|map', auto said 'adjacent'	hot
+124	2026-11-06	https://developer.apple.com/documentation/speech/speechtranscriber	manual-override	'adjacent' -> 'media|docs'	hot
 110	2026-11-01	https://docs.band.ai/	manual-override	'adjacent' -> 'docs|harnesses'	hot
 3	2026-07-27	https://docs.cloud.google.com/spanner/docs/graph/overview	manual-override	'docs|frameworks' -> 'docs|adjacent|map'	hot
 90	2026-10-29	https://docs.github.com/en/copilot/how-tos/use-copilot-agents/use-copilot-cli	manual-override	'adjacent|map' -> 'docs|harnesses|map'	hot
@@ -93,7 +95,17 @@ seq	date	url	kind	resolution	state
 12	2026-08-09	https://github.com/yc-software/qm	manual-override	'harnesses, map' -> 'harnesses|map'	cold
 13	2026-08-14	https://github.com/yc-software/qm	kept-manual	kept 'harnesses|map', auto said 'triage'	hot
 23	2026-08-14	https://github.com/zhaoxuya520/reverse-skill	manual-override	'triage' -> 'skills|eval|security'	hot
+117	2026-11-06	https://huggingface.co/collections/mlx-community/qwen3-asr	manual-override	'models' -> 'media|models'	hot
+119	2026-11-06	https://huggingface.co/mlx-community/Kokoro-82M-bf16	manual-override	'models' -> 'media|models'	hot
+121	2026-11-06	https://huggingface.co/mlx-community/Soprano-1.1-80M-bf16	manual-override	'models' -> 'media|models'	hot
+114	2026-11-06	https://huggingface.co/mlx-community/parakeet-tdt-0.6b-v2	manual-override	'models' -> 'media|models'	hot
+115	2026-11-06	https://huggingface.co/mlx-community/parakeet-tdt-0.6b-v3	manual-override	'models' -> 'media|models'	hot
+120	2026-11-06	https://huggingface.co/mlx-community/pocket-tts	manual-override	'models' -> 'media|models'	hot
+118	2026-11-06	https://huggingface.co/mlx-community/whisper-large-v3-turbo-q4	manual-override	'models' -> 'media|models'	hot
+116	2026-11-06	https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2	manual-override	'models' -> 'media|models'	hot
+122	2026-11-06	https://huggingface.co/spaces/hf-audio/open_asr_leaderboard	manual-override	'models' -> 'media|eval'	hot
 112	2026-11-01	https://modelcontextprotocol.io/specification/2026-07-28	manual-override	'adjacent' -> 'docs|skills'	hot
+127	2026-11-06	https://picovoice.ai/blog/on-device-tts	manual-override	'adjacent' -> 'media|learning'	hot
 84	2026-10-09	https://platform.claude.com/docs/en/models/haiku-5-5/overview	manual-override	'adjacent' -> 'docs|models'	hot
 63	2026-09-18	https://podcast-agent.github.io/demo	manual-override	'adjacent' -> 'media|papers'	hot
 67	2026-09-18	https://podcastfy.readthedocs.io/en/latest/podcastfy.html	manual-override	'docs' -> 'docs|media'	hot
@@ -106,9 +118,12 @@ seq	date	url	kind	resolution	state
 66	2026-09-18	https://trafilatura.readthedocs.io/	manual-override	'docs' -> 'docs|ingestion'	hot
 77	2026-09-23	https://venturebeat.com/security/companies-are-putting-jev-in-charge-of-ai-agent-decisions-and-prompt-injection-can-influence-the-verdict	manual-override	'adjacent' -> 'security'	hot
 91	2026-10-29	https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents	manual-override	'adjacent|map' -> 'docs|learning|map'	hot
+125	2026-11-06	https://www.argmaxinc.com/blog/apple-and-argmax	manual-override	'adjacent' -> 'media|learning'	hot
 109	2026-11-01	https://www.band.ai/	manual-override	'adjacent' -> 'docs|harnesses'	hot
 62	2026-09-18	https://www.latent.space/p/notebooklm	manual-override	'learning' -> 'media|learning'	hot
 45	2026-09-18	https://www.lmsys.org/blog/2026-06-04-higgs-audio-v3-tts	manual-override	'adjacent' -> 'media|models'	hot
+126	2026-11-06	https://www.macstories.net/stories/hands-on-how-apples-new-speech-apis-outpace-whisper-for-lightning-fast-transcription	manual-override	'adjacent' -> 'media|learning'	hot
+128	2026-11-06	https://www.marktechpost.com/2026/07/23/best-open-speech-recognition-asr-models-in-2026-wer-languages-latency-and-license-compared	manual-override	'adjacent' -> 'media|learning'	hot
 9	2026-07-28	https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron	manual-override	'docs|adjacent' -> 'docs|models'	hot
 65	2026-09-18	https://www.open-notebook.ai/features/content-support	manual-override	'adjacent' -> 'media|docs|ingestion'	hot
 92	2026-10-29	https://www.sqlite.org/fts5.html	manual-override	'adjacent|map' -> 'docs|vectordb|map'	hot
