@@ -170,6 +170,61 @@ class HeadingTests(unittest.TestCase):
         text = "---\ntitle: Field Journal\n---\n\n# Real\n"
         self.assertEqual(self.paths(text), ["Real"])
 
+    def test_setext_nodes_carry_level_and_flag(self):
+        nodes = markdown_kg.parse_headings("Foo\n===\n\nBar\n---\n\n# Baz\n")
+        self.assertEqual([(n.level, n.heading, n.setext) for n in nodes],
+                         [(1, "Foo", True), (2, "Bar", True), (1, "Baz", False)])
+
+    # CommonMark: a setext underline cannot reach text inside a list item, a
+    # blockquote or a table. Each of these rendered as plain bullets or a rule
+    # in Obsidian while the parser cut a journal's entries into false H2s.
+    def test_empty_bullet_after_a_list_item_is_a_list_item(self):
+        text = "# A\n\n- a list item with some text\n- \n\nmore text\n"
+        self.assertEqual(self.paths(text), ["A"])
+
+    def test_rule_after_a_list_item_is_a_break(self):
+        text = "# A\n\n- a list item with some text\n---\n\n## B\n"
+        self.assertEqual(self.paths(text), ["A", "A > B"])
+
+    def test_rule_after_a_list_continuation_is_a_break(self):
+        self.assertEqual(self.paths("- item\n  continued\nlazy\n---\n"), [])
+
+    def test_list_interrupting_a_paragraph_shields_the_underline(self):
+        self.assertEqual(self.paths("Foo\n- bar\n---\n"), [])
+
+    def test_rule_after_a_table_or_a_quote_is_a_break(self):
+        self.assertEqual(
+            self.paths("| a | b |\n|---|---|\n| 1 | 2 |\n---\n"), [])
+        self.assertEqual(self.paths("> quoted\n---\n"), [])
+
+    def test_rule_right_after_a_setext_heading_is_a_break(self):
+        self.assertEqual(self.paths("Foo\n---\n---\n"), ["Foo"])
+
+    def test_paragraph_after_a_list_and_a_blank_line_is_underlined(self):
+        self.assertEqual(self.paths("- item\n\nFoo\n---\n"), ["Foo"])
+
+    def test_rule_after_a_list_ends_the_list(self):
+        self.assertEqual(self.paths("- item\n---\nFoo\n---\n"), ["Foo"])
+
+    def test_consecutive_rules_are_breaks(self):
+        self.assertEqual(self.paths("Foo\n---\n---\n---\n"), ["Foo"])
+        self.assertEqual(self.paths("---\n---\n---\n"), [])
+
+    def test_rule_right_after_frontmatter_is_a_break(self):
+        text = "---\ntitle: x\n---\n---\n\n# A\n"
+        self.assertEqual(self.paths(text), ["A"])
+
+    def test_spaced_rule_ends_the_run_before_a_real_heading(self):
+        self.assertEqual(self.paths("* * *\nFoo\n---\n"), ["Foo"])
+        self.assertEqual(self.paths("- item\n- - -\nFoo\n---\n"), ["Foo"])
+
+    def test_a_note_of_underlines_parses_in_linear_time(self):
+        for underline in ("=\n", "---\n"):
+            start = time.perf_counter()
+            nodes = markdown_kg.parse_headings("- x\n" + underline * 20000)
+            self.assertEqual(nodes, [])
+            self.assertLess(time.perf_counter() - start, 2.0)
+
 
 class DateInferenceTests(unittest.TestCase):
     """The date format is learned from the corpus, never matched against a
@@ -774,6 +829,33 @@ class IgnoreTests(VaultCase):
     def test_stats_reports_what_was_excluded(self):
         self.assertEqual(
             markdown_kg.main(["stats", str(self.vault), "--json"]), 0)
+
+    def test_stats_reports_suspect_headings(self):
+        self.limits(floor=1)
+        long_heading = ("word " * 30).strip()
+        (self.vault / "Suspect.md").write_text(
+            "# Suspect\n\nUnderlined\n---\n\ntext\n\n## - dash first\n\n"
+            f"text\n\n## {long_heading}\n\ntext\n", encoding="utf-8")
+        markdown_kg.ingest(self.vault)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            code = markdown_kg.main(["stats", str(self.vault), "--json"])
+        self.assertEqual(code, 0)
+        report = json.loads(buf.getvalue())["suspect_headings"]
+        self.assertEqual(report["status"], "COMPLETE")
+        reasons = {tuple(r["reasons"]) for r in report["rows"]
+                   if r["note_id"] == "Suspect"}
+        self.assertEqual(reasons,
+                         {("setext",), ("list-marker",), ("clipped",)})
+
+    def test_index_revision_bump_marks_the_database_stale(self):
+        markdown_kg.ingest(self.vault)
+        stored = self.rows("SELECT value FROM meta WHERE key='manifest'")[0][0]
+        self.assertEqual(stored, markdown_kg.manifest(self.vault))
+        old = markdown_kg.INDEX_REV
+        self.addCleanup(setattr, markdown_kg, "INDEX_REV", old)
+        markdown_kg.INDEX_REV = old + 1
+        self.assertNotEqual(stored, markdown_kg.manifest(self.vault))
 
 
 class UntrustedVaultTests(VaultCase):
@@ -1652,6 +1734,34 @@ class TrajectoryTests(SyntheticLogCase):
         self.assertEqual(t["distinct_dates"], 450)
         self.assertEqual(t["earliest"], "2024-01-01")
         self.assertEqual(t["span_days"], 449)
+
+    def test_slot_filter_applies_before_the_search_row_cap(self):
+        # 450 dated entries match; the one `prep:` section has the worst bm25
+        # by far, so a cap taken before the slot filter would drop it and the
+        # slot search would come back empty while reporting COMPLETE.
+        from datetime import date, timedelta
+        big = self.tmp / "big"
+        big.mkdir()
+        lines = ["# Big", ""]
+        for i in range(450):
+            d = (date(2024, 1, 1) + timedelta(days=i)).isoformat()
+            lines += [f"## {d}", "", "beacon lit", ""]
+            if i == 0:
+                lines += ["### prep: deep", "",
+                          "beacon " + " ".join(f"w{j}" for j in range(120)), ""]
+        (big / "big.md").write_text("\n".join(lines), encoding="utf-8")
+        markdown_kg.kg_dir(big).mkdir()
+        markdown_kg.config_path(big).write_text(markdown_kg.dump_config(
+            {"ignore": [], "entities": [],
+             "profiles": [{"path": "big.md", "profile": "log-dated"}]}),
+            encoding="utf-8")
+        markdown_kg.ingest(big)
+        got = markdown_kg.search(big, "beacon", limit=10, per_note=500,
+                                 slot="prep")
+        self.assertEqual([h["slot"] for h in got["results"]], ["prep"])
+        self.assertFalse(got["capped"])
+        everything = markdown_kg.search(big, "beacon", limit=10, per_note=500)
+        self.assertTrue(everything["capped"])
 
     def test_cli_entry_point(self):
         self.assertEqual(markdown_kg.main(

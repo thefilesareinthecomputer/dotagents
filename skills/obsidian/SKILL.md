@@ -202,6 +202,12 @@ A[Start] --> B{Decision}
 
 **Comments** (Obsidian-proprietary, hidden in Reading view): `%%inline%%` or block `%% ... %%`.
 
+**Headings every parser agrees on.** Write headings as ATX (`#` to `######`), never setext
+(a text line underlined with `===` or `---`). Put a blank line above every `---` divider,
+because directly under a paragraph it turns that paragraph into an H2 in every CommonMark
+reader. An empty bullet (`- `) after a list item is a list item, not an underline; leave it
+alone.
+
 For full basic markdown (headings, lists, tasks, tables, escaping, line breaks) see
 [references/SYNTAX.md](references/SYNTAX.md). For plugin-specific syntax (Dataview, Tasks,
 Templater, Bases), emit only when detected, see [references/PLUGINS.md](references/PLUGINS.md).
@@ -231,6 +237,7 @@ portability is the explicit goal, never in normal Obsidian authoring (see Render
 - Treating `==`, `[[ ]]`, or callouts as portable; they are Obsidian-only.
 - KaTeX-only math macros (Obsidian is MathJax).
 - Authoring before the vault probe and the user's confirmation.
+- A setext heading, or a `---` directly under text (CommonMark reads that text as an H2).
 
 ## Index this vault
 

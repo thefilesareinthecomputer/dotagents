@@ -224,10 +224,13 @@ path and no submission protocol. Field reference: `references/config.md`.
 8. **Orient.** `stats` reports counts, orphans, unresolved and ambiguous links,
    what an ignore rule excluded, and repeated heading paths - those get section
    ids disambiguated by ordinal, so inserting one shifts the rest and breaks
-   citations to them. Renaming the headings is the fix. `index --out PATH`
-   renders a vault index
-   from the graph - orphans, broken links, hubs by degree, largest notes - and
-   marks it auto-generated so it never indexes itself.
+   citations to them. Renaming the headings is the fix. It also lists suspect
+   headings: a heading that was underlined (setext), one whose text opens like
+   a list item, and one clipped at the heading cap. The list shows a mis-parse
+   in the report instead of as a missing entry; check the file before trusting
+   a suspect heading's section. `index --out PATH` renders a vault index from
+   the graph - orphans, broken links, hubs by degree, largest notes - and marks
+   it auto-generated so it never indexes itself.
 
 Every command takes `--json`.
 
@@ -317,6 +320,9 @@ brief as the author's own writing. A graph with no log-dated note returns
   `TRUNCATED`, either narrow the query or raise the limit - never fill in the
   remainder from inference. A truncated result also cannot support a negative:
   never assert something is absent from the corpus off a bounded result set.
+  `search` also reports `capped` (`CAPPED` in prose): the ranking saw only the
+  best FTS matches up to its row cap, so narrow the query or add `--slot`
+  before reading anything into what is missing.
 - **Ambiguity is recorded, never guessed.** A bare `[[link]]` matching two
   basenames produces no edge and shows up in `stats`. Link with a path fragment
   (`[[folder/Note]]`) to disambiguate.

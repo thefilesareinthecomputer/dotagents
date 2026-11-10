@@ -96,6 +96,10 @@ SIZE_CEILING = 1000
 SIZE_OVERLAP = 60
 WORD_FLOOR = 25
 HEADING_MAX = 120
+# Bump when a parser or schema change must re-index a vault whose files have
+# not changed. The manifest folds it in, so the next read command re-ingests
+# once instead of serving sections the old parser cut.
+INDEX_REV = 2
 
 PROFILES = {"log-dated", "reference", "dimension", "list", "generated", "hub",
             "freeform"}
@@ -130,6 +134,11 @@ ANCHOR_BOOST = 1.0
 # match under a weak newer one. Overridable per vault (`recency_k` in config) and
 # per call (`--recency-k`); 0 switches it off.
 RECENCY_K = 0.5
+
+# How many best-ranked FTS matches `search` scores. A slot filter is applied
+# inside the query so the cap counts only matches in that slot; a result that
+# hit the cap says so in `capped`.
+SEARCH_ROW_CAP = 400
 
 # Inline annotations: `**MARKER**: payload` at column 0 of a body line, ALL-CAPS
 # token, colon immediately after the closing `**`. Only registered markers (this
@@ -268,7 +277,8 @@ CREATE TABLE IF NOT EXISTS sections(
   words        INTEGER NOT NULL DEFAULT 0,
   is_unit      INTEGER NOT NULL DEFAULT 0,
   oversize     INTEGER NOT NULL DEFAULT 0,
-  section_hash TEXT NOT NULL DEFAULT ''
+  section_hash TEXT NOT NULL DEFAULT '',
+  setext       INTEGER NOT NULL DEFAULT 0   -- heading was underlined, not ATX
 );
 CREATE INDEX IF NOT EXISTS sections_note ON sections(note_id);
 CREATE INDEX IF NOT EXISTS sections_date ON sections(doc_date);
@@ -368,7 +378,14 @@ MD_LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^()]+)\)")
 INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 ATX_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 SETEXT_RE = re.compile(r"^(=+|-+)\s*$")
+THEMATIC_BREAK_RE = re.compile(r"^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$")
 LIST_ITEM_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+(.*\S)\s*$")
+# A line that opens a list item (an empty one too), and a line inside a
+# blockquote or a table. The heading parser keeps a setext underline away from
+# text in these containers, as CommonMark does; `stats` reuses the list marker
+# to flag a heading whose text opens like an item.
+LIST_MARKER_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])(?:\s|$)")
+BLOCK_CONTAINER_RE = re.compile(r"^\s*[>|]")
 THEMATIC_BREAK_RE = re.compile(r"^\s{0,3}(?:\*\s*){3,}$|^\s{0,3}(?:-\s*){3,}$"
                                r"|^\s{0,3}(?:_\s*){3,}$")
 WORD_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9'_-]*")
@@ -437,7 +454,8 @@ def connect(vault: Path, must_exist: bool = False) -> sqlite3.Connection:
 # re-ingest computes real values, so an unmigrated db degrades to unweighted
 # rather than to broken.
 _ADDED_COLUMNS = {
-    "sections": [("weight", "REAL NOT NULL DEFAULT 1.0")],
+    "sections": [("weight", "REAL NOT NULL DEFAULT 1.0"),
+                 ("setext", "INTEGER NOT NULL DEFAULT 0")],
 }
 
 
@@ -1104,11 +1122,12 @@ def parse_order(label: str) -> tuple[str, ...] | None:
 # ---------- headings and sections ----------
 class Node:
     __slots__ = ("level", "heading", "line", "char", "body_char", "end_char",
-                 "end_line", "children", "parent", "path")
+                 "end_line", "children", "parent", "path", "setext")
 
-    def __init__(self, level, heading, line, char, body_char):
+    def __init__(self, level, heading, line, char, body_char, setext=False):
         self.level = level
         self.heading = heading
+        self.setext = setext        # underlined with === or ---, not ATX
         self.line = line            # 1-indexed line of the heading
         self.char = char            # char offset of the heading line
         self.body_char = body_char  # char offset just after the heading
@@ -1132,26 +1151,55 @@ def parse_headings(text: str) -> list[Node]:
         offsets.append(pos)
         pos += len(ln)
     nodes: list[Node] = []
+    # One pass, constant work per line: a hostile note made of underlines must
+    # not turn the parse quadratic. `boundary` is the index of the last line
+    # that closed a block (a heading line, a setext underline, a thematic break
+    # or an empty list item), so the line after it opens a new paragraph.
+    # `contained` says the current paragraph run opened in, or holds a line
+    # from, a list item, a blockquote or a table.
+    boundary = -1
+    contained = False
     for i, raw in enumerate(lines):
-        if offsets[i] < body_start:
-            continue
-        if i < len(mask) and mask[i]:
+        if offsets[i] < body_start or (i < len(mask) and mask[i]):
+            contained = False
             continue
         line = raw.rstrip("\n")
+        if not line.strip():
+            contained = False
+            continue
         m = ATX_RE.match(line)
         if m:
             nodes.append(Node(len(m.group(1)), _clip_heading(m.group(2)),
                               i + 1, offsets[i], offsets[i] + len(raw)))
+            boundary = i
+            contained = False
             continue
         sm = SETEXT_RE.match(line)
-        if sm and i > 0 and not (i - 1 < len(mask) and mask[i - 1]):
-            prev = lines[i - 1].rstrip("\n").strip()
-            if prev and not ATX_RE.match(prev) and not prev.startswith(">"):
-                if nodes and nodes[-1].line == i:
-                    continue
-                level = 1 if sm.group(1)[0] == "=" else 2
-                nodes.append(Node(level, _clip_heading(prev), i,
-                                  offsets[i - 1], offsets[i] + len(raw)))
+        if (sm and i > 0 and i - 1 != boundary and not contained
+                and offsets[i - 1] >= body_start
+                and not (i - 1 < len(mask) and mask[i - 1])
+                and lines[i - 1].strip()):
+            # CommonMark: an underline closes a paragraph at the top level.
+            # Text inside a list item, a blockquote or a table is out of its
+            # reach, so there `---` is a thematic break and `-` an empty list
+            # item, a rule and a bullet in Obsidian. Promoting them would cut
+            # the text that follows out of the heading above it.
+            level = 1 if sm.group(1)[0] == "=" else 2
+            nodes.append(Node(level, _clip_heading(lines[i - 1].strip()), i,
+                              offsets[i - 1], offsets[i] + len(raw),
+                              setext=True))
+            boundary = i
+            contained = False
+            continue
+        if (sm and sm.group(1)[0] == "-") or THEMATIC_BREAK_RE.match(line):
+            # A dash line that is not an underline is a thematic break or an
+            # empty list item, and `* * *` or `- - -` is a thematic break: a
+            # block of its own, never paragraph text, and it ends whatever
+            # list or paragraph came before it.
+            boundary = i
+            contained = False
+        elif LIST_MARKER_RE.match(line) or BLOCK_CONTAINER_RE.match(line):
+            contained = True
     return nodes
 
 
@@ -1313,7 +1361,8 @@ def build_sections(note_id: str, text: str, row: dict, learned: dict) -> list[di
                                        else "authored")
 
     def add(path, level, char_start, char_end, line_start, line_end,
-            is_unit, parent_id, doc_date="", oversize=0, heading=""):
+            is_unit, parent_id, doc_date="", oversize=0, heading="",
+            setext=False):
         body = text[char_start:char_end]
         words = word_count(body)
         sid = section_id(note_id, path, seen)
@@ -1325,7 +1374,7 @@ def build_sections(note_id: str, text: str, row: dict, learned: dict) -> list[di
             "line_start": line_start, "line_end": line_end,
             "body": body, "doc_date": doc_date, "slot": slot_for(path),
             "words": words, "is_unit": 1 if is_unit else 0,
-            "oversize": oversize,
+            "oversize": oversize, "setext": int(setext),
             "section_hash": hashlib.sha256(body.encode()).hexdigest()[:16],
         })
         return sid
@@ -1356,7 +1405,8 @@ def build_sections(note_id: str, text: str, row: dict, learned: dict) -> list[di
                 lead_line = (node.children[0].line - 1 if node.children
                              else node.end_line)
                 add(node.path, node.level, node.char, lead_end, node.line,
-                    max(lead_line, node.line), False, "", heading=node.heading)
+                    max(lead_line, node.line), False, "", heading=node.heading,
+                    setext=node.setext)
             continue
         doc_date = ""
         if is_unit and profile == "log-dated" and order:
@@ -1379,7 +1429,7 @@ def build_sections(note_id: str, text: str, row: dict, learned: dict) -> list[di
             continue
         sid = add(node.path, node.level, node.char, node.end_char, node.line,
                   node.end_line, is_unit, parent_id, doc_date,
-                  heading=node.heading)
+                  heading=node.heading, setext=node.setext)
         if is_unit:
             unit_ids[id(node)] = sid
             if body_words > SIZE_CEILING and not node.children:
@@ -1591,6 +1641,7 @@ def manifest(vault: Path) -> str:
     if cfg.exists():
         parts.append(f"__config__|{cfg.stat().st_size}|"
                      f"{int(cfg.stat().st_mtime_ns)}")
+    parts.append(f"__index__|{INDEX_REV}")
     return hashlib.sha256("\n".join(parts).encode()).hexdigest()
 
 
@@ -1801,14 +1852,14 @@ def ingest(vault: Path, keep_previous: bool = False) -> dict:
                 "INSERT INTO sections(id, note_id, parent_id, heading,"
                 " heading_path, level, ord, char_start, char_end, line_start,"
                 " line_end, body, own_body, doc_date, slot, weight, words,"
-                " is_unit, oversize, section_hash)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                " is_unit, oversize, section_hash, setext)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (sec["id"], sec["note_id"], sec["parent_id"], sec["heading"],
                  sec["heading_path"], sec["level"], sec["ord"],
                  sec["char_start"], sec["char_end"], sec["line_start"],
                  sec["line_end"], sec["body"], sec["own_body"],
                  sec["doc_date"], sec["slot"], w, sec["words"], sec["is_unit"],
-                 sec["oversize"], sec["section_hash"]))
+                 sec["oversize"], sec["section_hash"], sec.get("setext", 0)))
             for i, name in enumerate(sec.get("members", [])):
                 con.execute(
                     "INSERT OR IGNORE INTO members(section_id, note_id,"
@@ -2264,13 +2315,20 @@ def search(vault: Path, question: str, limit: int = 10,
     phrases, terms = tokenize(question)
     if not phrases and not terms:
         con.close()
-        return {"query": question, "rung": None, "status": "COMPLETE",
-                "total": 0, "results": []}
+        return {"query": question, "rung": None, "capped": False,
+                "status": "COMPLETE", "total": 0, "results": []}
     deg = _degree(con, skip_hubs=True)
     max_deg = max(deg.values()) if deg else 1
     rows: list[sqlite3.Row] = []
     used_rung = None
+    # The slot filter runs inside the query, before the row cap. Applied after
+    # it, the cap was taken by whichever notes match the term most densely (a
+    # copied book, a quotes file), and a long generated section of a journal
+    # ranked past the cap among all matches was dropped before the filter
+    # could keep it.
+    slot_sql = " AND s.slot = ?" if slot else ""
     for name, expr in search_rungs(phrases, terms):
+        params = (expr, slot) if slot else (expr,)
         try:
             rows = con.execute(
                 "SELECT s.id, s.note_id, s.heading_path, s.doc_date, s.slot,"
@@ -2281,8 +2339,9 @@ def search(vault: Path, question: str, limit: int = 10,
                 " FROM sections_fts"
                 " JOIN sections s ON s.rowid = sections_fts.rowid"
                 " JOIN notes n ON n.id = s.note_id"
-                " WHERE sections_fts MATCH ? ORDER BY rank LIMIT 400",
-                (expr,)).fetchall()
+                " WHERE sections_fts MATCH ?" + slot_sql +
+                f" ORDER BY rank LIMIT {SEARCH_ROW_CAP}",
+                params).fetchall()
         except sqlite3.OperationalError:
             continue
         if rows:
@@ -2290,8 +2349,8 @@ def search(vault: Path, question: str, limit: int = 10,
             break
     if not rows:
         con.close()
-        return {"query": question, "rung": None, "status": "COMPLETE",
-                "total": 0, "results": []}
+        return {"query": question, "rung": None, "capped": False,
+                "status": "COMPLETE", "total": 0, "results": []}
 
     needles = [p.lower() for p in phrases] + terms
     tiers = note_tiers(con, {r[1] for r in rows})
@@ -2305,8 +2364,6 @@ def search(vault: Path, question: str, limit: int = 10,
     for r in rows:
         (sid, nid, hpath, ddate, sslot, lstart, lend, words, is_unit,
          oversize, title, weight, npath, rank, snip) = r
-        if slot and sslot != slot:
-            continue
         score = -float(rank)
         low_title = (title or "").lower()
         low_head = (hpath or "").lower()
@@ -2359,6 +2416,7 @@ def search(vault: Path, question: str, limit: int = 10,
         per[hit["note_id"]] = per.get(hit["note_id"], 0) + 1
         kept.append(hit)
     total = len(kept)
+    capped = len(rows) >= SEARCH_ROW_CAP
 
     if budget:
         packed, spent = [], 0
@@ -2391,7 +2449,7 @@ def search(vault: Path, question: str, limit: int = 10,
                 continue
             packed.append({**hit, "text": body})
             spent += cost
-        result = {"query": question, "rung": used_rung,
+        result = {"query": question, "rung": used_rung, "capped": capped,
                   "budget": budget, "spent": spent,
                   "total": total, "results": packed[:limit] if limit else packed}
         result["status"] = ("COMPLETE" if len(result["results"]) == total
@@ -2401,7 +2459,7 @@ def search(vault: Path, question: str, limit: int = 10,
 
     con.close()
     out = kept[:limit]
-    return {"query": question, "rung": used_rung, "total": total,
+    return {"query": question, "rung": used_rung, "capped": capped, "total": total,
             "status": ("COMPLETE" if len(out) == total
                        else f"TRUNCATED {len(out)} of {total}"),
             "results": out}
@@ -3223,7 +3281,9 @@ def cmd_search(args: argparse.Namespace) -> int:
         if not res["results"]:
             print(f"no matches for {res['query']!r}")
             return 0
-        print(f"{res['status']}  (rung: {res['rung']})")
+        print(f"{res['status']}  (rung: {res['rung']})"
+              + ("  CAPPED - only the best-ranked matches were scored;"
+                 " narrow the query or add --slot" if res.get("capped") else ""))
         for h in res["results"]:
             head = f"{_term_safe(h['section_id'])}  [{h['lines']}]"
             if h.get("doc_date"):
@@ -4080,6 +4140,23 @@ def cmd_stats(args: argparse.Namespace) -> int:
         "SELECT note_id, heading_path, COUNT(*) c FROM sections"
         " GROUP BY note_id, heading_path HAVING c > 1"
         " ORDER BY c DESC, note_id, heading_path").fetchall()
+    # A heading the parser may have invented, or that nobody can cite: one
+    # that was underlined (a line right above a `---` divider reads as one),
+    # one whose text opens like a list item, or one clipped at HEADING_MAX.
+    # The vault owner tells a mis-parse from a real heading here, instead of
+    # finding out when a section boundary has swallowed an entry.
+    suspects = []
+    for note_id, heading, line_start, setext in con.execute(
+            "SELECT note_id, heading, line_start, setext FROM sections"
+            " WHERE heading != '' ORDER BY note_id, ord"):
+        reasons = [name for name, hit in (
+            ("setext", setext),
+            ("list-marker", LIST_MARKER_RE.match(heading)),
+            ("clipped", len(heading) > HEADING_MAX)) if hit]
+        if reasons:
+            suspects.append({"note_id": note_id, "line": line_start,
+                             "heading": heading[:60], "reasons": reasons})
+    suspect_cap = 50
     tag_count = con.execute(
         "SELECT COUNT(DISTINCT lower(tag)) FROM tags").fetchone()[0]
     ent = con.execute("SELECT COUNT(*) FROM entities").fetchone()[0]
@@ -4113,6 +4190,11 @@ def cmd_stats(args: argparse.Namespace) -> int:
         "heading_collisions": [
             {"note_id": n, "heading_path": h or "(top)", "count": c}
             for n, h, c in collisions],
+        "suspect_headings": {
+            "total": len(suspects),
+            "status": ("COMPLETE" if len(suspects) <= suspect_cap
+                       else f"TRUNCATED {suspect_cap} of {len(suspects)}"),
+            "rows": suspects[:suspect_cap]},
         "annotations": [{"marker": m, "count": c} for m, c in ann_counts],
         "custom_markers": custom_markers,
         "marker_candidates": {
@@ -4148,6 +4230,14 @@ def cmd_stats(args: argparse.Namespace) -> int:
         for row in dupes[:5]:
             print(f"  {row['note_id']}  {row['heading_path']}  "
                   f"x{row['count']}")
+        sh = p["suspect_headings"]
+        print(f"suspect headings: {sh['total']}"
+              + (f"  [{sh['status']}] - underlined, list-marker or clipped;"
+                 " check the file before trusting the section"
+                 if sh["total"] else ""))
+        for row in sh["rows"][:5]:
+            print(f"  {row['note_id']}:{row['line']}  {row['heading']}  "
+                  f"({', '.join(row['reasons'])})")
         print(f"tags: {p['tags']}")
         print(f"entities: {p['entities']} ({p['mentions']} mentions)")
         if p["annotations"]:

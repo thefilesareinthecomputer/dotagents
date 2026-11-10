@@ -36,6 +36,11 @@ bash "$SKILL_DIR/scripts/send.sh" \
   --body-file /tmp/body.md
 ```
 
+When the peer has a live session on this machine, also send it a short direct
+message through the harness's session-messaging tool, naming the mail file and
+the one thing wanted, so it reads the mail now and the conversation opens; the
+mail stays the record.
+
 Compose the body first (start from `templates/<type>.md` if useful). Preview a
 repo's roots with `send.sh --to-repo <path> --inspect`.
 

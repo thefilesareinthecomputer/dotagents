@@ -74,6 +74,7 @@ what one unit is, and every heading beneath a unit is indexed as a child.
 | `is_unit` | 1 for a declared profile unit |
 | `oversize` | 1 when the unit exceeds the size ceiling; it is still stored whole |
 | `section_hash` | sha256 prefix of `body`; the key extractions hang on |
+| `setext` | 1 when the heading was underlined with `===` or `---` rather than written as ATX; `stats` lists these headings as suspect, because a line directly above a `---` divider parses as a setext heading |
 
 ## properties
 
@@ -193,8 +194,9 @@ ingest; rows whose section is gone count as `stale` in `coverage` output.
 ## meta
 
 `ingested_at` (UTC ISO-8601) - the only non-deterministic content in the file -
-and `manifest`, a fingerprint of the vault's file set that every read command
-compares before answering, re-ingesting on drift.
+and `manifest`, a fingerprint of the vault's file set plus the engine's
+`INDEX_REV`, which every read command compares before answering, re-ingesting on
+drift or after a parser or schema change.
 
 ## Full-text index
 
