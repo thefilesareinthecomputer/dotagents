@@ -41,6 +41,7 @@ https://arxiv.org/abs/2610.14224	papers	active	2026-10-19 harness self-improveme
 https://arxiv.org/abs/2610.22196	papers	active	2026-10-19 harness self-improvement + Tencent memory research	2026-10-19			
 https://arxiv.org/html/2509.15464v1	papers	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://arxiv.org/html/2603.27277v1	papers|map	active	phase0-map-reconcile	2026-07-27			
+https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle	docs|frameworks	active	research-list-2026-11-10	2026-11-10			
 https://aws.amazon.com/blogs/opensource/introducing-strands-agents-an-open-source-ai-agents-sdk	docs|frameworks	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://blaizzy.github.io/mlx-audio/models/tts	docs|media	active	ingest	2026-09-18			manual
 https://blog.google/innovation-and-ai/models-and-research/google-labs/notebooklm-audio-overviews-50-languages	media|learning	active	ingest	2026-09-18			manual
@@ -313,7 +314,7 @@ https://github.com/Blaizzy/mlx-vlm	serving|models	active	ingest	2026-09-18
 https://github.com/Canner/WrenAI	rag|frontend|map	active	2026-07-26 directed refresh	2026-07-27			
 https://github.com/CaviraOSS/PageLM	learning|adjacent	active	ingest	2026-09-02		2026-09-02	manual
 https://github.com/Chachamaru127/claude-code-harness	harnesses	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
-https://github.com/D4Vinci/Scrapling	ingestion|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://github.com/D4Vinci/Scrapling	ingestion|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29		2026-11-10	
 https://github.com/DeusData/codebase-memory-mcp	memory|codeintel|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/DietrichGebert/ponytail	triage	triage	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/EQ-bench/creative-writing-bench	eval	active	ingest	2026-09-18			
@@ -383,7 +384,7 @@ https://github.com/NVIDIA/cuml	adjacent|ingestion|map	active	manual	2026-08-07		
 https://github.com/NVIDIA/skills	skills|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/NousResearch/hermes-agent	harnesses|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/OSU-NLP-Group/HippoRAG	rag|map	active	ingest	2026-10-29			
-https://github.com/OpenHands/OpenHands	harnesses|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://github.com/OpenHands/OpenHands	harnesses|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29		2026-11-10	
 https://github.com/OpenHands/software-agent-sdk	harnesses	active	ai-tooling-refresh-2026-07	2026-07-01			
 https://github.com/OpenMOSS/MOSS-TTSD	media|models|map	active	ingest	2026-09-18			
 https://github.com/OpenPipe/ART	tuning|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
@@ -434,6 +435,7 @@ https://github.com/anomalyco/opencode	harnesses|map	active	ai-tooling-refresh-20
 https://github.com/anthropics/skills	skills|map	active	phase0-map-reconcile	2026-07-27			
 https://github.com/apache/age	vectordb|map	active	ingest	2026-10-29			
 https://github.com/asg017/sqlite-vec	vectordb	active	ingest	2026-09-18			
+https://github.com/awslabs/aidlc-workflows	skills|harnesses|map	active	research-list-2026-11-10	2026-11-10		2026-11-10	
 https://github.com/axolotl-ai-cloud/axolotl	tuning|map	active	phase0-map-reconcile	2026-07-27			
 https://github.com/ayghri/i-have-adhd	skills	active	ingest	2026-09-18			manual
 https://github.com/band-ai/band-sdk-python	frameworks|harnesses|map	active	ingest	2026-11-01			manual
@@ -451,6 +453,7 @@ https://github.com/charmbracelet/crush	harnesses|map	active	ai-tooling-refresh-2
 https://github.com/chroma-core/chroma	vectordb	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/cline/cline	harnesses|map	active	ai-tooling-refresh-2026-07	2026-07-01			
 https://github.com/cloudflare/agentic-inbox	triage	triage	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://github.com/cloudflare/security-audit-skill	security|skills|map	active	research-list-2026-11-10	2026-11-10		2026-11-10	
 https://github.com/cobusgreyling/loop-engineering	harnesses|learning|map	active	2026-07-26 directed refresh	2026-07-27			
 https://github.com/colbymchenry/codegraph	codeintel|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/coldteadotai/abide	security|map	active	ingest	2026-09-25		2026-09-25	
@@ -486,6 +489,7 @@ https://github.com/google/adk-python	frameworks|map	active	AI-AGENT-DEV-TOOLS-MA
 https://github.com/google/adk-recipes	frameworks|memory|rag	active	ingest	2026-08-14			manual
 https://github.com/google/agentmesh	adjacent	active	ingest	2026-09-02		2026-09-02	manual
 https://github.com/google/agents-cli	frameworks|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://github.com/google/elephant-goldfish-model	skills|map	active	research-list-2026-11-10	2026-11-10		2026-11-10	
 https://github.com/google/langextract	ingestion|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/google/magika	security	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/graykode/abtop	triage	triage	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
@@ -561,6 +565,7 @@ https://github.com/nari-labs/dia	media|models	active	ingest	2026-09-18
 https://github.com/nari-labs/dia2	media|models	active	ingest	2026-09-18			
 https://github.com/neo4j/neo4j	vectordb|map	active	ingest	2026-10-29			
 https://github.com/neuml/txtai	rag|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://github.com/nexu-io/open-design	frontend|harnesses	active	research-list-2026-11-10	2026-11-10			
 https://github.com/nousresearch/hermes-agent	harnesses	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/nv-morpheus/Morpheus	security|serving|adjacent|map	active	manual	2026-08-07			manual
 https://github.com/ollama/ollama	serving	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
@@ -582,12 +587,15 @@ https://github.com/patoles/agent-flow	harnesses|eval|map	active	2026-07-26 direc
 https://github.com/phuryn/pm-skills	skills	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/pipecat-ai/pipecat	media	active	ingest	2026-10-29			
 https://github.com/presenton/presenton	frontend	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://github.com/public-apis/public-apis	adjacent|learning	active	research-list-2026-11-10	2026-11-10			
+https://github.com/punkpeye/awesome-mcp-servers	skills|learning	active	research-list-2026-11-10	2026-11-10			
 https://github.com/pydantic/pydantic-ai	frameworks|map	active	phase0-map-reconcile	2026-07-27			
 https://github.com/pymupdf/PyMuPDF4LLM	ingestion	active	ingest	2026-09-18			
 https://github.com/reconurge/flowsint	triage	triage	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/refactoringhq/tolaria	triage	triage	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/repowise-dev/repowise	codeintel|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/resemble-ai/chatterbox	media|models	active	ingest	2026-09-18			
+https://github.com/ripienaar/free-for-dev	adjacent|learning	active	research-list-2026-11-10	2026-11-10			
 https://github.com/rohitg00/agentmemory	memory	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/rohitg00/ai-engineering-from-scratch	learning	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/rohitg00/awesome-claude-code-toolkit	skills	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
@@ -603,6 +611,7 @@ https://github.com/semantica-agi/semantica	memory|rag|frameworks	active	ingest	2
 https://github.com/shcherbak-ai/contextgem	ingestion|rag|frameworks	active	ingest	2026-08-14			manual
 https://github.com/shepherd-agents/shepherd	harnesses|security|map	active	2026-07-26 directed refresh	2026-07-27		2026-08-14	
 https://github.com/simplifaisoul/osiris	triage	triage	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://github.com/sindresorhus/awesome	learning	active	research-list-2026-11-10	2026-11-10			
 https://github.com/snakers4/silero-vad	media	active	ingest	2026-10-29			
 https://github.com/souzatharsis/podcastfy	media|learning|map	active	ingest	2026-09-18			
 https://github.com/souzatharsis/podcastfy/blob/main/usage/conversation_custom.md	media|docs|map	active	ingest	2026-09-18			manual
@@ -673,6 +682,7 @@ https://jules.google/	docs|harnesses|map	active	ai-tooling-refresh-2026-07	2026-
 https://learn.microsoft.com/en-us/agent-framework	docs|frameworks	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://learn.microsoft.com/en-us/agent-framework/overview	docs|frameworks	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://lmcache.ai/	serving	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://medium.com/@drensin/elephants-goldfish-and-the-new-golden-age-of-software-engineering-c33641a48874	adjacent	active	research-list-2026-11-10	2026-11-10			
 https://modelcontextprotocol.io/specification/2026-07-28	docs|skills|map	active	ingest	2026-11-01			manual
 https://ollama.com/blog/mlx	serving|models	active	ingest	2026-09-18			
 https://ollama.com/blog/tool-support	serving|models	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			

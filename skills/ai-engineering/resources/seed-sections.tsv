@@ -332,3 +332,11 @@ agntcy/slim	frameworks
 agntcy/dir	frameworks
 agntcy/oasf	frameworks
 agent-network-protocol/AgentNetworkProtocol	frameworks|docs
+cloudflare/security-audit-skill	security|skills
+google/elephant-goldfish-model	skills
+awslabs/aidlc-workflows	skills|harnesses
+nexu-io/open-design	frontend|harnesses
+punkpeye/awesome-mcp-servers	skills|learning
+ripienaar/free-for-dev	adjacent|learning
+public-apis/public-apis	adjacent|learning
+sindresorhus/awesome	learning

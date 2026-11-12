@@ -30,14 +30,6 @@
         {"event": "SessionStart", "sources": ["startup", "resume"], "timeout": 5},
         {"event": "UserPromptSubmit", "timeout": 5}
       ]
-    },
-    {
-      "script": "voice_reply.py",
-      "advisory": true,
-      "bindings": [
-        {"event": "UserPromptSubmit", "timeout": 5},
-        {"event": "Stop", "timeout": 5}
-      ]
     }
   ]
 }

@@ -32,8 +32,7 @@
     ],
     "Stop": [
       {"hooks": [
-        {"type": "command", "command": "python3 ~/.claude/hooks/warn_foreign_edits.py", "timeout": 10},
-        {"type": "command", "command": "python3 ~/.claude/hooks/voice_reply.py", "timeout": 5}
+        {"type": "command", "command": "python3 ~/.claude/hooks/warn_foreign_edits.py", "timeout": 10}
       ]}
     ],
     "PostToolUse": [
@@ -60,8 +59,7 @@
         {"type": "command", "command": "python3 ~/.claude/hooks/daemon_restart_storm.py", "timeout": 10},
         {"type": "command", "command": "python3 ~/.claude/hooks/memory_pressure_gate.py", "timeout": 10},
         {"type": "command", "command": "python3 ~/.claude/hooks/warn_foreign_edits.py", "timeout": 10},
-        {"type": "command", "command": "python3 ~/.claude/hooks/cmon_nudge.py", "timeout": 5},
-        {"type": "command", "command": "python3 ~/.claude/hooks/voice_reply.py", "timeout": 5}
+        {"type": "command", "command": "python3 ~/.claude/hooks/cmon_nudge.py", "timeout": 5}
       ]}
     ]
   }

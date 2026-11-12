@@ -160,7 +160,6 @@ Each entry's own file is authoritative: a skill's frontmatter `description` is i
 | `/cmon` | Restates the last verbose reply in as few words as possible. |
 | `/my-security-review` | The agent-tooling security review, with `my-security-reviewer` for depth. |
 | `/reflect` | Memory reconciliation: propose, wait for approval, apply. |
-| `/voice` | Turns the spoken reply summaries on or off, or reports their state. |
 | `/wrap-up` | Closes the session: review, inbox and notes, commit and push, then reflect. |
 | `/spec` `/plan` `/build` `/test` `/review` `/ship` `/code-simplify` | The house procedure for each stage, self-contained. |
 

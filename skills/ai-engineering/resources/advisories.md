@@ -1,7 +1,7 @@
 ---
 name: advisories
 description: Security record per catalogued tool. GENERATED from advisories.tsv by scripts/ledger.py render-advisories - do not hand-edit.
-updated: 2026-11-07
+updated: 2026-11-10
 ---
 
 # Security record
@@ -133,8 +133,11 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 - 2026-04-07 · medium · vuln · [CVE-2026-39413](https://github.com/HKUDS/LightRAG/security/advisories/GHSA-8ffj-4hx4-9pgf) - JWT Algorithm Confusion Vulnerability in LightRAG API
 - 2026-04-02 · high · vuln · [CVE-2026-30762](https://github.com/HKUDS/LightRAG/security/advisories/GHSA-mcww-4hxq-hfr3) - Hardcoded JWT Signing Secret Allows Authentication Bypass
 
-## https://github.com/HKUDS/nanobot - **pattern**: 5 critical/high advisories
+## https://github.com/HKUDS/nanobot - **pattern**: 8 critical/high advisories
 
+- 2026-11-08 · high · vuln · [CVE-2026-121864](https://github.com/HKUDS/nanobot/security/advisories/GHSA-5v87-m222-qr94) - Sandbox escape through caller-selected shell executable
+- 2026-11-08 · high · vuln · [CVE-2026-121865](https://github.com/HKUDS/nanobot/security/advisories/GHSA-hg87-wf6q-3m38) - Standard WebSocket clients could select a workspace outside configured authority
+- 2026-11-08 · high · vuln · [GHSA-mxwj-93g9-cc5r](https://github.com/HKUDS/nanobot/security/advisories/GHSA-mxwj-93g9-cc5r) - OpenAI Codex provider retries without TLS certificate verification
 - 2026-09-02 · critical · vuln · [GHSA-vc5v-6vwm-wf9m](https://github.com/HKUDS/nanobot/security/advisories/GHSA-vc5v-6vwm-wf9m) - ZDI-CAN-29369: Hong Kong University Data Intelligence Lab nanobot WebFetch Server-Side Request Forgery Information Disclosure Vulnerability
 - 2026-05-24 · high · vuln · [CVE-2026-48716](https://github.com/HKUDS/nanobot/security/advisories/GHSA-3f63-vcp3-hvqr) - Path traversal via unsanitized WhatsApp document fileName enables arbitrary file write
 - 2026-04-14 · high · vuln · [CVE-2026-35589](https://github.com/HKUDS/nanobot/security/advisories/GHSA-v5j3-4q66-58cf) - Cross-Site WebSocket Hijacking (CSWSH) in nanobot WhatsApp Bridge
@@ -395,8 +398,14 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 - 2025-04-18 · medium · vuln · [CVE-2025-32796](https://github.com/langgenius/dify/security/advisories/GHSA-hqcx-598m-pjq4) - Unauthorized APP Enable/Disable via API
 - 2025-04-17 · medium · vuln · [CVE-2025-32790](https://github.com/langgenius/dify/security/advisories/GHSA-jp6m-v4gw-5vgp) - Insecure User Role Access Control for APP DSL Exporting
 
-## https://github.com/lfnovo/open-notebook - **pattern**: 5 critical/high advisories
+## https://github.com/lfnovo/open-notebook - **pattern**: 9 critical/high advisories
 
+- 2026-11-07 · critical · vuln · [GHSA-2wr8-9h8v-j8cm](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-2wr8-9h8v-j8cm) - Remote code execution via React Server Components in the bundled Next.js frontend (CVE-2025-55182)
+- 2026-11-07 · low · vuln · [GHSA-fjjw-p65j-gm2x](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-fjjw-p65j-gm2x) - LLM provider API key written to the log file in plaintext (CWE-532)
+- 2026-11-07 · high · vuln · [GHSA-mg8j-fmqp-8rx8](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-mg8j-fmqp-8rx8) - DNS rebinding bypasses SSRF protection in asynchronous link-source ingestion
+- 2026-11-07 · high · vuln · [GHSA-prvj-2pjx-4433](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-prvj-2pjx-4433) - Path Traversal in Podcast File Handling Allows Arbitrary File Write, Read, and Deletion
+- 2026-11-07 · medium · vuln · [GHSA-qf22-jgcg-83jv](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-qf22-jgcg-83jv) - SurrealDB Exposed with Default Credentials Allows Unauthorized Access and Full Database Compromise
+- 2026-11-07 · critical · vuln · [GHSA-w9fr-j4xj-h467](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-w9fr-j4xj-h467) - Server-Side Request Forgery (SSRF) and Local File Ingestion via Unvalidated URL Field
 - 2026-11-04 · high · vuln · [GHSA-754c-3r3r-7cfj](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-754c-3r3r-7cfj) - Open Notebook's generic command endpoint accepts any registered command with unvalidated input, so the file-path and URL guards fixed on the source routes are bypassed for arbitrary file reads and met
 - 2026-04-09 · high · vuln · [GHSA-842v-h4cj-r646](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-842v-h4cj-r646) - Arbitrary file read via Local File Inclusion in source creation
 - 2026-04-09 · critical · vuln · [GHSA-f35w-wx37-26q7](https://github.com/lfnovo/open-notebook/security/advisories/GHSA-f35w-wx37-26q7) - Remote Code Execution via Jinja2 Server-Side Template Injection in transformations
@@ -1458,6 +1467,10 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 
 - 2026-09-10 · medium · vuln · [GHSA-wwg6-qfxw-xffj](https://github.com/alibaba/open-code-review/security/advisories/GHSA-wwg6-qfxw-xffj) - Repository rule.json can read arbitrary files on the review host into the LLM prompt
 
+## https://github.com/awslabs/aidlc-workflows
+
+- 2026-11-02 · medium · vuln · [CVE-2026-120497](https://github.com/awslabs/aidlc-workflows/security/advisories/GHSA-gjmq-52p3-7fh2) - Stored cross-site scripting in the HTML report generator of aidlc-traceability in AWS AI-DLC Workflows
+
 ## https://github.com/basicmachines-co/basic-memory
 
 - 2026-10-23 · high · vuln · [GHSA-4gfv-c2mm-mvj2](https://github.com/basicmachines-co/basic-memory/security/advisories/GHSA-4gfv-c2mm-mvj2) - DNS rebinding lets a web page find, exfiltrate, and delete private notes via the unauthenticated MCP SSE transport, bypassing the documented localhost mitigation
@@ -1486,12 +1499,17 @@ Published advisories and vetted incidents per tool, newest first. A tool marked 
 - 2026-06-08 · low · vuln · [CVE-2026-54327](https://github.com/earendil-works/pi/security/advisories/GHSA-r95r-rj6r-c39x) - Race condition in Pi auth.json writes could expose stored credentials
 - 2026-06-08 · high · vuln · [CVE-2026-54328](https://github.com/earendil-works/pi/security/advisories/GHSA-jfgx-wxx8-mp94) - Predictable temporary extension install paths allow local privilege escalation on shared Linux hosts
 
+## https://github.com/garrytan/gbrain
+
+- 2026-11-10 · low · vuln · [GHSA-w75f-h78f-rh4c](https://github.com/garrytan/gbrain/security/advisories/GHSA-w75f-h78f-rh4c) - Privacy alias check differs between JS and SQL, so a private page can appear in remote search
+
 ## https://github.com/getzep/graphiti
 
 - 2026-03-11 · high · vuln · [CVE-2026-32247](https://github.com/getzep/graphiti/security/advisories/GHSA-gg5m-55jj-8m5g) - Cypher Injection via unsanitized node_labels in search filters
 
 ## https://github.com/headroomlabs-ai/headroom
 
+- 2026-11-09 · medium · vuln · [GHSA-8g49-pg6g-xgrf](https://github.com/headroomlabs-ai/headroom/security/advisories/GHSA-8g49-pg6g-xgrf) - headroom MCP Server vulnerable to arbitrary file read in headroom_read tool
 - 2026-08-27 · high · vuln · [CVE-2026-71416](https://github.com/headroomlabs-ai/headroom/security/advisories/GHSA-h46j-26q3-rggf) - Headroom vulnerable to Cross-Site WebSocket Hijacking (CSWSH)
 
 ## https://github.com/lancedb/lancedb
