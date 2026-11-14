@@ -40,7 +40,7 @@ sys.modules["_input"] = _input
 _spec.loader.exec_module(_input)
 
 # Fallback splitter for a command with unbalanced quotes, which the tokenizer refuses.
-SEPARATORS = re.compile(r"\s*(?:&&|\|\||;|\||\n|(?<![&>])&(?![&>]))\s*")
+SEPARATORS = re.compile(r"&&|\|\||;|\||\n|(?<![&>])&(?![&>])")  # no \s* around it: that is quadratic on long whitespace
 # Shell control tokens that end one simple command. Redirections (`2>&1`, `&>`) come out of
 # the tokenizer as their own tokens and are not separators.
 SEPARATOR_TOKENS = {";", ";;", ";&", ";;&", "&", "&&", "||", "|", "|&", "(", ")", "\n"}

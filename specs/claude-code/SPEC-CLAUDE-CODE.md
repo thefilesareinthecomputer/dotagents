@@ -91,7 +91,7 @@ this table uses no others.
 | Subagents | `LINK` | `~/.claude/agents/` | same script; the only harness reading this tree natively, and Cursor's compatibility path |
 | Commands | `LINK` | `~/.claude/commands/` | markdown; does not port to any other harness |
 | Rules | `POINTER` | `~/.claude/CLAUDE.md` | from `CLAUDE.md.example`, byte parity; the single line `@~/.agents/AGENTS.md`, so the rules body is read from the repo and never copied |
-| Permissions and settings | `FRAGMENT` | `~/.claude/settings.json` | seeded keys ONLY: `permissions`, `env`, the `type` and `command` of `statusLine` and `subagentStatusLine` (a station's own extras in those blocks, such as `padding` or `refreshInterval`, are left alone), `enabledPlugins`, `extraKnownMarketplaces`, `disableRemoteControl`, `deniedMcpServers`, `cleanupPeriodDays`, `attribution`, `autoUpdatesChannel`, plus the managed entries of `hooks`. Station-owned and never touched: `model`, `effortLevel`, `modelSettings`, `theme`, `tui`, `disableDeepLinkRegistration` |
+| Permissions and settings | `FRAGMENT` | `~/.claude/settings.json` | seeded keys ONLY: `permissions`, `env`, the `type` and `command` of `statusLine` and `subagentStatusLine` (a station's own extras in those blocks, such as `padding` or `refreshInterval`, are left alone), `enabledPlugins`, `extraKnownMarketplaces`, `disableRemoteControl`, `enableArtifact`, `deniedMcpServers`, `cleanupPeriodDays`, `attribution`, `autoUpdatesChannel`, plus the managed entries of `hooks`. Station-owned and never touched: `model`, `effortLevel`, `modelSettings`, `theme`, `tui`, `disableDeepLinkRegistration` |
 | Hooks | `COPY` | `~/.claude/hooks/` | scripts from the repository's `hooks/` and this folder's `hooks/`, flat; parity per file, seeded by `seed_hooks.py` |
 | Status lines | `COPY` | `~/.claude/statusline.sh`, `subagent-statusline.sh` | parity |
 | Keybindings | `COPY` | `~/.claude/keybindings.json` | parity |
@@ -342,12 +342,15 @@ The principles each block enforces:
    prompt instead, because the text may be a commit message or a pattern
    rather than an access: the user approves a mention and denies a read.
    Conventional non-secret variants (`.env.example` etc.) stay allowed.
-4. **Unused connectors stay out, transcripts stay in, commands run as typed** - `deniedMcpServers`
+4. **Unused connectors stay out, nothing publishes to the account, transcripts stay in, commands run as typed** - `deniedMcpServers`
    drops the claude.ai Gmail, Google Calendar and Google Drive connectors,
    which load their tool names into every session even when disconnected at
-   the account (verified 2026-11-01). `cleanupPeriodDays: 3650` keeps session
-   transcripts instead of the 30-day default cleanup, because the user keeps
-   them as training data for a later personal model. A secret pasted into a
+   the account (verified 2026-11-01).
+   It also drops the claude.ai Claude Docs connector, which creates and edits documents hosted on the claude.ai account.
+   `enableArtifact: false` turns off the Artifact tool, which publishes pages built in a session to that same account.
+   The build's own text says the setting also keeps the Claude Docs server from connecting (read from the 2.1.310 binary, not probed in a session).
+   `cleanupPeriodDays: 3650` keeps session transcripts instead of the 30-day default cleanup, because the user keeps them as training data for a later personal model.
+   A secret pasted into a
    session therefore stays on disk under `~/.claude/projects/` until it is
    purged there by hand. No command-rewriting hook sits on the Bash matcher:
    rtk was removed on 2026-11-01 after its issue tracker recorded its hook
@@ -486,21 +489,21 @@ use. The canonical list and the honest per-tool header conventions live in
 
 The hook scripts live in two repository folders and are copied flat into
 `~/.claude/hooks/`. The repository's `hooks/`, with `hooks/manifest.json`,
-holds the seventeen scripts that enforce rules about the repository, the machine
+holds the eighteen scripts that enforce rules about the repository, the machine
 or the content (every guard, gate and content check this section lists, the
 chat-register pair included) and their four companion files, `_require.sh`,
 `reject-words.json`, `no-meta-commentary.patterns` and the published-copy
 example list, which are copied but never wired. This folder's `hooks/`, with
-its own `manifest.json`, holds the five that serve Claude Code
+its own `manifest.json`, holds the six that serve Claude Code
 itself (`ask-before-claude-folder-edits.sh`, `read-size-advisory.sh`,
-`memory-routing.sh`, `memory_lint.py` and `cmon_nudge.py`). The test that sorts a hook: if Codex
+`memory-routing.sh`, `memory_lint.py`, `peer_turn_no_dialog.py` and `cmon_nudge.py`). The test that sorts a hook: if Codex
 wrote the file or ran the command, should the hook fire. `seed_hooks.py seed` generates the `hooks`
 key of [`settings.json`](settings.json) from the two manifests, and
 `seed_hooks.py apply --harness claude-code` writes the station's key, managed
 entries only. The build plan and the hook-input captures are in
 `tasks/SPEC-HARNESS-SEEDING.md`.
 
-Twenty-seven wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
+Twenty-nine wired hooks: three Bash-write/delete guards (`deny-bash-file-writes.sh`,
 `guard-rm.sh`, `block-env-files.sh`), the clipboard-read prompt
 (`ask-clipboard-reads.sh`), the `~/.claude`-edit prompt
 (`ask-before-claude-folder-edits.sh`), the SessionStart inbox check
@@ -523,8 +526,11 @@ are denied on all three in settings.json instead), the two identifier guards (`r
 resource gates (`memory_pressure_gate.py`, `daemon_restart_storm.py`), the
 claude-mem health notice (`claude_mem_health.py`), the cross-repo git
 warning (`warn_cross_repo_git.py`), the foreign-edit warning
-(`warn_foreign_edits.py`), and the git-hook bypass guard
-(`guard_git_bypass.py`, refusing an agent's `--no-verify` and hooks-path overrides).
+(`warn_foreign_edits.py`), the git-hook bypass guard
+(`guard_git_bypass.py`, refusing an agent's `--no-verify` and hooks-path overrides),
+the debugger guard (`deny_debugger_attach.py`, refusing an agent's `lldb`, `gdb`,
+`debugserver` and `DevToolsSecurity` commands), and the dialog guard
+(`peer_turn_no_dialog.py`, refusing a question or plan dialog on a turn the user did not start).
 Ten are advisory/non-blocking (`read-size-advisory`,
 `cmon_nudge`, `harness_version_check`, `claude_mem_health`, `warn_cross_repo_git`, `warn_foreign_edits`, both `no-meta-commentary` sides,
 `memory_lint`'s judgment checks, and `reject_identifiers`), and
@@ -1232,6 +1238,32 @@ The hook does not see an alias, a variable, `bash -c`, `$(...)` or backticks: it
 Tests: `tests/station-hooks/test-guard-git-bypass.py`.
 
 Script: [`../../hooks/guard_git_bypass.py`](../../hooks/guard_git_bypass.py).
+
+### `deny_debugger_attach.py`
+
+PreToolUse guard (matcher `Bash`) - **blocking** (exit 2).
+It refuses an agent's command whose program is `lldb`, `gdb`, `debugserver` or `DevToolsSecurity`.
+Attaching a debugger pauses the target process and can end it, and on macOS it raises the developer-tools permission prompt over whatever the user is doing.
+The program is read in each simple command after unwrapping `sudo`, `env`, `xcrun`, `arch`, `xargs`, `timeout`, `nice`, `nohup`, `time`, `command`, `exec`, `caffeinate` and leading `VAR=value` assignments.
+Commands are split by `guard_git_bypass.py`'s tokenizer, which keeps quoted text whole, and here-document bodies are left out, so a grep pattern, a commit message or a here-document that only mentions these words passes.
+The user runs the same commands from their own terminal, where no PreToolUse hook exists.
+The hook does not see an alias, a variable, backticks, a `bash -c` string or a here-document fed to a shell, and it does not read a command over 32,000 characters: it guards the honest case.
+It exits 0 on any error of its own, a missing sibling module included.
+Tests: `tests/station-hooks/test-deny-debugger-attach.py`.
+
+Script: [`../../hooks/deny_debugger_attach.py`](../../hooks/deny_debugger_attach.py).
+
+### `peer_turn_no_dialog.py`
+
+PreToolUse guard (matcher `AskUserQuestion|ExitPlanMode`) - **blocking** (a JSON `deny` decision).
+A dialog that opens on a turn the user did not start lands over whatever the user is typing or dictating, and that text can be lost.
+The hook reads the session transcript for the latest main-thread user row that names its `origin.kind`: `human` passes, and `peer` (another session's message) or `task-notification` (a background task finishing) is refused, with a reason telling the model to answer a peer with SendMessage and to put a question for the user in its plain-text reply.
+A row with no `origin` field is judged by its opening text; skill-load, interrupt and tool-result rows leave the origin unchanged.
+A message the user types while such a turn is running does not change the turn's origin, so the dialog stays refused until the user's next turn.
+It fails open: a missing transcript, a malformed line or a transcript with no origin all pass.
+Tests: `tests/station-hooks/test-peer-turn-no-dialog.py`.
+
+Script: [`hooks/peer_turn_no_dialog.py`](hooks/peer_turn_no_dialog.py).
 
 ### The station git hooks (`~/.agents/hooks/git/`, not seeded)
 

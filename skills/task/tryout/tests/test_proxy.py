@@ -27,8 +27,13 @@ class ProxyBase(unittest.TestCase):
     temperature = 0.0
 
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="bench-proxy-test-"))
+        # Each resource registers its cleanup as it is made: a cleanup runs even when setUp
+        # fails part way, where tearDown would not, and a proxy left running outlives the run.
+        tmp = tempfile.TemporaryDirectory(prefix="bench-proxy-test-")
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
         self.daemon = FakeDaemon()
+        self.addCleanup(self.daemon.close)
         self.log = self.tmp / "proxy.jsonl"
         port_file = self.tmp / "port"
         self.exchanges = self.tmp / "exchanges.jsonl"
@@ -39,17 +44,21 @@ class ProxyBase(unittest.TestCase):
         if self.temperature is not None:
             args += ["--temperature", str(self.temperature)]
         self.proc = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        self.addCleanup(self.stop_proxy)
         end = time.time() + 30
         while not port_file.exists() and time.time() < end:
             time.sleep(0.05)
         self.assertTrue(port_file.exists(), "proxy never wrote its port")
         self.base = f"http://127.0.0.1:{port_file.read_text()}"
 
-    def tearDown(self):
+    def stop_proxy(self):
         self.proc.terminate()
-        self.proc.wait(timeout=10)
+        try:
+            self.proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            self.proc.kill()
+            self.proc.wait()
         self.proc.stderr.close()
-        self.daemon.close()
 
     def post(self, path, body):
         req = urllib.request.Request(self.base + path, data=json.dumps(body).encode(),

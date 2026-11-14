@@ -3,7 +3,7 @@
 
 A hook reads its event through `read_event()` and gets the same shape whatever
 harness ran it: which harness, which event, the tool's class (shell, file-write,
-file-read, search, agent, mcp, other), the command, the paths touched, the text
+file-read, search, agent, mcp, dialog, other), the command, the paths touched, the text
 about to be written and the text it replaces. Fields a harness does not supply
 come back empty rather than missing.
 
@@ -37,6 +37,7 @@ TOOL_CLASSES: dict[str, dict[str, list[str]]] = {
         "search": ["Grep", "Glob"],
         "agent": ["Agent", "Workflow"],
         "mcp": ["mcp__.*"],
+        "dialog": ["AskUserQuestion", "ExitPlanMode"],
     },
     # Captured 2026-10-13 (tests/fixtures/codex.json). Codex has no read or
     # search tool: reads go through the shell, so a read guard cannot see them.
@@ -47,7 +48,7 @@ TOOL_CLASSES: dict[str, dict[str, list[str]]] = {
     },
 }
 
-CLASSES = ("shell", "file-write", "file-read", "search", "agent", "mcp")
+CLASSES = ("shell", "file-write", "file-read", "search", "agent", "mcp", "dialog")
 
 # Events a binding may name per harness. Claude Code's list is its documented
 # set (the home harness), plus PostToolUseFailure and PostToolBatch, captured on

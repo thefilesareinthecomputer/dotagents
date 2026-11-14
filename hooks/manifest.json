@@ -33,6 +33,11 @@
       "bindings": [{"event": "PreToolUse", "matcher": ["shell"], "timeout": 10}]
     },
     {
+      "script": "deny_debugger_attach.py",
+      "harnesses": ["claude-code"],
+      "bindings": [{"event": "PreToolUse", "matcher": ["shell"], "timeout": 5}]
+    },
+    {
       "script": "reject_words.py",
       "harnesses": ["claude-code"],
       "bindings": [{"event": "PreToolUse", "matcher": ["file-write"], "timeout": 5}]

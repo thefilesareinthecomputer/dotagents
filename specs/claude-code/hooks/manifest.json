@@ -24,6 +24,10 @@
       "bindings": [{"event": "PostToolUse", "matcher": ["file-write"], "timeout": 10}]
     },
     {
+      "script": "peer_turn_no_dialog.py",
+      "bindings": [{"event": "PreToolUse", "matcher": ["dialog"], "timeout": 5}]
+    },
+    {
       "script": "cmon_nudge.py",
       "advisory": true,
       "bindings": [

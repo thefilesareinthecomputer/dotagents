@@ -44,7 +44,7 @@ class Render(unittest.TestCase):
         rendered, skips, managed = sh.render(entries, "claude-code", hi)
         self.assertEqual(sh.tuples(rendered, hi), sh.tuples(ORACLE, hi))
         self.assertEqual(skips, [])
-        self.assertEqual(len(managed), 26)
+        self.assertEqual(len(managed), 28)
 
     def test_codex_wires_nothing_until_tested(self):
         entries, _ = sh.load_seeds(REPO, "codex")
@@ -52,7 +52,7 @@ class Render(unittest.TestCase):
         self.assertEqual(rendered, {})
         self.assertEqual(managed, [])
         self.assertTrue(all("not tested against codex" in s for s in skips))
-        self.assertEqual(len(skips), 21)
+        self.assertEqual(len(skips), 22)
 
     def test_partial_projection_and_source_skip(self):
         entries = [
@@ -106,7 +106,7 @@ class Station(unittest.TestCase):
         self.assertTrue((self.hooks / "cmon_nudge.py").is_file())
         self.assertFalse((self.hooks / "manifest.json").exists())
         ledger = json.loads((self.hooks / sh.LEDGER_NAME).read_text())
-        self.assertEqual(len(ledger["entries"]), 37)
+        self.assertEqual(len(ledger["entries"]), 39)
         self.assertEqual(sh.ledger_tuples(ledger, hi), sh.tuples(ORACLE, hi))
         r = self.cc("plan")
         self.assertIn("clean: nothing to apply", r.stdout)

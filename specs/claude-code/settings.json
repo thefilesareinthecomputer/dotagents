@@ -86,6 +86,11 @@
           },
           {
             "type": "command",
+            "command": "python3 ~/.claude/hooks/deny_debugger_attach.py",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "python3 ~/.claude/hooks/reject_bad_commit_message.py",
             "timeout": 10
           },
@@ -175,6 +180,16 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/read-size-advisory.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "AskUserQuestion|ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/peer_turn_no_dialog.py",
             "timeout": 5
           }
         ]
@@ -337,6 +352,7 @@
     ]
   },
   "disableRemoteControl": true,
+  "enableArtifact": false,
   "deniedMcpServers": [
     {
       "serverName": "claude.ai Gmail"
@@ -346,6 +362,9 @@
     },
     {
       "serverName": "claude.ai Google Drive"
+    },
+    {
+      "serverName": "claude.ai Claude Docs"
     }
   ],
   "cleanupPeriodDays": 3650,
