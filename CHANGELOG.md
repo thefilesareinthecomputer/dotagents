@@ -2,6 +2,12 @@
 
 What each push changes, newest first, for machines pulling this repo.
 
+## 2026-11-24
+
+### Changed
+
+- `markdown-kg`: the non-note link test asserts that no edge target carries a URL scheme, instead of matching a host substring, which CodeQL reads as URL sanitization.
+
 ## 2026-11-23
 
 ### Action needed

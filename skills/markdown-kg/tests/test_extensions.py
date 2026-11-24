@@ -544,7 +544,8 @@ class WikiVaultLinkTests(VaultCase):
                     "../../../elsewhere.md", "../entities/Mara Voss.md",
                     "Mara Voss"):
             self.assertNotIn(bad, targets)
-        self.assertFalse(any("example.org" in t for t in targets))
+        self.assertFalse([t for t in targets
+                          if re.match(r"[a-z][a-z0-9+.-]*:", t, re.I)])
 
     def test_backlinks_see_both_syntaxes(self):
         got = {(e["src"], e["syntax"])
