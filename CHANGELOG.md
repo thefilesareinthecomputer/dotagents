@@ -7,6 +7,8 @@ What each push changes, newest first, for machines pulling this repo.
 ### Changed
 
 - `markdown-kg`: the non-note link test asserts that no edge target carries a URL scheme, instead of matching a host substring, which CodeQL reads as URL sanitization.
+- `code-kg`: the Next.js test fixture's `package.json` is written at test time by `tests/fixture_copy.py` instead of committed, so dependency scanners no longer flag its pinned versions.
+- `tests/test_published_set_hygiene.py`: fails when a committed test fixture manifest pins an exact dependency version.
 
 ## 2026-11-23
 

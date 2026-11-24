@@ -344,8 +344,8 @@ class TestNextjsProfile(unittest.TestCase):
     def setUpClass(cls):
         cls.tmpdir = tempfile.mkdtemp()
         cls.repo = Path(cls.tmpdir) / "repo"
-        shutil.copytree(Path(__file__).resolve().parent / "fixture-nextapp",
-                        cls.repo)
+        copy_fixture(Path(__file__).resolve().parent / "fixture-nextapp",
+                     cls.repo)
         # The agent overlay is generated here: tooling write-guards block
         # committing .claude/ trees inside fixtures.
         tools = cls.repo / ".claude" / "tools"
@@ -534,8 +534,8 @@ class TestDataInventoryAndInspectSqlite(unittest.TestCase):
     def setUpClass(cls):
         cls.tmpdir = tempfile.mkdtemp()
         cls.repo = Path(cls.tmpdir) / "repo"
-        shutil.copytree(Path(__file__).resolve().parent / "fixture-nextapp",
-                        cls.repo)
+        copy_fixture(Path(__file__).resolve().parent / "fixture-nextapp",
+                     cls.repo)
         import sqlite3 as sq
         db = sq.connect(cls.repo / "data" / "cache.sqlite3")
         db.execute("CREATE TABLE invoices (id INTEGER PRIMARY KEY,"
