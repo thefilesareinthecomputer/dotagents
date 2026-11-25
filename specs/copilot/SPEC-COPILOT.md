@@ -319,3 +319,18 @@ make it bounded.
 Not adapted beyond the table above. No `~/.copilot/settings.json` exists on a
 default install; the Settings row creates it with its four keys. The Claude
 Code hooks have not been ported. Tracked in `tasks/plan.md`.
+
+## Architecture
+
+From official docs, accessed 2026-11-25, plus the observed permission facts in this spec. The CLI is closed source, and only the first 100,000 of about 479,000 characters of the CLI command reference were read. Hub: [`../HARNESS-ENGINEERING.md`](../HARNESS-ENGINEERING.md#the-architecture-section).
+
+1. **Loop:** the loop is not described. Messages sent while Copilot responds are queued. The coding agent stops at 59 minutes per Actions session. `/goal` takes `--max-ai-credits N`, after which autopilot pauses. Turn caps and loop detection: **unknown**. **docs** https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-coding-agent, https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference
+2. **Tools:** parallel calls and whether the list is fixed or dynamic: **unknown**. MCP servers are managed with `/mcp` and `copilot mcp`. The internal tool names (`bash`, `view`, `edit`, `task` and others) were read from a live run at CLI 1.0.81. **observed**
+3. **Permissions:** modes `manual`, `assisted` (an LLM approves requests it judges safe) and `allow-all`. Flags `--allow-tool`, `--deny-tool` (deny wins) and `--available-tools`. Read-only commands auto-approve. Only `--available-tools` turns the permissive default into deny-by-default, and granting `bash` forfeits the boundary. Sandbox semantics (`copilot sandbox ca` exists): **unknown**. **observed** (CLI 1.0.81, see Permissions above), **docs** https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli
+4. **Context:** auto-compaction runs in the background near 95% of the token limit. `/compact` is manual and `/context` shows a token breakdown. Tool-output limits, summary format and survivors: **unknown**. **docs** https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli
+5. **Cache:** no prefix-stability or cache-marker facts were found. **unknown**
+6. **Sessions:** `/resume` and `--continue` restore a session, with approvals restored except directory approvals and policy grants. Interrupted-session restore is opt-in (`COPILOT_ENABLE_INTERRUPTED_SESSION_RESTORE=1`). Storage format, location and fork: **unknown**. **docs** https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli
+7. **Errors:** retries, backoff and overflow handling: **unknown**.
+8. **Rules files:** custom instruction files "combine instead of using priority-based fallbacks". `copilot instruction list` shows discovered sources. This spec's tables list `.github/copilot-instructions.md`, `.github/instructions/` and `AGENTS.md`. Order and size caps: **unknown**. **docs** https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli
+9. **Front ends:** `-p/--prompt` runs once and exits. `--output-format text|json` is documented for `copilot workflow run`, and no general-session event schema was found. ACP support: **unknown**. **docs** https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference
+10. **Subagents:** custom agents (`*.agent.md`) that Copilot delegates to automatically. `/tasks` shows nested subagents as a tree, and sync tasks can be promoted to background. Context isolation, depth and concurrency limits: **unknown**. **docs** https://docs.github.com/en/copilot/concepts/agents/about-copilot-cli

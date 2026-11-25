@@ -12,6 +12,7 @@ seq	date	url	kind	resolution	state
 55	2026-09-18	https://arxiv.org/abs/2510.00485	manual-override	'papers' -> 'papers|media|eval'	hot
 56	2026-09-18	https://arxiv.org/abs/2510.08373	manual-override	'papers' -> 'papers|media'	hot
 57	2026-09-18	https://arxiv.org/abs/2510.23541	manual-override	'papers' -> 'papers|media'	hot
+168	2026-11-24	https://arxiv.org/abs/2608.22752	manual-override	'papers' -> 'papers|map'	hot
 154	2026-11-21	https://asyncdot.com/blog/chief-of-staff-pattern-orchestrating-claude-code-sessions	manual-override	'adjacent' -> 'harnesses|learning'	hot
 44	2026-09-18	https://blaizzy.github.io/mlx-audio/models/tts	manual-override	'adjacent' -> 'docs|media'	hot
 59	2026-09-18	https://blog.google/innovation-and-ai/models-and-research/google-labs/notebooklm-audio-overviews-50-languages	manual-override	'learning' -> 'media|learning'	hot
@@ -76,6 +77,7 @@ seq	date	url	kind	resolution	state
 20	2026-08-14	https://github.com/deepseek-ai/deepseek-harness	manual-override	'triage' -> 'harnesses|frameworks|eval'	hot
 136	2026-11-21	https://github.com/eyaltoledano/claude-task-master	manual-override	'triage' -> 'skills|harnesses'	hot
 137	2026-11-21	https://github.com/finos/cucumber-testing-steps	manual-override	'triage' -> 'eval'	hot
+165	2026-11-24	https://github.com/ggml-org/llama.cpp	manual-override	'triage' -> 'serving|map'	hot
 21	2026-08-14	https://github.com/google/adk-samples	manual-override	'triage' -> 'frameworks|memory|rag'	hot
 34	2026-09-02	https://github.com/google/sam	manual-override	'triage' -> 'adjacent'	hot
 39	2026-09-02	https://github.com/gridex/gridex	manual-override	'triage' -> 'adjacent'	hot
@@ -100,6 +102,7 @@ seq	date	url	kind	resolution	state
 102	2026-11-01	https://github.com/modelcontextprotocol/registry	manual-override	'triage' -> 'skills'	hot
 86	2026-10-29	https://github.com/multica-ai/andrej-karpathy-skills	merge	merged https://github.com/forrestchang/andrej-karpathy-skills (moved repo) into https://github.com/multica-ai/andrej-karpathy-skills	hot
 140	2026-11-21	https://github.com/n8n-io/n8n	manual-override	'triage' -> 'frameworks'	hot
+166	2026-11-24	https://github.com/nekko-labs/nekko-agent	manual-override	'triage' -> 'harnesses|map'	hot
 93	2026-10-29	https://github.com/openclaw/openclaw	manual-override	'harnesses|map' -> 'harnesses|map|avoid'	hot
 29	2026-09-02	https://github.com/opensandbox-group/OpenSandbox	manual-override	'triage' -> 'security|harnesses|serving'	hot
 157	2026-11-22	https://github.com/openwsp/openwsp	manual-override	'triage' -> 'tuning'	hot
@@ -123,6 +126,7 @@ seq	date	url	kind	resolution	state
 12	2026-08-09	https://github.com/yc-software/qm	manual-override	'harnesses, map' -> 'harnesses|map'	cold
 13	2026-08-14	https://github.com/yc-software/qm	kept-manual	kept 'harnesses|map', auto said 'triage'	hot
 23	2026-08-14	https://github.com/zhaoxuya520/reverse-skill	manual-override	'triage' -> 'skills|eval|security'	hot
+170	2026-11-25	https://huggingface.co/LiquidAI/LFM3-Audio-2B	manual-override	'models' -> 'models|media'	hot
 117	2026-11-06	https://huggingface.co/collections/mlx-community/qwen3-asr	manual-override	'models' -> 'media|models'	hot
 119	2026-11-06	https://huggingface.co/mlx-community/Kokoro-82M-bf16	manual-override	'models' -> 'media|models'	hot
 121	2026-11-06	https://huggingface.co/mlx-community/Soprano-1.1-80M-bf16	manual-override	'models' -> 'media|models'	hot
@@ -134,7 +138,9 @@ seq	date	url	kind	resolution	state
 122	2026-11-06	https://huggingface.co/spaces/hf-audio/open_asr_leaderboard	manual-override	'models' -> 'media|eval'	hot
 164	2026-11-22	https://huggingface.co/thinkingmachines/Inkling-2-Mini	manual-override	'models' -> 'models|serving'	hot
 153	2026-11-21	https://keenable.ai/about	manual-override	'adjacent' -> 'ingestion'	hot
+167	2026-11-24	https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus	manual-override	'adjacent' -> 'learning|map'	hot
 112	2026-11-01	https://modelcontextprotocol.io/specification/2026-07-28	manual-override	'adjacent' -> 'docs|skills'	hot
+169	2026-11-25	https://ollama.com/library/lfm3-audio	manual-override	'serving|models' -> 'serving|models|media'	hot
 127	2026-11-06	https://picovoice.ai/blog/on-device-tts	manual-override	'adjacent' -> 'media|learning'	hot
 84	2026-10-09	https://platform.claude.com/docs/en/models/haiku-5-5/overview	manual-override	'adjacent' -> 'docs|models'	hot
 63	2026-09-18	https://podcast-agent.github.io/demo	manual-override	'adjacent' -> 'media|papers'	hot

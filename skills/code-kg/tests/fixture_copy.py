@@ -53,7 +53,9 @@ def copy_fixture(src: Path, dst: Path) -> Path:
     # sibling config is the only engine state a test starts with.
     shutil.copytree(src, dst, ignore=shutil.ignore_patterns(".kg", ".code-kg"))
     for rel, text in GENERATED.get(src.name, {}).items():
-        (dst / rel).write_text(text, encoding="utf-8", newline="\n")
+        # open() rather than write_text(newline=...), which needs Python 3.10+.
+        with open(dst / rel, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
     cfg = src.parent / f"{src.name}.config.json"
     if cfg.is_file():
         (dst / ".kg").mkdir()

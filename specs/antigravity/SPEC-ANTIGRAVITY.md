@@ -158,3 +158,18 @@ probe pair headless after sign-in before trusting either claim.
 
 Google's hosted Gemini models. `SPEC.md` invariant 6 bounds this station to
 **medium-stakes and hobby work**.
+
+## Architecture
+
+From official docs (`https://antigravity.google/docs/`), accessed 2026-11-24 and 2026-11-25, plus the observed headless facts in this spec. The CLI is closed source. Hub: [`../HARNESS-ENGINEERING.md`](../HARNESS-ENGINEERING.md#the-architecture-section).
+
+1. **Loop:** the loop is not described. `--print-timeout` defaults to `0s` (no limit) in the docs, but the 1.1.11 binary's `--help` showed 5m, so this is a conflict, and the observed value stands for that binary. Loop detection: **unknown**. **docs** `cli/headless/`, **observed**
+2. **Tools:** MCP servers default to 300s connect and 180s call timeouts. Parallel tool calls and whether the list is fixed: **unknown**. **docs** `mcp/`
+3. **Permissions:** modes cycle default, accept-edits, auto and plan. `permissions.allow`, `ask` and `deny` rules in `settings.json` resolve Deny > Ask > Allow. Six hook events, including `PreToolUse` and `Stop`, are wired in `hooks.json`. The terminal sandbox (Seatbelt on macOS) is off by default, and from v1.4.4 `--sandbox` silently does nothing if no sandbox is available. A headless run soft-denies unapproved actions and still exits `0`. **docs** `permissions/`, `sandbox/`, `hooks/`, `cli/headless/`
+4. **Context:** compaction trigger, summary format, tool-output limits and survivors: **unknown**.
+5. **Cache:** no prefix-stability or cache-marker facts were found. **unknown**
+6. **Sessions:** `-c` and `--conversation <id>` resume a conversation, and the headless JSON envelope carries `conversation_id`. Storage format and fork: **unknown**. **docs** `cli/headless/`, **observed** (1.1.11 `--help`)
+7. **Errors:** retries, backoff and overflow handling: **unknown**. Headless `status` values are `SUCCESS`, `ERROR`, `CANCELED`, `INTERRUPTED`, `INVALID`, `WAITING` and `RUNNING`. **docs** `cli/headless/`
+8. **Rules files:** `rules/*.md` needs a valid `trigger` in its frontmatter or it is silently discarded. Standalone `AGENTS.md` and `GEMINI.md` need none, and are also read globally from `~/.gemini/`. Discovery walks `.agents/` up to the repo root. Size caps: **unknown**. **docs** `rules/`, `customization-discovery/`
+9. **Front ends:** `-p` with `--output-format text|json|stream-json`, and `--input-format stream-json` for multi-turn (it requires stream-json output). `agy remote-control` runs a background daemon. ACP support: **unknown**. **docs** `cli/headless/`, `remote-control/`
+10. **Subagents:** `agents/<name>.md` or `agents/<name>/agent.md`, with frontmatter such as `mainAgent`, `subagent`, `model` and `commandExecutionPolicy`. Context isolation, depth and concurrency limits: **unknown**. **docs** `subagents/`

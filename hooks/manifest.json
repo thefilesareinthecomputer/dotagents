@@ -132,7 +132,8 @@
       "script": "reaper.py",
       "harnesses": ["claude-code"],
       "advisory": true,
-      "bindings": [{"event": "SessionStart", "sources": ["startup", "resume"], "timeout": 10}]
+      "bindings": [{"event": "SessionStart", "sources": ["startup", "resume"], "timeout": 10},
+                   {"event": "UserPromptSubmit", "timeout": 10}]
     },
     {
       "script": "claude_mem_health.py",

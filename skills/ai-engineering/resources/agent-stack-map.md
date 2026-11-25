@@ -345,6 +345,94 @@ No framework is needed until agents run as services other people's agents call (
 Use a workflow engine for the deterministic edges: scheduled sweeps, tracker pushes and notifications.
 Gate the receiving side with the harness's inbound setting rather than with instructions.
 
+### B.5 - Building a minimal local agent harness: loop, context and cache (researched 2026-11-24)
+
+Four parallel research angles, mostly from secondary sources; overall confidence is medium.
+Versions and release dates move weekly, so read them from `link-ledger.md`, not from here.
+
+**Reference implementations.**
+- [Pi](https://github.com/earendil-works/pi) is the cleanest minimal loop to read. Sessions are JSONL trees (each entry has an `id` and a `parentId`), compaction summarizes while the full history stays on disk, and the author describes a system prompt under 1k tokens with a handful of tools (author's post, 2025-11-30).
+- [Hermes Agent](https://github.com/nousresearch/hermes-agent) (MIT) is the closest open match to a local personal assistant. Memory is `MEMORY.md` and `USER.md` files plus SQLite FTS5 session search and skill files; voice is push-to-talk with faster-whisper and Piper; it runs on Ollama, vLLM, llama.cpp and SGLang. Its docs warn that small local models may skip the memory tool, and it expects a context of 64k or more.
+- goose had the most complete ACP server mode of the harnesses checked (third-party changelog only). See B.1 for the protocol.
+- nanobot keeps its Python core near 4k lines.
+- OpenCode also expects 64k or more of context on Ollama, and Codex CLI had an open issue (#19871) with MCP over Ollama.
+
+**Cache rules, with the measurements behind them.**
+- [Manus](https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus) names KV-cache hit rate as the single most important agent metric: keep the prefix stable, only append, mask tools rather than removing them, keep errors in context, and use the file system as memory (post undated at fetch).
+- A [nekko-agent](https://github.com/nekko-labs/nekko-agent) change (PR #3107) moved per-turn context out of the system prompt into a user message and cut prefill from 540 ms to 107 ms (llama.cpp, a 4B model).
+- oh-my-pi issue #3406: with the system prompt and tools frozen, re-rendering one early message still forced a full re-prefill on llama.cpp. Store each message as sent and never re-render it.
+- Ollama's `prompt_eval_count` includes cached tokens; `prompt_eval_cached_count` (added in 0.33.3) reports the cached share, so the uncached count is the difference (secondary sources; confirmed first-hand on 0.40.18 in streamed and non-streamed replies, field note 2026-11-24).
+- [llama.cpp](https://github.com/ggml-org/llama.cpp) server caches prompts by default, and saving a slot to disk restored a 5k-token chat about 7x faster than re-prefilling it (one blog measurement). Ollama exposes no slot persistence.
+- `mlx_lm.server` keeps an in-memory LRU prefix cache and reports cached tokens; the pull request adding disk persistence (#1405) was closed unmerged (checked 2026-11-24).
+- Compaction loses rules: see M.5 ("Compaction Cliff", [arXiv 2608.22752](https://arxiv.org/abs/2608.22752)).
+
+**First-hand measurements on Ollama's MLX runner (2026-11-24).**
+These come from building a harness on Inkling 2 Mini on a 64 GB Mac. The details, with their scope, are in `field-notes.md` under Ollama and the Inkling 2 Mini tag.
+- The prefix cache restores whole 1,024-token blocks. Short sessions get no reuse, and each tool round re-prefills the tail.
+- The cache lives in memory only, so an unload or a `keep_alive` expiry costs a full re-prefill.
+- A one-shot cold prefill of about 100k tokens or more panics the runner (the macOS GPU watchdog). Rebuild a long context in prefix-extending steps of 32k or less.
+- Prefill of new tokens slows with depth: 686 tok/s at 31k and 190 tok/s at 218k. At depth, a 4k-token tool result costs about 20 s before the reply starts.
+  - Size the usable window by per-round latency and cold-rebuild time, not by the model's nominal maximum.
+- A change of thinking level re-renders the prompt and misses the cache. Fix it per session.
+- An exact-search loop in stdlib Python (cosine over unit vectors) scanned 10k chunks of 768 dimensions in 154 ms. At personal-KB scale a vector extension is optional.
+
+**Harness pitfalls found by a multi-model review (2026-11-24).**
+- A bash allowlist keyed on command names is not a boundary. `rg --pre=COMMAND` runs a program per file, `git diff --output=<file>` writes anywhere, and `git -c` sets config.
+  - Gate on arguments per command, or keep such tools off the allowlist.
+- Cap subprocess output while reading it, not after. `communicate()` buffers everything, so an allowlisted `cat /dev/zero` exhausts memory.
+- Treat a stream without its terminal `done` chunk, or with a streamed error object, as a failure. Never commit a partial reply or a partial compaction summary.
+- Exclude the wait for the first token from any per-turn wall-clock limit. Otherwise a cold resume at depth trips the limit before any work happens.
+- Memory consolidation that merges by embedding similarity needs a trash folder and a negation check. Near-duplicate text can state opposite facts.
+
+**Stance.**
+For a single-user local agent, hand-build the loop, which is a few hundred lines, and spend the effort on prefix stability and measurement.
+None of the frameworks checked manages local prefix-cache reuse for the caller.
+Record the cache hit rate on every call from the runtime's own counts.
+Pi's session format and Hermes Agent's file memory are the patterns worth copying; goose is the ACP reference for an agent other harnesses must drive.
+
+### B.6 - How coding-agent harnesses build their core loop (source-read 2026-11-25)
+
+**How this was researched:**
+- Eight open-source harnesses were read from shallow clones at pinned commits, with path and line citations. Nothing was executed.
+  - Codex `06f334aa`
+  - opencode (anomalyco) `b6973f1b`
+  - Pi `b882d08f`
+  - DeepSeek Harness `4b399c39`
+  - Cline `34c104e6`
+  - OpenHands software-agent-sdk `ce9206ef`
+  - goose (aaif-goose) `8256b9ac`
+  - Hermes Agent `22facbc2`
+- Claude Code, Cursor, Copilot CLI and Antigravity come from official docs only.
+- The Kimi CLI repo was archived on 2026-09-22 (GitHub API), so it was not read.
+
+**What has converged:**
+
+| Dimension | De facto standard | Notable variants |
+|---|---|---|
+| End of turn | A reply with no tool calls ends the turn | goose runs a state machine. opencode and Cline have explicit "completes run" signals |
+| Turn limits | Usually none by default | goose 1000 turns, with a budget hint at 50%. OpenHands 500 iterations. opencode caps steps, then runs a final step with `toolChoice: none` that keeps the tools for the cache |
+| Loop detection | Newer and not universal | Cline warns at 3 and stops at 5. OpenHands checks 4 stuck patterns over 20 events. Hermes guardrails warn by default. DeepSeek sends advisory reminders at 3, 5 and 8. goose's detector ships off. Pi and Codex have none |
+| Parallel tools | Parallel by default | DeepSeek runs up to 10, Hermes 8 workers. Claude Code runs reads in parallel and writes sequentially. Cline and OpenHands are sequential by default |
+| Tool list | Dynamic | Pi records tool changes as messages. DeepSeek and opencode re-resolve per step. OpenHands is fixed at start |
+| Permissions | Modes plus per-tool rules, and hooks | Codex and DeepSeek ship OS sandboxes (sandbox-exec, landlock, bubblewrap), and DeepSeek fails closed. goose runs an inspector chain. Hermes and goose offer an LLM "smart" approval. Pi has none |
+| Tool output | Head-and-tail truncation, with very large output spilled to a file | Codex splits 50/50 at about 10k tokens (per model). DeepSeek keeps a 4k-character head and 1k tail. Pi and opencode cap at 2,000 lines or 50 KB. goose (over 200k characters) and Hermes (over 100k) spill to disk with a pointer |
+| Old tool results | No standard | Hermes stubs old results, with a minimum-reclaim gate so the cache breaks rarely. Pi hides them with `context_edit`. Cline swaps in references. opencode drops only old images |
+| Compaction trigger | Window minus a reserve | Pi: window - 16k. opencode: window - max(15%, 16k). DeepSeek: min(0.8w, w - reserve - 64k). goose: min(0.8, 225k / limit). Cline: 0.9 x input. Hermes: 0.5-0.75, at least 64k |
+| Kept verbatim | About 15-20k recent tokens | Pi 20k, Cline 20k, opencode 15k, Codex 20k of user messages, DeepSeek 16% of the window |
+| Summary | Fixed sections, full history kept on disk | goose writes JSON. Hermes falls back to a deterministic summary without the LLM. opencode retries with the kept part shrunk to 0.85, 0.7, 0.5 and 0.35 |
+| Summary call | Sent on the cached prefix | DeepSeek and goose (in-band) do this. opencode starts the summary 60k tokens early while the cache is warm |
+| Cache | History stored as sent, prefix kept stable | goose tests that sent bytes never change. Hermes rewrites only a per-send clone and generates deterministic tool-call IDs. Requests carry at most 4 Anthropic-style markers. OpenHands rebuilds the request from events every step |
+| Volatile context | Appended as messages | goose saves time, cwd and turn budget as an agent-only message, and skips this under 32k |
+| Sessions | Append-only log | JSONL: Codex, Pi (a tree), DeepSeek, Claude Code. SQLite: opencode, goose, Hermes, Cline. Most support forks. Hermes rotates the session on compaction |
+| Retries | Exponential backoff with jitter, 3-10 attempts | A context overflow triggers compaction, not a retry |
+| Rules files | AGENTS.md, read from the root down to the cwd | Codex, Pi and Hermes support AGENTS.override.md. Codex, Hermes and DeepSeek cap the size |
+| Front end | One event stream, then a protocol adapter | ACP: goose, Hermes, OpenHands, Cline, DeepSeek. Codex uses its own app-server. Pi uses JSONL RPC. opencode uses HTTP and SSE |
+| Subagents | Common | Fresh context, a depth limit and a concurrency cap. opencode depth 1, Claude Code depth 3. Pi has none |
+
+**Stance:** copy the converged rows. Choose a variant deliberately, and only where the local runtime makes the trade different.
+- Per-round prefill is the dominant cost on a local runtime. That makes spill-to-file, gated stubbing of old results and summarizing on the cached prefix worth more locally than on a hosted API.
+- Pick a sandbox model up front. "Approvals only" leaves shell expansion and git's exec flags as escape routes. A local harness on this setup hit both (B.5).
+
 ---
 
 ## Section C - Memory / long-term context / entity recall

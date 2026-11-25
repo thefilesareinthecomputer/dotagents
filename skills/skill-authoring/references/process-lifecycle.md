@@ -54,10 +54,11 @@ Every such resource has an owner and a bounded life, and it ends with its owner 
 | `check_spawns.py` | `tests/test_spawn_lint.py`, skill-authoring audits, wrap-up | every suite run, every new skill, every closeout |
 | `test_procguard_copies.py` | repo `tests/` | every suite run |
 | `background_guard` hook | PreToolUse on shell commands | every background command |
-| `reaper` hook | SessionStart; `reaper.py --report` in wrap-up | every session start and closeout |
+| `reaper` hook | SessionStart and prompts; `reaper.py --report` in wrap-up | every session start, every 30 minutes of prompts, and closeout |
 | resource step | wrap-up, beside the security review | every closeout |
 
 ## Known limit
 
 A child that calls `setsid()` or daemonizes itself leaves the guarded group, so no group signal reaches it.
 The reaper reports such escapees by their CPU time and their missing owner.
+Browsers that Playwright or Puppeteer launch run detached in their own process group, so a group stop on the MCP server or test runner does not reach them; the reaper reports an orphaned one by its launch flags, with the group to stop.

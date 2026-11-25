@@ -118,3 +118,31 @@ opencode's plugin model is TypeScript rather than shell hooks, so the Claude Cod
 hook scripts have no direct analogue and would need rethinking rather than
 porting, the same conclusion [`SPEC-PI.md`](../pi/SPEC-PI.md) reaches. Tracked in
 `tasks/plan.md`.
+
+## Architecture
+
+Read from source at `anomalyco/opencode` commit `b6973f1b` on 2026-11-25. The loop is under `packages/core/src/session/runner/`.
+
+1. **Loop:** **source** A drain loop runs `advanceToStep` then `runStep` while `needsContinuation` (`runner/llm.ts:221-229`; `runner/step.ts:328`).
+   The step cap is `agent.info.steps` (`llm.ts:266`). The last step sets `toolChoice:"none"` and appends `MAX_STEPS_PROMPT`, keeping tool definitions so the cache prefix holds (`llm.ts:281-285`).
+   Three consecutive length-limit replies fail the step (`llm.ts:356-380`). No doom-loop detection: `doom_loop` is only a permission key (`v1/config/permission.ts:27`).
+2. **Tools:** **source** Each call is forked as it streams in, so calls run in parallel (`step.ts:145-158`). The tool set is loaded per step, so it is dynamic.
+3. **Permissions:** **source** Rules use `findLast`, plus a deny layer that can only add denials (`permission/policy.ts:58-104`).
+   A missing agent gets deny-all. `Permission.Unattended` settles asks automatically. There is no OS sandbox.
+4. **Context:** **source** Tool output is capped at 2,000 lines or 50 KiB (`tool-output.ts:13-14`).
+   There is no prune pass at this commit; `compaction.prune` is flagged unsupported (`config/normalize.ts:373`). Older write-ups of a prune pass no longer apply.
+   Old images are dropped between two byte thresholds so the prefix stays cacheable (`session/model-request.ts:223-251`).
+   Compaction fires at `measured + estimated >= window - max(15% of window, 16,000)` (`session/compaction.ts:474,1173,1199-1217`); a background pre-summary starts 60,000 tokens early (`:160`).
+   The default keep is 15,000 tokens; on overflow the kept part shrinks to 0.85, 0.7, 0.5, 0.35 (`:275,129`).
+   Summary sections: Objective, Requirements, Decisions, Work State, Next Move, Relevant Files (at most 15), Important Context (`:175-248`).
+   Survivors: a `<conversation-checkpoint>` with `<summary>` and `<recent-context>`, or a native encrypted compaction item (`:486-593`).
+5. **Cache:** **source** At most 4 breakpoints: the last tool, the first and last system parts, and the conversation tail (`packages/ai/src/cache-policy.ts:1-35`).
+   OpenAI and Gemini routes skip breakpoints. History is stored and replayed, with stored metadata stripped before sending.
+6. **Sessions:** **source** SQLite tables session, message, part, inbox and blob. A fork records `fork_session_id` and `fork_boundary`; a revert stages a snapshot (`session/sql.ts`, `info.ts:19-23`, `revert.ts:22-33`).
+7. **Errors:** **source** 10 retries with jitter from 2 s, capped at 10 s; `retry-after` is honored up to 15 minutes; an unreachable host gets a separate 1-hour budget (`model-retry.ts:12-65`).
+   A context overflow triggers one compaction before any output (`step.ts:198-209`).
+8. **Rules files:** **source** Global `AGENTS.md` first, with `~/.claude/CLAUDE.md` as fallback, then a walk from the cwd up to the project root.
+   A `CLAUDE.md` is skipped when an `AGENTS.md` sits in the same directory (`config/plugin/instruction.ts:41-100`; `instruction-discovery.ts:133-136`). Size cap: **unknown** (none found).
+9. **Front ends:** **source** An HTTP and SSE server plus an SDK. No ACP.
+10. **Subagents:** **source** The `subagent` tool always runs in the background; results arrive as `<background-result>` messages. Depth limit defaults to 1 (`tool/plugin/subagent.ts`; `session/subagent-depth.ts:14`).
+    Concurrency limit: **unknown**.
