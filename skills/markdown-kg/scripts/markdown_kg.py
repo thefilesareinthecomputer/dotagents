@@ -692,7 +692,7 @@ def write_config(vault: Path, cfg: dict) -> None:
     one, and never into a legacy folder: `init` sends that to `migrate`."""
     path = config_path(vault)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(dump_config(cfg), encoding="utf-8")
+    path.write_bytes(dump_config(cfg).encode("utf-8"))
 
 
 def profile_for(note_id: str, rel_path: str, meta: dict, cfg: dict) -> dict:
@@ -5295,7 +5295,7 @@ def cmd_index(args: argparse.Namespace) -> int:
         sys.exit(f"error: {resolved} exists and was not written by this "
                  f"engine - pass --force to replace it")
     text = render_index(vault)
-    resolved.write_text(text, encoding="utf-8")
+    resolved.write_bytes(text.encode("utf-8"))
     print(f"index: wrote {resolved} ({len(text.splitlines())} lines)")
     return 0
 
@@ -5797,4 +5797,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    if sys.platform == "win32":  # the console code page is not UTF-8; note text often is
+        for _stream in (sys.stdout, sys.stderr):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())

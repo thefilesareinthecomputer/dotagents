@@ -8,8 +8,13 @@ What each push changes, newest first, for machines pulling this repo.
 
 - Re-seed the Claude Code hooks so `reject_bad_commit_message.py` picks up the CodeQL rule names: `python3 skills/agent-cc-configs-sync/scripts/seed_hooks.py apply --harness claude-code`.
 
+### Added
+
+- `skill-authoring`: `scripts/check_portable.py` flags constructs that break on Windows (POSIX-only `os` attributes and modules, text writes without `newline="\n"`, entry scripts without a UTF-8 console, a hardcoded interpreter). `references/cross-os.md` holds the rules, and the audit checklist and completion gate run the check over changed scripts.
+
 ### Changed
 
+- `sprint-board`: stories have a relevance rule (intention, execution details and acceptance criteria; a known blocker stated as a fact in the step it affects). `references/anatomy.md` budgets story purpose at 1-3 sentences and story key activities at 3-6 checkboxes, which `board_lint.py` warns on.
 - `specs/HARNESS-ENGINEERING.md` is now the hub for every harness. It covers:
   - what a harness is;
   - the required components, centered on the agent loop, each with the standard most harnesses use;
@@ -29,6 +34,11 @@ What each push changes, newest first, for machines pulling this repo.
 - `code-kg` tests run on Python 3.9 again: `fixture_copy.py` writes generated fixture files with `open(..., newline="\n")` instead of the 3.10+ `Path.write_text(newline=...)`.
 - The commit-message rules in `reject_bad_commit_message.py` and `sanitize`'s `detect.py` accept CodeQL rule names such as "Incomplete URL substring sanitization" and their query ids. The bare verb elsewhere in the message still refuses.
 - `lib/AGENTS.md` states the Python 3.9 rule and the `repo-lib` marker rule itself, so it no longer cites `hooks/AGENTS.md` or `tests/test_repo_lib.py`, which a published copy of `lib/` does not carry.
+- Windows support in `lib/kg_core.py`, `markdown-kg`, `code-kg`, `project-knowledge-vault`, `sprint-board`, `compact-notes` and `gather-learnings`; output on macOS is unchanged:
+  - `os.O_NOFOLLOW` is read with `getattr`, so `init` no longer raises `AttributeError` on Windows.
+  - Generated files are written with LF line endings on every OS.
+  - Entry scripts set their console streams to UTF-8 on Windows.
+  - Symlink tests skip on Windows, and the `code-kg` coverage-command tests expect `python_cmd()` rather than `python3`.
 
 ## 2026-11-24
 

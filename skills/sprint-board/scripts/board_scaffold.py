@@ -231,11 +231,14 @@ def main(argv=None):
             print(f"error: {out} exists; pass --force to overwrite",
                   file=sys.stderr)
             return 2
-        out.write_text(text + "\n", encoding="utf-8")
+        out.write_bytes((text + "\n").encode("utf-8"))
     else:
         sys.stdout.write(text + "\n")
     return 0
 
 
 if __name__ == "__main__":
+    if sys.platform == "win32":  # the console code page is not UTF-8; board text often is
+        for _stream in (sys.stdout, sys.stderr):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())

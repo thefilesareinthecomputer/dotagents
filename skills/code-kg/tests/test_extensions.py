@@ -23,6 +23,10 @@ sys.path.insert(0, str(SKILL_DIR / "scripts"))
 import code_kg  # noqa: E402
 from fixture_copy import copy_fixture  # noqa: E402
 
+# Creating a symlink on Windows needs Developer Mode or admin rights.
+needs_symlinks = unittest.skipIf(sys.platform == "win32",
+                                 "symlinks need Developer Mode or admin rights on Windows")
+
 HERE = Path(__file__).resolve().parent
 FIXTURE = HERE / "fixture-extend"
 
@@ -602,6 +606,7 @@ class TestGitignoreSeed(RepoCase):
         self.assertEqual(rc, 0, err)
         self.assertEqual(gi.read_text(encoding="utf-8"), "code-kg.db\n")
 
+    @needs_symlinks
     def test_a_dangling_link_at_the_seed_path_is_not_written_through(self):
         planted = self.tmp / "planted"
         gi = code_kg.kg_dir(self.repo) / ".gitignore"
@@ -890,6 +895,7 @@ class TestDocs(unittest.TestCase):
         self.assertEqual(
             list((self.repo / "docs" / ".kg").iterdir()), [])
 
+    @needs_symlinks
     def test_a_symlinked_vault_folder_is_never_asked(self):
         """markdown-kg refreshes its database before it answers, so a link
         here would let the repo choose where that write lands."""

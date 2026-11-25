@@ -12,8 +12,13 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "scripts"))
 import markdown_kg as kg  # noqa: E402
 
+# Creating a symlink on Windows needs Developer Mode or admin rights.
+needs_symlinks = unittest.skipIf(sys.platform == "win32",
+                                 "symlinks need Developer Mode or admin rights on Windows")
+
 
 class CheckpointTempTests(unittest.TestCase):
+    @needs_symlinks
     def test_a_link_at_the_old_temp_name_is_left_alone(self):
         tmp = Path(tempfile.mkdtemp(prefix="mkg-ckpt-")).resolve()
         self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
@@ -33,6 +38,7 @@ class CheckpointTempTests(unittest.TestCase):
 
 
 class LinkedStoreTests(unittest.TestCase):
+    @needs_symlinks
     def test_a_linked_engine_folder_is_refused(self):
         tmp = Path(tempfile.mkdtemp(prefix="mkg-link-")).resolve()
         self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)

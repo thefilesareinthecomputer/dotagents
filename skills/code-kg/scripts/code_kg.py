@@ -5140,7 +5140,7 @@ def ingest(repo: Path, keep_previous: bool = False,
         lines = gi.read_text(encoding="utf-8", errors="replace").split() \
             if gi.is_file() and not gi.is_symlink() else []
         if lines and not any(glob_match(PREV_DB_NAME, ln) for ln in lines):
-            with gi.open("a", encoding="utf-8") as fh:
+            with gi.open("a", encoding="utf-8", newline="\n") as fh:
                 fh.write(f"\n{PREV_DB_NAME}\n")
     cfg = load_config(repo)
     paths, escapes, ignored = scanned or scan_repo(repo)
@@ -6505,7 +6505,7 @@ def trace_run(repo: Path, cmd: list, source: str, timeout: int) -> dict:
     tdir = Path(tempfile.mkdtemp(prefix="code-kg-trace-"))
     out_dir = tdir / "out"
     out_dir.mkdir()
-    (tdir / "sitecustomize.py").write_text(TRACER_SOURCE, encoding="utf-8")
+    (tdir / "sitecustomize.py").write_bytes(TRACER_SOURCE.encode("utf-8"))
     path = os.pathsep.join(p for p in (str(tdir),
                                        os.environ.get("PYTHONPATH", "")) if p)
     env = {**os.environ, "PYTHONSAFEPATH": "1", "PYTHONPATH": path,
@@ -6863,9 +6863,8 @@ def cmd_init(args: argparse.Namespace) -> int:
         sys.exit(f"error: {refused}")
     kg.mkdir(parents=True, exist_ok=True)
     if not cfg_file.exists():
-        cfg_file.write_text(json.dumps(DEFAULT_CONFIG, indent=2,
-                                       sort_keys=True) + "\n",
-                            encoding="utf-8")
+        cfg_file.write_bytes((json.dumps(DEFAULT_CONFIG, indent=2,
+                                         sort_keys=True) + "\n").encode("utf-8"))
     with STORE.rebuild_lock(repo):
         counts = ingest(repo)  # connect() seeds .kg/'s gitignore and docs
     print(f"initialized {kg}")
@@ -7769,7 +7768,7 @@ def cmd_index(args: argparse.Namespace) -> int:
             if marker not in existing:
                 sys.exit(f"error: {out} exists and is not a code-kg map -"
                          " refusing to overwrite (use --force)")
-        out.write_text(text, encoding="utf-8")
+        out.write_bytes(text.encode("utf-8"))
         print(f"wrote {out}")
     else:
         print(text, end="")
@@ -9084,4 +9083,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    if sys.platform == "win32":  # the console code page is not UTF-8; source text often is
+        for _stream in (sys.stdout, sys.stderr):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())

@@ -92,6 +92,9 @@ BUDGETS = {
 # the documented standard.
 BUDGETS_BY_KIND = {
     ("feature", "ACCEPTANCE CRITERIA"): (4, 8),
+    # Boards in the original request / purpose / key activities layout fill this on
+    # stories too, and a story's steps run tighter than a feature's.
+    ("story", "KEY ACTIVITIES"): (3, 6),
 }
 # Sections whose content must be checkboxes rather than plain bullets.
 CHECKBOX_SECTIONS = set(BUDGETS)
@@ -1060,4 +1063,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    if sys.platform == "win32":  # the console code page is not UTF-8; board text often is
+        for _stream in (sys.stdout, sys.stderr):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())

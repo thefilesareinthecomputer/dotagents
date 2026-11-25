@@ -18,6 +18,10 @@ sys.path.insert(0, str(SKILL_DIR / "scripts"))
 import code_kg  # noqa: E402
 from fixture_copy import copy_fixture  # noqa: E402
 
+# Creating a symlink on Windows needs Developer Mode or admin rights.
+needs_symlinks = unittest.skipIf(sys.platform == "win32",
+                                 "symlinks need Developer Mode or admin rights on Windows")
+
 FIXTURE = Path(__file__).resolve().parent / "fixture-repo"
 ARTIFACTS = Path(__file__).resolve().parent / "artifacts"
 ENGINE = SKILL_DIR / "scripts" / "code_kg.py"
@@ -657,7 +661,7 @@ class TestCanaryFollowups(unittest.TestCase):
         (self.repo / "tests").mkdir()
         cmd = code_kg.detect_test_command(self.repo,
                                           dict(code_kg.DEFAULT_CONFIG))
-        self.assertEqual(cmd, ["python3", "-m", "coverage", "run",
+        self.assertEqual(cmd, [code_kg.python_cmd(), "-m", "coverage", "run",
                                "manage.py", "test"])
 
     def test_pytest_config_beats_manage_py(self):
@@ -666,7 +670,7 @@ class TestCanaryFollowups(unittest.TestCase):
                                               encoding="utf-8")
         cmd = code_kg.detect_test_command(self.repo,
                                           dict(code_kg.DEFAULT_CONFIG))
-        self.assertEqual(cmd, ["python3", "-m", "coverage", "run", "-m",
+        self.assertEqual(cmd, [code_kg.python_cmd(), "-m", "coverage", "run", "-m",
                                "pytest", "-q"])
 
     def test_no_detection_error_names_npm_script(self):
@@ -1014,6 +1018,7 @@ class TestEngineFolder(unittest.TestCase):
         self.assertTrue((old / "notes.txt").exists())
         self.assertEqual(code_kg.kg_dir(self.repo), self.repo / ".kg")
 
+    @needs_symlinks
     def test_init_refuses_a_linked_config(self):
         outside = Path(self.tmpdir).parent / (Path(self.tmpdir).name + "-out")
         self.addCleanup(shutil.rmtree, outside, ignore_errors=True)
@@ -1266,6 +1271,7 @@ class TestScanSafety(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
+    @needs_symlinks
     def test_symlink_escape_refused(self):
         outside = Path(self.tmpdir) / "secret.py"
         outside.write_text("PASSWORD = 'hunter2'\n")

@@ -242,6 +242,8 @@ budgets below are limits, not targets - come in under them.
 | Feature key activities | 3-7 checkboxes, one line each |
 | Feature acceptance criteria | 4-8 checkboxes, one line each |
 | Story user story | the one-paragraph pattern, nothing more |
+| Story purpose (boards using the purpose / key activities layout) | 1-3 sentences |
+| Story key activities (same layout) | 3-6 checkboxes, one line each |
 | Story development approach | 3-4 checkboxes, one line each |
 | Story definition of done | 3-7 checkboxes, one line each |
 | Story testing approach | 2 checkboxes, one line each |
@@ -365,6 +367,8 @@ had and you do not.
 The two halves of an item are written in different voices, and using one voice throughout is what makes a board read as though it were generated rather than written.
 
 The description fields - original request, purpose, key activities - are calm and suggestive. They frame the problem and the shape of the work, and they leave the engineer room to decide how. Prefer "give this field a real source-side value, rather than the copy it gets today" over "set this field from the source read"; prefer "the thought from the review was that these checks would sit better at ingestion time" over "move the check to the ingestion job". The person picking the item up knows the codebase better than the board does, and a description that dictates method either goes stale against what they actually build or reads as being told their job.
+
+Suggestive is not silent. A known blocker that makes the obvious approach fail is a fact, not a method: a CI or PR gate that rejects the obvious change, a guard in the code, or a step only a portal or an admin can do. State it flatly in the step it affects, because an implementer, human or coding agent, cannot find it before failing.
 
 The acceptance criteria are prescriptive, because they are the contract. Each one is a flat condition that holds or does not, with no hedging and no room for interpretation. "Every enabled row produces a comparison result" rather than "results should generally be produced".
 

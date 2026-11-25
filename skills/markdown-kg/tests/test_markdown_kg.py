@@ -25,6 +25,10 @@ import markdown_kg
 import kg_core  # on sys.path once the engine is imported
 from fixture_copy import copy_fixture
 
+# Creating a symlink on Windows needs Developer Mode or admin rights.
+needs_symlinks = unittest.skipIf(sys.platform == "win32",
+                                 "symlinks need Developer Mode or admin rights on Windows")
+
 HERE = Path(__file__).resolve().parent
 FIXTURE = HERE / "fixture-vault"
 KB_FIXTURE = HERE / "kb-fixture-vault"
@@ -871,6 +875,7 @@ class UntrustedVaultTests(VaultCase):
 
     fixture = ADVERSARIAL
 
+    @needs_symlinks
     def test_a_symlink_never_reads_a_file_outside_the_vault(self):
         secret = self.tmp / "secret.txt"
         secret.write_text("BEGIN PRIVATE KEY exfiltrate-me\n", encoding="utf-8")
@@ -883,6 +888,7 @@ class UntrustedVaultTests(VaultCase):
         self.assertIn("leak.md", rules)          # refused loudly, not silently
         self.assertGreater(report["ignored_files"], 0)
 
+    @needs_symlinks
     def test_a_symlinked_directory_cannot_smuggle_notes_in(self):
         outside = self.tmp / "outside"
         outside.mkdir()
@@ -1534,6 +1540,7 @@ class DiffTests(VaultCase):
             ro_probe.execute("CREATE TABLE should_fail (x)")
         ro_probe.close()
 
+    @needs_symlinks
     def test_checkpoint_never_writes_through_a_planted_link(self):
         prev = markdown_kg.prev_db_path(self.vault)
         victim = self.tmp / "victim.txt"
@@ -3362,6 +3369,7 @@ class FolderNameTests(VaultCase):
         self.assertTrue((self.vault / "vault-kg" / "notes.txt").exists())
         self.assertEqual(markdown_kg.kg_dir(self.vault), self.vault / ".kg")
 
+    @needs_symlinks
     def test_init_refuses_a_linked_config(self):
         outside = self.tmp / "outside"
         cfg = self.vault / ".kg" / "markdown-kg-config.json"

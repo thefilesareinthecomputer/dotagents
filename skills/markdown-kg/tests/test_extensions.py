@@ -25,6 +25,10 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import markdown_kg as kg
 
+# Creating a symlink on Windows needs Developer Mode or admin rights.
+needs_symlinks = unittest.skipIf(sys.platform == "win32",
+                                 "symlinks need Developer Mode or admin rights on Windows")
+
 HERE = Path(__file__).resolve().parent
 WIKI = HERE / "wiki-fixture-vault"
 PLAIN = HERE / "fixture-vault"
@@ -1420,6 +1424,7 @@ class CodeTests(LinkedCase):
         self.json("code", "guide")
         self.assertEqual(snapshot(), before)
 
+    @needs_symlinks
     def test_a_symlinked_code_folder_is_never_asked(self):
         """code-kg refreshes its database before it answers, so a link here
         would let the vault's tree choose where that write lands."""
@@ -1856,6 +1861,7 @@ class CodeWithoutDatabaseTests(LinkedCase):
             got = self.json("code", "guide")
         self.assertIsNone(got["repo"])
 
+    @needs_symlinks
     def test_a_dangling_git_link_still_ends_the_search(self):
         os.symlink(self.tmp / "nowhere", self.repo / ".git")
         (self.tmp / ".kg").mkdir()
