@@ -4,5 +4,8 @@
   {"name": "plan-ambiguity", "query": "before we implement, have a fresh reviewer check the spec and the handoff plan for anything ambiguous or that only makes sense with this session's context", "should_trigger": true, "why": "Pre-build ambiguity check on a spec and plan, phrased without the skill's name."},
   {"name": "code-review", "query": "review the diff on this branch for bugs before I merge it", "should_trigger": false, "why": "Reviewing code is a code review, not a spec review."},
   {"name": "strategy", "query": "ask the advisor whether the phase order in this plan is right", "should_trigger": false, "why": "Judging a plan's strategy belongs to the advisor."},
-  {"name": "write-spec", "query": "write a spec for a CSV export feature", "should_trigger": false, "why": "Writing a spec is not reviewing one."}
+  {"name": "write-spec", "query": "write a spec for a CSV export feature", "should_trigger": false, "why": "Writing a spec is not reviewing one."},
+  {"name": "goldfish-readme", "query": "goldfish the README against the code", "should_trigger": true, "why": "The skill's own verb on documentation rather than a spec."},
+  {"name": "readme-drift", "query": "does README.md still match what the CLI actually does? have a fresh reader check every command and flag it documents against the script", "should_trigger": true, "why": "Doc mode by situation: a cold check of documentation against its code, without the skill's name."},
+  {"name": "write-readme", "query": "write a README for this repo", "should_trigger": false, "why": "Writing documentation is not reviewing it."}
 ]
