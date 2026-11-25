@@ -22,6 +22,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import kg_core  # noqa: E402
 
+# Creating a symlink on Windows needs Developer Mode or admin rights.
+needs_symlinks = unittest.skipIf(sys.platform == "win32",
+                                 "symlinks need Developer Mode or admin rights on Windows")
+
 
 class TempCase(unittest.TestCase):
     def setUp(self):
@@ -97,6 +101,7 @@ class SeedFolderTests(TempCase):
         kg_core.seed_folder(legacy)
         self.assertEqual([p.name for p in legacy.iterdir()], [".gitignore"])
 
+    @needs_symlinks
     def test_planted_links_at_the_seeded_names_are_not_written_through(self):
         kg = self.tmp / "repo" / ".kg"
         kg.mkdir(parents=True)
@@ -119,6 +124,7 @@ class SeedFolderTests(TempCase):
 
 
 class StoreTests(TempCase):
+    @needs_symlinks
     def test_a_read_never_writes_through_a_planted_database_link(self):
         outside = self.tmp / "outside.db"
         con = sqlite3.connect(outside)

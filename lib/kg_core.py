@@ -140,10 +140,10 @@ def seed_folder(folder: Path) -> None:
             continue
         try:
             fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL
-                         | os.O_NOFOLLOW, 0o644)
+                         | getattr(os, "O_NOFOLLOW", 0), 0o644)
         except OSError:
             continue
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(KG_FOLDER_FILES[name])
 
 
@@ -418,8 +418,8 @@ class Store:
         for src, dst in moves:
             if src == cfg_src and rewrite:
                 fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_EXCL
-                             | os.O_NOFOLLOW, 0o644)
-                with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                             | getattr(os, "O_NOFOLLOW", 0), 0o644)
+                with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
                     fh.write(json.dumps(data, indent=2, ensure_ascii=False,
                                         sort_keys=True) + "\n")
                 src.unlink()
@@ -793,9 +793,12 @@ def walk_tree(root: Path, skip_dir, list_ignored: bool = False) \
 def append_kgignore(root: Path, lines: list[str]) -> None:
     """Add `lines` to the end of the root's .kgignore, creating it, never
     through a link."""
+    # Windows has no O_NOFOLLOW, so the link check happens before the open there.
+    if not hasattr(os, "O_NOFOLLOW") and (root / ".kgignore").is_symlink():
+        raise OSError(f"refusing to write through a link: {root / '.kgignore'}")
     fd = os.open(root / ".kgignore", os.O_RDWR | os.O_CREAT | os.O_APPEND
-                 | os.O_NOFOLLOW, 0o644)
-    with os.fdopen(fd, "a+", encoding="utf-8") as fh:
+                 | getattr(os, "O_NOFOLLOW", 0), 0o644)
+    with os.fdopen(fd, "a+", encoding="utf-8", newline="\n") as fh:
         fh.seek(0)
         lead = "\n" if fh.read()[-1:] not in ("", "\n") else ""
         fh.write(lead + "\n".join(lines) + "\n")

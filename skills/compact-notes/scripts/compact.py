@@ -135,7 +135,7 @@ def cmd_backup(args) -> int:
         return 6
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
-        with dest.open('x', encoding='utf-8') as f:     # exclusive create: never overwrites
+        with dest.open('x', encoding='utf-8', newline='\n') as f:     # exclusive create: never overwrites
             f.write(sec['body'])
     except FileExistsError:
         if dest.read_text(encoding='utf-8') != sec['body']:
@@ -223,4 +223,7 @@ def main(argv=None) -> int:
 
 
 if __name__ == '__main__':
+    if sys.platform == 'win32':  # the console code page is not UTF-8; note text often is
+        for _stream in (sys.stdout, sys.stderr):
+            _stream.reconfigure(encoding='utf-8', errors='replace')
     raise SystemExit(main())

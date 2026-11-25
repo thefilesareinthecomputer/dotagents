@@ -11,6 +11,10 @@ SCRIPT = Path(__file__).resolve().parents[1] / 'scripts' / 'compact.py'
 sys.path.insert(0, str(SCRIPT.parent))
 import compact  # noqa: E402
 
+# Creating a symlink on Windows needs Developer Mode or admin rights.
+needs_symlinks = unittest.skipIf(sys.platform == 'win32',
+                                 'symlinks need Developer Mode or admin rights on Windows')
+
 NOTE = """---
 type: meeting_note
 title: t
@@ -182,6 +186,7 @@ class TestBackup(Base):
                          '--project', 'DEMO', '--date', '../../OTHER/x')
         self.assertEqual(cm.exception.code, 2)
 
+    @needs_symlinks
     def test_symlinked_archive_leaving_the_root_is_refused(self):
         with tempfile.TemporaryDirectory() as outside:
             (self.dir / '__archive').symlink_to(outside)

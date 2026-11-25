@@ -310,6 +310,18 @@ class TestBudgets(unittest.TestCase):
             "- [ ] Kill a worker mid-run and confirm a failure outcome\n" + extra)
         self.assertIn("over-budget", lint_errors(text))
 
+    def test_story_key_activities_run_tighter_than_a_feature(self):
+        boxes = "\n".join(f"- [ ] Activity {n}" for n in range(1, 8))
+        story = CLEAN_BOARD.replace("- [ ] Expose the last outcome\n",
+                                    "- [ ] Expose the last outcome\n\n**KEY ACTIVITIES**:\n"
+                                    + boxes + "\n")
+        self.assertIn("over-budget", lint_text(story))
+        six = "\n".join(f"- [ ] Activity {n}" for n in range(1, 7))
+        story = CLEAN_BOARD.replace("- [ ] Expose the last outcome\n",
+                                    "- [ ] Expose the last outcome\n\n**KEY ACTIVITIES**:\n"
+                                    + six + "\n")
+        self.assertNotIn("over-budget", lint_text(story))
+
     def test_under_budget_testing_approach(self):
         text = CLEAN_BOARD.replace(
             "- [ ] Run a job and confirm the outcome is written\n"

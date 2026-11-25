@@ -15,6 +15,10 @@ from test_symbol_edges import run  # noqa: E402
 
 import code_kg  # noqa: E402
 
+# Creating a symlink on Windows needs Developer Mode or admin rights.
+needs_symlinks = unittest.skipIf(sys.platform == "win32",
+                                 "symlinks need Developer Mode or admin rights on Windows")
+
 BEFORE = {
     "a.py": """def keep():
     x = 1
@@ -142,6 +146,7 @@ class CheckpointTests(DiffCase):
         self.cli("ingest", "--keep-previous")
         self.assertIn(code_kg.PREV_DB_NAME, gi.read_text().split())
 
+    @needs_symlinks
     def test_a_planted_link_is_never_written_through(self):
         self.cli("ingest")
         for kind in ("symlink", "hardlink"):
@@ -165,6 +170,7 @@ class LinkedStoreTests(DiffCase):
     """A repo is untrusted: a committed link at the engine's folder or db
     would carry every write to a place the planter chose."""
 
+    @needs_symlinks
     def test_a_linked_engine_folder_is_refused(self):
         outside = self.tmp / "outside"
         outside.mkdir()
@@ -175,6 +181,7 @@ class LinkedStoreTests(DiffCase):
             self.assertIn("link", err)
         self.assertEqual(list(outside.iterdir()), [])
 
+    @needs_symlinks
     def test_a_linked_database_is_refused(self):
         self.cli("ingest")
         other = self.tmp / "other.db"

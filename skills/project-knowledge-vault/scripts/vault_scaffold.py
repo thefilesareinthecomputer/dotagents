@@ -177,11 +177,17 @@ def seed(dest: Path, guards: tuple[Path, ...], dry_run: bool, files: list[tuple[
             # O_EXCL and O_NOFOLLOW on the file and on its folder: create only, never through a link
             # planted between the check and the write
             nofollow = getattr(os, "O_NOFOLLOW", 0)
-            parent = os.open(out.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | nofollow)
-            try:
-                fd = os.open(out.name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow, 0o644, dir_fd=parent)
-            finally:
-                os.close(parent)
+            if os.open in os.supports_dir_fd:
+                parent = os.open(out.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | nofollow)
+                try:
+                    fd = os.open(out.name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow, 0o644, dir_fd=parent)
+                finally:
+                    os.close(parent)
+            else:
+                # Windows: no dir_fd and no folder handle, so refuse a linked folder by checking it
+                if out.parent.is_symlink():
+                    raise OSError(f"refusing to write through a linked folder: {out.parent}")
+                fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
             with os.fdopen(fd, "wb") as fh:
                 fh.write(src.read_bytes())
             written.append(name)
@@ -260,7 +266,7 @@ def replace_file(path: Path, text: str) -> None:
     except FileExistsError:
         raise OSError(f"a previous run left {tmp}; delete it and re-run") from None
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(text)
             fh.flush()
             os.fsync(fh.fileno())
@@ -280,7 +286,7 @@ def ignore_databases(kg_dir: Path) -> bool:
     except FileExistsError:
         lines = gitignore.read_text(encoding="utf-8").split()
         return "*" in lines or "*.db*" in lines
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+    with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("*.db*\n")
     return True
 
@@ -422,4 +428,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    if sys.platform == "win32":  # the console code page is not UTF-8; note text often is
+        for _stream in (sys.stdout, sys.stderr):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())

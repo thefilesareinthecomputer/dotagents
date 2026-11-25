@@ -147,6 +147,14 @@ argument-driven (`argument-hint`), not model-triggered.
   process group stops on every exit path, and models are released.
   `scripts/check_spawns.py` enforces the rules.
 
+## Cross-OS scripts
+
+Skills are built on macOS and must keep working there. A new or edited script also
+runs on Windows wherever that costs little rework, and on Linux when it comes free.
+The portable forms change nothing on macOS. `references/cross-os.md` has the rules,
+and `scripts/check_portable.py <paths>` flags their violations in the files an edit
+touches. Pre-existing findings in files an edit does not touch can stay.
+
 ## Editing existing skills
 
 Edits to an existing skill are additive and backwards compatible unless the user specifies otherwise. Every command, flag, output shape, file contract, and eval that worked before the edit still works after it; capability grows through new flags, new subcommands, new optional parameters, or new files - never by repurposing, renaming, or removing a surface something else may already call. Other repos, hooks, and skills invoke these tools by name and shape, so a silent break here surfaces as a mystery failure somewhere else. A breaking change happens only when explicitly requested, and the edit names its breakage where the next reader will see it. The completion gate applies to edits, not just new skills: re-run the skill's tests and evals after changing it. This clause is not a permission slip for junk drawers: when the honest fix is consolidation or removal and compatibility would mean hoarding dead surfaces or piling additions onto bad architecture, say so and ask - propose the breaking cleanup rather than blindly satisfying the rule.
@@ -174,6 +182,7 @@ Run over `skills/*/SKILL.md`, `agents/*.md`, `commands/*.md`:
 7. Trigger sanity: does the description enumerate the situations this repo
    actually uses it in?
 8. Spawns: `scripts/check_spawns.py <skill-dir>` exits 0.
+9. Cross-OS: `scripts/check_portable.py <changed scripts>` exits 0.
 
 ## Tooling
 
@@ -190,6 +199,7 @@ Run over `skills/*/SKILL.md`, `agents/*.md`, `commands/*.md`:
 - `scripts/procguard.py` is the spawn guard every process-starting skill copies.
   `scripts/check_spawns.py` lints spawns, or with `--inventory` lists every spawn
   site.
+- `scripts/check_portable.py` lints scripts for constructs that break on Windows.
 
 ### Eval convention
 
@@ -304,7 +314,8 @@ A skill is not done when the prose is written. First, `scripts/check_description
 exits 0: a description over the 1000-character cap, or a plain scalar containing
 `: `, passes Claude Code silently and breaks stricter harnesses. So does
 `scripts/check_spawns.py <skill-dir>`: a skill that leaks a process passes every
-other check and still overheats the machine. Then, in order:
+other check and still overheats the machine. So does `scripts/check_portable.py`
+over the scripts the change touched. Then, in order:
 
 1. **Slop pass** - run `ai-slop-magic-eraser`'s `scripts/slop_check.py` over
    SKILL.md and every `references/` file; fix the findings or consciously keep

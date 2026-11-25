@@ -286,4 +286,7 @@ def main(argv=None) -> int:
 
 
 if __name__ == '__main__':
+    if sys.platform == 'win32':  # the console code page is not UTF-8; note text often is
+        for _stream in (sys.stdout, sys.stderr):
+            _stream.reconfigure(encoding='utf-8', errors='replace')
     raise SystemExit(main())
