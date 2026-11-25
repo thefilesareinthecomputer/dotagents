@@ -79,3 +79,20 @@ picked up globally there.
 
 Whatever the constructing code passes. `SPEC.md` invariant 6 still binds: work
 that matters runs on Anthropic or a genuinely local model.
+
+## Architecture
+
+Not researched in the 2026-11-25 pass. Only facts this spec already states are listed.
+deepagents was never installed here, so nothing is **observed**.
+The **docs** facts come from LangChain's documentation as of 2026-07-31; this spec records no URL.
+
+1. **Loop:** **unknown - not yet researched**.
+2. **Tools:** **docs** - `SkillsMiddleware` reads skill files through the backend's filesystem tools. Parallelism and the tool list: **unknown - not yet researched**.
+3. **Permissions:** **unknown - not yet researched**.
+4. **Context:** **unknown - not yet researched**.
+5. **Cache:** **docs** - prompt caching is Anthropic and Bedrock only. Marker placement: **unknown - not yet researched**.
+6. **Sessions:** **unknown - not yet researched**.
+7. **Errors:** **unknown - not yet researched**.
+8. **Rules files:** **unknown - not yet researched**. Skill sources are covered in the `deepagents-code` section.
+9. **Front ends:** **docs** - a bundled `deepagents-code` CLI exists. Event stream, headless mode and protocols: **unknown - not yet researched**.
+10. **Subagents:** **docs** - subagents take their own `skills` argument, and the general-purpose subagent inherits from `create_deep_agent`. Isolation and limits: **unknown - not yet researched**.

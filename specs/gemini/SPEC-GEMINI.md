@@ -79,3 +79,20 @@ Not adapted. Tracked with the goose and Codex station work in `tasks/plan.md`.
 `agy`, whose binary may ignore the key (see
 [`SPEC-ANTIGRAVITY.md`](../antigravity/SPEC-ANTIGRAVITY.md)). Nothing is seeded
 for a retired harness.
+
+## Architecture
+
+Not researched in the 2026-11-25 pass. Only facts this spec already states are listed.
+Gemini CLI was never run here, so nothing is **observed**.
+The **docs** facts come from Google's documentation as of 2026-07-31; this spec records no URL.
+
+1. **Loop:** **unknown - not yet researched**.
+2. **Tools:** **unknown - not yet researched**.
+3. **Permissions:** **docs** - workspace skills require a trusted folder (`/trust`); user-scope skills do not. Approval modes, hooks and sandbox: **unknown - not yet researched**.
+4. **Context:** **unknown - not yet researched**.
+5. **Cache:** **unknown - not yet researched**.
+6. **Sessions:** **unknown - not yet researched**.
+7. **Errors:** **unknown - not yet researched**.
+8. **Rules files:** **unknown - not yet researched**.
+9. **Front ends:** **unknown - not yet researched**.
+10. **Subagents:** **docs** - agents are Markdown with YAML frontmatter at `~/.gemini/agents/*.md` and `.gemini/agents/*.md`, and the body becomes the system prompt. `/agents` manages and rescans them. Isolation and limits: **unknown - not yet researched**.

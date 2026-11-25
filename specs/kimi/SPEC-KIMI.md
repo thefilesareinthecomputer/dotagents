@@ -51,3 +51,26 @@ local.
 
 Not adapted. Whether Kimi Code has hook, permission or statusline analogues is
 open, and tracked with the goose and Codex station work in `tasks/plan.md`.
+
+## Architecture
+
+The MoonshotAI/kimi-cli GitHub repo was archived on 2026-09-22 (GitHub API, checked 2026-11-25).
+Facts below come from its Python source on `main` (commit `9ab1286b`, `src/kimi_cli/soul/kimisoul.py`), fetched from the branch tip, so the pin is approximate.
+The product above is the TypeScript Kimi Code, so whether these hold there is **unknown**. Nothing here was run.
+
+1. **Loop:** **source** `KimiSoul.run()` calls `_turn()`, then `_agent_loop()`, then `_step()`. `MaxStepsReached` fires past `loop_control.max_steps_per_turn`.
+   A turn ends on no tool calls, a pure tool rejection (root agent only), or `tool_call_repeat` (`KimiToolset.force_stop_turn`), which is the loop detector.
+   A Stop hook can re-trigger the turn once.
+2. **Tools:** **source** All results of a step are awaited before the next LLM call; MCP loading is deferred and the list is dynamic. Parallel or sequential execution: **unknown**.
+3. **Permissions:** **source** A per-turn approval source with `is_yolo`, `is_auto_approve` and `is_afk` flags; plan-file writes are auto-approved in plan mode. Decision logic and sandbox: **unknown**.
+4. **Context:** **source** Before each step, `should_auto_compact()` compares tokens to `max_context_size` using `compaction_trigger_ratio` and `reserved_context_size`.
+   Compaction clears the context, rewrites the system prompt and appends the compacted messages; the root agent re-adds a snapshot of active background tasks.
+   Summary prompt and tool-output limits: **unknown**.
+5. **Cache:** **unknown** (not in the file read). History is normalized and dynamic injections are collected on each step.
+6. **Sessions:** **source** A checkpoint is made before every LLM call; the `SendDMail` tool reverts the context to a checkpoint and adds a message. Storage format and resume: **unknown**.
+7. **Errors:** **source** Exponential backoff with jitter, 0.3 s initial, 5 s max, up to `max_retries_per_step`; retryable are connection errors, timeouts, empty replies and HTTP 429, 500, 502, 503, 504.
+   One OAuth refresh on 401; compaction uses the same policy. Overflow handling: **unknown**.
+8. **Rules files:** **unknown** (not in the file read).
+9. **Front ends:** **source** Events `StepRetry`, `StepInterrupted`, `CompactionBegin` and `CompactionEnd` were seen. Headless mode and ACP: **unknown**.
+10. **Subagents:** **source** Same `KimiSoul` class, told apart by `runtime.role`; root-only behavior includes notifications (4 per step) and the stop on pure rejection.
+    Isolation, depth and concurrency limits: **unknown**.

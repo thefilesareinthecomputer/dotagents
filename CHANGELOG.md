@@ -2,13 +2,49 @@
 
 What each push changes, newest first, for machines pulling this repo.
 
-## 2026-11-24
+## 2026-11-25
+
+### Action needed
+
+- Re-seed the Claude Code hooks so `reject_bad_commit_message.py` picks up the CodeQL rule names: `python3 skills/agent-cc-configs-sync/scripts/seed_hooks.py apply --harness claude-code`.
 
 ### Changed
+
+- `specs/HARNESS-ENGINEERING.md` is now the hub for every harness. It covers:
+  - what a harness is;
+  - the required components, centered on the agent loop, each with the standard most harnesses use;
+  - the loop's limits and failure handling;
+  - an index of every harness spec;
+  - a ten-question architecture template;
+  - breakout sections on context, compaction, caching, permissions, sessions, rules files, ACP, subagents and evaluation.
+- Every harness spec in `specs/` gains an `## Architecture` section answering the same ten questions. Each answer is marked source, docs, observed or unknown.
+- `ai-engineering`:
+  - B.6 compares how 14 coding-agent harnesses build their core loop, with 8 open-source harnesses read from source at pinned commits.
+  - B.5 gains first-hand measurements on Ollama's MLX runner and five harness pitfalls.
+  - New field notes cover Ollama 0.40.18, Inkling 2 Mini, embeddinggemma, LFM3-Audio (speech in and out verified locally) and Kimi CLI (repo archived).
+  - The two local-agent stack decisions are stamped held (Ollama) and abandoned (sqlite-vec).
+
+### Fixed
+
+- `code-kg` tests run on Python 3.9 again: `fixture_copy.py` writes generated fixture files with `open(..., newline="\n")` instead of the 3.10+ `Path.write_text(newline=...)`.
+- The commit-message rules in `reject_bad_commit_message.py` and `sanitize`'s `detect.py` accept CodeQL rule names such as "Incomplete URL substring sanitization" and their query ids. The bare verb elsewhere in the message still refuses.
+- `lib/AGENTS.md` states the Python 3.9 rule and the `repo-lib` marker rule itself, so it no longer cites `hooks/AGENTS.md` or `tests/test_repo_lib.py`, which a published copy of `lib/` does not carry.
+
+## 2026-11-24
+
+### Action needed
+
+- Re-seed the Claude Code hooks: `python3 skills/agent-cc-configs-sync/scripts/seed_hooks.py apply --harness claude-code`.
+
+### Changed
+
+- `reaper.py` hook: reports any of the user's processes that has averaged 25% CPU or more for over an hour, whatever its name, such as a runaway app; it also runs on prompts, at most every 30 minutes, reporting each process once. It still only reports.
+- `reaper.py` hook: reports an orphaned agent browser (launched with `--remote-debugging-pipe`, a temp `--user-data-dir`, or a Playwright build) after 2 minutes at any CPU, with CPU and memory summed over its process group and the group stop command when it leads a private group, and an orphaned Playwright or Chrome DevTools MCP server; a Dock-launched browser is never reported by this rule.
 
 - `markdown-kg`: the non-note link test asserts that no edge target carries a URL scheme, instead of matching a host substring, which CodeQL reads as URL sanitization.
 - `code-kg`: the Next.js test fixture's `package.json` is written at test time by `tests/fixture_copy.py` instead of committed, so dependency scanners no longer flag its pinned versions.
 - `tests/test_published_set_hygiene.py`: fails when a committed test fixture manifest pins an exact dependency version.
+- `publish-mirror.sh`: `--branch <name>` copies onto a new branch cut from the target's freshly fetched remote default branch, for a mirror that takes changes only by pull request.
 
 ## 2026-11-23
 

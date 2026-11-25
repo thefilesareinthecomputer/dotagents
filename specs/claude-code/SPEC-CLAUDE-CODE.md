@@ -1324,8 +1324,10 @@ Script: [`../../hooks/background_guard.py`](../../hooks/background_guard.py).
 
 ### `reaper.py`
 
-SessionStart (matchers `startup`, `resume`) - advisory, never blocks.
+SessionStart (matchers `startup`, `resume`) and UserPromptSubmit (at most every 30 minutes, each process once) - advisory, never blocks.
 It reports the user's own heavy interpreter, agent-CLI, model-runner and encoder processes that are orphaned (parent pid 1) or have run under a live session for over an hour. Heavy means an average CPU of at least 10% over the process's life, or at least 2 GB resident.
+It also reports any process of the user's averaging 25% CPU or more for over an hour (a hog).
+An orphaned agent browser (`--remote-debugging-pipe`, a temp `--user-data-dir`, or a Playwright build) is reported after 2 minutes at any CPU, with its process group's totals and `kill -TERM -<pgid>` when it leads a private group (not pgid 1, not a session's group), and so is an orphaned Playwright or Chrome DevTools MCP server.
 It never stops anything; the model is told to name each process to the user and to stop one only after a yes.
 Long tokens in command lines are masked and the home path is shown as `~`.
 Lines in `~/.claude/state/reaper-ignore` exempt a process the user runs on purpose.
@@ -1562,3 +1564,18 @@ key still submits, the failure is layer 2 (terminal), not layer 1.
   per machine.
 - **claude-mem data** - observation history is per-user runtime state, not
   seedable config.
+
+## Architecture
+
+From official docs, accessed 2026-11-25. The binary is closed source and the Agent SDK source was not read. Hub: [`../HARNESS-ENGINEERING.md`](../HARNESS-ENGINEERING.md#the-architecture-section).
+
+1. **Loop:** a reply with no tool calls ends the turn. `max_turns` and `max_budget_usd` default to no limit, and the budget is checked after each response, so spend can overshoot by one response. Loop detection: **unknown**. **docs** https://code.claude.com/docs/en/agent-sdk/agent-loop
+2. **Tools:** read-only tools (Read, Glob, Grep, read-only MCP) run in parallel. Edit, Write and Bash run sequentially. Core built-ins load every request. MCP and other tools are deferred behind ToolSearch by default. **docs** https://code.claude.com/docs/en/agent-sdk/agent-loop
+3. **Permissions:** modes `default`, `acceptEdits`, `plan`, `dontAsk`, `auto` and `bypassPermissions`. `allowedTools` and `disallowedTools` rules, with deny winning. Hooks (PreToolUse, PostToolUse, Stop and others) run in the app process. A denied call returns a rejection as the tool result. Sandbox semantics: **unknown** (only the `sandbox.enabled` setting appears in the pages read). **docs** https://code.claude.com/docs/en/agent-sdk/agent-loop, https://code.claude.com/docs/en/memory
+4. **Context:** auto-compaction runs when the window nears its limit, and the threshold is model-dependent. It keeps recent exchanges and key decisions. Survivors: project CLAUDE.md and unscoped rules reloaded from disk, auto memory, the plan, up to five recent files, and invoked skill bodies capped at 5,000 tokens each and 25,000 total. Path-scoped rules and nested CLAUDE.md are summarized away. Tool-output limits and the summary's section format: **unknown**. **docs** https://code.claude.com/docs/en/context-window
+5. **Cache:** request order is system prompt and tools, then project context, then conversation. Mid-session changes (plan mode, skills, CLAUDE.md edits) append to the conversation. With tool search on, the first request's tool list is kept all session. Compaction repeats the live prefix so it reads the warm cache. TTL is 1 hour on a subscription's main conversation and 5 minutes elsewhere. Exact breakpoint placement: **unknown**. **docs** https://code.claude.com/docs/en/prompt-caching
+6. **Sessions:** JSONL transcripts under `~/.claude/projects/<encoded-cwd>/`. Continue, resume by ID and fork (a copy of history under a new ID) exist. Subagent transcripts are separate files. **docs** https://code.claude.com/docs/en/agent-sdk/sessions
+7. **Errors:** `CLAUDE_CODE_MAX_RETRIES` defaults to 10 and is capped at 15, with an `api_retry` event before each retry. This comes from a search digest, not the page text. `fallbackModel` switches models on overload. Overflow handling beyond auto-compaction: **unknown**. **docs** https://code.claude.com/docs/en/errors
+8. **Rules files:** `CLAUDE.md` is read from managed policy, user, project and local scopes, root to cwd with the closest last. `@` imports go 4 levels deep. `.claude/rules/*.md` may be path-scoped. `AGENTS.md` is read only when no `CLAUDE.md` exists. Target under 200 lines per file. Auto memory loads the first 200 lines or 25KB of `MEMORY.md`. **docs** https://code.claude.com/docs/en/memory
+9. **Front ends:** the SDK emits SystemMessage, AssistantMessage, UserMessage, StreamEvent and ResultMessage. `-p` runs headless. The `stream-json` schema and any ACP support: **unknown**. **docs** https://code.claude.com/docs/en/agent-sdk/agent-loop
+10. **Subagents:** each runs in a fresh context, and only its final message returns. Default depth is 3 (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`) and default concurrency is 20 (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`). A fork subagent copies the parent conversation. The spend cap includes subagents. **docs** https://code.claude.com/docs/en/agent-sdk/subagents

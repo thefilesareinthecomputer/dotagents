@@ -331,3 +331,37 @@ An unrecognized key errors out here; a parse-clean file returns one
 single allowed file.
 
 An `AGENTS.md` template remains a backlog item in `tasks/plan.md`.
+
+## Architecture
+
+Read from source at `openai/codex` commit `06f334aa` on 2026-11-25, paths under `codex-rs/`. Sections above were observed on older builds (0.150.1 to 0.162.1).
+
+1. **Loop:** **source** A turn is a `loop` of sampling requests in `core/src/session/turn.rs` `run_turn`.
+   It ends when no follow-up is needed and no input is queued, unless a stop hook blocks, or on error or interrupt.
+   No turn, step or time limit was found by search of `core/src` (the 10 s default is the shell exec timeout, `core/src/exec.rs:67`).
+   Loop detection: **unknown** (not found in files read).
+2. **Tools:** **source** `parallel_tool_calls: true` is set in `build_prompt` (`turn.rs`); `tool_choice` is always "auto" (`core/src/client.rs`).
+   The list is dynamic: `Op::ReplaceDynamicTools` and MCP exposure exist, and `client.rs` detects `tools_changed`.
+3. **Permissions:** **source** Approval modes `UnlessTrusted`, `OnRequest` (default), `Granular`, `Never`, and sandbox `DangerFullAccess`, `ReadOnly`, `ExternalSandbox`, `WorkspaceWrite` (`protocol/src/protocol.rs`).
+   An "Auto Review" guardian subsystem reviews actions (`core/src/guardian_review.rs`). **observed** The sandbox bounds writes, not reads (see Permissions above).
+   Exec-policy rule format and sandbox internals: **unknown**.
+4. **Context:** **source** Tool output defaults to 10,000 tokens per model (`models-manager/models.json:16-17`), half head and half tail, 4 bytes per token (`utils/string/src/truncate.rs`).
+   Truncation applies to live history only; the rollout keeps the full payload (`history.rs`).
+   Compaction fires before a turn, mid-turn, after a turn or on a model switch, by per-model `auto_compact_token_limit` (`turn.rs`).
+   The summary is the last assistant message with a `SUMMARY_PREFIX`. Survivors: user messages newest first up to 20,000 tokens, then the summary (`core/src/compact.rs`).
+   The summary prompt text is in crate `codex_prompts`: **unknown** (not read).
+5. **Cache:** **source** `prompt_cache_key` is session-derived, custom or omitted (`client.rs` `prompt_cache_key`).
+   History is stored as recorded and normalized at request time (`history.rs` `for_prompt`), with `store: false`.
+   WebSocket requests send only trailing items when the prefix matches (`client.rs` `get_incremental_items`).
+6. **Sessions:** **source** JSONL at `~/.codex/sessions/YYYY/MM/DD/rollout-<timestamp>-<thread_id>.jsonl`, one `RolloutLine` per line (`rollout/src/recorder.rs:1673`; `history/src/lib.rs:672-678`).
+   Fork keeps history up to the nth user message and records `forked_from_id` (`core/src/thread_manager.rs:236-254`).
+   `Op::RecoverTurn` resumes an interrupted turn. Resume code: **unknown** (not read).
+7. **Errors:** **source** Backoff is 200 ms x 2^(attempt-1) with x0.9-1.1 jitter (`async-utils/src/backoff.rs:7-17`).
+   Defaults: 5 stream retries, 4 request retries, 300 s stream idle timeout (`model-provider-info/src/lib.rs:74-83`).
+   Overflow during compaction drops the oldest item and retries (`compact.rs`); a turn-level overflow is terminal (`turn.rs`).
+8. **Rules files:** **source** Per directory, the first of `AGENTS.override.md`, `AGENTS.md`, then `project_doc_fallback_filenames` (`core/src/agents_md.rs`).
+   Order is global, then project root down to the cwd, under one `project_doc_max_bytes` budget; an over-budget file is truncated.
+9. **Front ends:** **source** A submission queue (`Op`) and event stream (`EventMsg`) in `protocol/src/protocol.rs`; front ends are the `app-server` protocol and `exec`.
+   `codex mcp` is a client only (`cli/src/main.rs:171,1252`); **observed** `codex mcp-server` is gone at 0.155.1. ACP: **unknown**.
+10. **Subagents:** **source** They exist (`core/src/session/multi_agents.rs`, `Collab*` events); a child shares the parent's derived cache key (`client.rs`).
+    Isolation, depth and concurrency limits: **unknown**. **observed** Subagents are untested here.

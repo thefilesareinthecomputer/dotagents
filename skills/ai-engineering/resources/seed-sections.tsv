@@ -365,3 +365,5 @@ sindresorhus/awesome	learning
 RikiyaT/lm_understand-logs	tuning|papers|map
 MatinKhajavi/Weight-Space-Programming	tuning|papers|map
 openwsp/openwsp	tuning|map
+ggml-org/llama.cpp	serving|map
+nekko-labs/nekko-agent	harnesses|map

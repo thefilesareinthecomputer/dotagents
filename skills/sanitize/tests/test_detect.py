@@ -197,6 +197,19 @@ class TestMessages(unittest.TestCase):
                     "sanitize.py imports its tables from detect.py"):
             self.assertEqual(detect.find_message(msg), [], msg)
 
+    def test_codeql_rule_names_pass_and_the_verb_still_refuses(self):
+        for msg in ("clears the Incomplete URL substring sanitization alert",
+                    "fix py/incomplete-url-substring-sanitization in the test",
+                    "fix incomplete multi-character sanitization"):
+            self.assertEqual(detect.find_message(msg), [], msg)
+        for msg in ("finish the incomplete sanitization of the notes",
+                    "incomplete URL sanitization of the export",
+                    "incomplete substring sanitization fixed"):
+            self.assertEqual([h.cls for h in detect.find_message(msg)], ["disclosure"], msg)
+        hits = detect.find_message("clears the incomplete URL substring sanitization alert; "
+                                   "sanitization of the docs")
+        self.assertEqual([h.cls for h in hits], ["disclosure"])
+
     def test_identifiers_in_a_message(self):
         found = {h.cls for h in detect.find_message("touch Quorvex-OKF for STORY-" + "583920",
                                                     {"zorbulate"})}

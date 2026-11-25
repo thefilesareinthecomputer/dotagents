@@ -114,3 +114,35 @@ is the machine-readable copy that `seed.py` reads.
 Not yet adapted. Hooks, settings and the statusline equivalents are Claude Code
 shapes today; whether goose has counterparts and what they look like is a backlog
 item in `tasks/plan.md`.
+
+## Architecture
+
+Read from source at `aaif-goose/goose` commit `8256b9ac` on 2026-11-25 (the repo moved from `block/goose`). Paths are relative to `crates/`, with `oi-kit-*` crates alongside `goose`.
+
+1. **Loop:** **source** - a turn ends on an assistant message with no tool request, error or required action (`oi-kit-agent/src/operation.rs:78-89`).
+   - `GOOSE_MAX_TURNS` defaults to 1000 (`goose/src/config/base.rs:1373-1375`). Past half the budget a `<turn-budget>` hint is added (`max_turns.rs:22-76`).
+   - A stop hook can block the end up to 8 times. There is no wall-clock limit.
+   - `RepetitionInspector` is registered with `None`, so loop detection is effectively off (`tool_monitor.rs:34-87`; `services.rs:746`).
+2. **Tools:** **source** - all of a turn's calls run concurrently with no worker cap, and finished results survive a cancel (`mcp/batch.rs:39-74`). The list is dynamic per request and duplicate names are rejected.
+3. **Permissions:** **source** - modes are Auto (default), Approve and SmartApprove (`permission/permission_inspector.rs:160-199`).
+   - The inspector chain is Security, Egress, Adversary, Permission, Repetition (`services.rs:728-746`).
+   - There is no OS sandbox.
+   - **docs** - `PreToolUse` and `Stop` hooks can block (see Strengths).
+4. **Context:** **source**
+   - Tool output over 200,000 characters goes to a temp file with a pointer (`large_response_handler.rs:5-47`). The shell tool caps at 2,000 lines or 50,000 bytes.
+   - Tool-pair summarization is off by default (`context_mgmt/mod.rs:59-63,307-353`).
+   - Compaction triggers at the lower of `GOOSE_AUTO_COMPACT_THRESHOLD` (0.8) and 225,000 tokens over the window (`context_mgmt/mod.rs:29-57`). It also runs on `/compact` and on a context-length error, at most twice.
+   - The summary is structured JSON from `prompts/compaction.md`, requested on the live prefix by default.
+   - Old messages are hidden, not deleted. Appended: the summary, a continuation text, the latest user prompt and the latest turn-context message (`compaction/layout.rs:5-100`).
+   - A failed summary retries with 0, 10, 20, 50 then 100% of tool responses removed.
+5. **Cache:** **source** - cache behavior is declared per provider and model: ExplicitBreakpoints{4}, ImplicitTolerant, ImplicitStrict (default), Uncached (`cache_semantics.rs:8-30`).
+   - Anthropic markers go on the system prompt, the last tool and messages.
+   - `tests/prefix_invariance.rs` asserts that bytes already sent never change. Volatile context (time, cwd, turn budget) is an agent-only message (`agents/moim.rs:7,85-86`).
+6. **Sessions:** **source** - SQLite (schema v18, WAL) with sessions, messages and a usage ledger. Sessions can be copied and truncated. Compaction replaces the conversation inside the same session.
+7. **Errors:** **source** - 3 retries from 1 s, doubling, capped at 30 s, with 0.8-1.2 jitter (`oi-kit-provider-types/src/retry.rs:14-117`). The Ollama provider uses 2 s, x1.5, capped at 15 s. Overflow is handled by compaction (item 4).
+8. **Rules files:** **source** - `.goosehints` and `AGENTS.md`, overridable with `CONTEXT_FILE_NAMES`.
+   - Global files load first, then from the git root down to the cwd. Subdirectory hints load when a tool first touches the directory.
+   - Imports are capped at depth 3, 64 references and 1 MiB (`hints/load_hints.rs`; `import_files.rs:14-17`).
+9. **Front ends:** **source** - an ACP server over stdio, plus HTTP `/acp` with WebSocket. Internal events: Message, Usage, McpNotification, HistoryReplaced.
+   - **docs** - `goose run --recipe` runs headless (see Strengths).
+10. **Subagents:** **source** - at most 5 run concurrently, delegated through the summon extension, which takes its own max turns. Isolation: **unknown**.

@@ -328,3 +328,18 @@ hour.
 ## Station config
 
 Not adapted beyond the table above. Tracked in `tasks/plan.md`.
+
+## Architecture
+
+From official docs, accessed 2026-11-25, plus the observed headless facts in this spec. The agent is closed source. Hub: [`../HARNESS-ENGINEERING.md`](../HARNESS-ENGINEERING.md#the-architecture-section).
+
+1. **Loop:** the loop is not described. There is "no limit on the number of tool calls Agent can make during a task". A follow-up message to a running agent lands at its next tool call. Time limits and loop detection: **unknown**. **docs** https://cursor.com/docs/agent/overview
+2. **Tools:** codebase and web search, file read and edit, shell, browser and ask-user questions. Parallelism within one agent turn and MCP loading: **unknown**. Parallelism exists across subagents. **docs** https://cursor.com/docs/agent/overview
+3. **Permissions:** print mode follows the interactive approval rules but cannot ask, so it rejects unapproved calls. `--force` or `--yolo` runs everything except `permissions.deny` and team policy. In headless runs a rejected shell call is a `tool_call` event carrying `rejected`, and the turn continues. `--sandbox` governs shell commands only, and a project `permissions` object replaces the global one entirely. **observed** (this spec's Permissions section), **docs** https://cursor.com/docs/cli/headless
+4. **Context:** summarization trigger, summary format, tool-output limits and survivors: **unknown**. Checkpoints snapshot the codebase and restore files only, not messages. **docs** https://cursor.com/docs/agent/overview
+5. **Cache:** no prefix-stability or cache-marker facts were found. **unknown**
+6. **Sessions:** checkpoints are stored locally, apart from Git. Background subagent state is saved under `~/.cursor/subagents/` and can be resumed. CLI session storage format, resume and fork: **unknown**. **docs** https://cursor.com/docs/agent/subagents
+7. **Errors:** retries, backoff and overflow handling: **unknown**.
+8. **Rules files:** `.mdc` files in `.cursor/rules` (plain `.md` is ignored), user rules, team rules, and `AGENTS.md` at the root and in subdirectories with the more specific file winning. Precedence is team, then project, then user. The docs advise under 500 lines per rule. **docs** https://cursor.com/docs/context/rules
+9. **Front ends:** `-p/--print` with `--output-format text|json|stream-json` and `--stream-partial-output`. Events are `system` (`init`), `assistant`, `tool_call` (`started`, `completed`) and `result`. ACP support: **unknown**. **docs** https://cursor.com/docs/cli/headless
+10. **Subagents:** markdown files with YAML frontmatter, each in its own clean context window. The parent sends several Task calls in one message to run them in parallel. A subagent cannot launch another (since Cursor 2.5). A concurrency cap is **unknown**, and the docs advise 2-3 subagents. The CLI loads project-level subagents only. **docs** https://cursor.com/docs/agent/subagents, **observed** (this spec's Subagents section)

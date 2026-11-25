@@ -1,0 +1,3 @@
+date	use_case	layer	component_url	rationale	outcome
+2026-11-24	local-first single-user personal agent, CLI then voice, one local model on Apple Silicon	retrieval	https://github.com/asg017/sqlite-vec	one local file with FTS5 beside it, no server; bulk reads without per-call limits	abandoned
+2026-11-24	local-first single-user personal agent, CLI then voice, one local model on Apple Silicon	serving	https://github.com/ollama/ollama	native API exposes cached-prompt token counts and keep_alive; MLX backend reuses prefixes; no hosted control plane	held

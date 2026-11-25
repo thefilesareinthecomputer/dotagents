@@ -144,3 +144,31 @@ is the machine-readable copy that `seed.py` reads.
 Not adapted. Pi's extension model is TypeScript in-process rather than shell
 hooks, so the hook scripts have no direct analogue and would need rethinking
 rather than porting. Tracked in `tasks/plan.md`.
+
+## Architecture
+
+Read from source at `earendil-works/pi` commit `b882d08f` on 2026-11-25, paths under `packages/`. The version probed above is `pi 1.1.0`; the commit is `main`.
+
+1. **Loop:** **source** An inner loop runs while tool calls or steering messages exist, and an outer loop handles follow-ups (`agent/src/agent-loop.ts:188-327`).
+   A turn ends on an error or abort, a `finishTurn` decision of "end", or no tool calls with nothing queued.
+   There is no step, turn or time limit and no loop detection.
+2. **Tools:** **source** Parallel by default, sequential if configured or if any tool is marked sequential (`agent-loop.ts:526-532`); results are emitted in call order.
+   The list is dynamic: `declareToolChanges` records adds and removes in system messages (`:342-372`).
+   A "length" stop fails every tool call in the message (`:273-279`).
+3. **Permissions:** **source** None built in; the README advises a container (`README.md:88-96`). The only gate is the `beforeToolCall` hook (`agent-loop.ts:737-765`).
+4. **Context:** **source** Tool output is capped at 2,000 lines or 50 KB (`coding-agent/src/core/tools/truncate.ts:11-12`); `bash` keeps the tail and saves the full output to a temp file.
+   Old results are kept; `context_edit` entries can omit content while the original stays on disk (`core/session-manager.ts:175-180`).
+   Compaction fires when `contextTokens > contextWindow - reserveTokens` (16,384), keeping 20,000 recent tokens (`core/compaction/compaction.ts:126-130,267-269`).
+   The summary prompt starts with "## Goal" (`compaction.ts:507,577`). Survivors: the summary plus entries from `firstKeptEntryId` (`:431-472`).
+5. **Cache:** **source** `cacheRetention` defaults to "short", "long" gives a 1 h Anthropic TTL (`ai/src/api/anthropic-messages.ts:83-105`).
+   `cache_control` goes on the system prompt, the tools and the last user message (`:1317-1397,1682-1696`); `cache-warmer.ts:85-87` keeps it alive with a 1-token call.
+   Messages are derived from stored ones on each request (`transformContext` then `convertToLlm`), so history is not stored as sent.
+6. **Sessions:** **source** JSONL under `~/.pi/agent/sessions/--<cwd>--/`, header `{type:"session", version:3, id, cwd, parentSession?}`.
+   Entries carry `id` and `parentId`, so the file is a tree (`core/session-manager.ts:41-62,590-596`).
+   `createBranchedSession(leafId)` forks (`:1654`), and RPC exposes fork and clone.
+7. **Errors:** **source** 3 retries, 2,000 ms x 2^(n-1), capped at 60 s, no jitter (`core/settings-defaults.ts:18-26`; `ai/src/utils/retry.ts:189-195`).
+   A context overflow triggers compaction, not a retry (`core/agent-session.ts:3883-3887`).
+8. **Rules files:** **source** Per directory, the first of `AGENTS.override.md`, `AGENTS.md` or `CLAUDE.md`; global first, then root down to the cwd (`core/resource-loader.ts:215,262-304`).
+   `SYSTEM.md` and `APPEND_SYSTEM.md` are also read. Size cap: **unknown** (none found).
+9. **Front ends:** **source** `--mode text|json|rpc` (JSONL RPC); events `agent_start`, `turn_start`, `message_*`, `tool_execution_*`, `turn_end`, `agent_end`. No ACP.
+10. **Subagents:** **source** None built in (`README.md:19`). Isolation and limits do not apply.

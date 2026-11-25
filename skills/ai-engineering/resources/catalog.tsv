@@ -35,6 +35,7 @@ https://arxiv.org/abs/2607.15524	papers|map	active	2026-10-19 harness self-impro
 https://arxiv.org/abs/2608.07520	papers	active	ingest	2026-10-09			
 https://arxiv.org/abs/2608.08466	papers	active	2026-10-19 harness self-improvement + Tencent memory research	2026-10-19			
 https://arxiv.org/abs/2608.22228	papers	active	ingest	2026-10-09			
+https://arxiv.org/abs/2608.22752	papers|map	active	deep-research 2026-11-24 local harness	2026-11-24			manual
 https://arxiv.org/abs/2609.14857	papers|map	active	2026-10-19 harness self-improvement + Tencent memory research	2026-10-19		2026-10-19	
 https://arxiv.org/abs/2609.24972	papers	active	2026-10-19 harness self-improvement + Tencent memory research	2026-10-19			
 https://arxiv.org/abs/2610.13025	papers|map	active	2026-10-19 harness self-improvement + Tencent memory research	2026-10-19		2026-10-19	
@@ -374,6 +375,7 @@ https://github.com/MatinKhajavi/Weight-Space-Programming	tuning|papers|map	activ
 https://github.com/MemPalace/mempalace	memory|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/MemTensor/MemOS	memory|map	active	phase0-map-reconcile	2026-07-27			
 https://github.com/MemoriLabs/Memori	memory|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://github.com/MoonshotAI/kimi-cli	triage	triage	ingest	2026-11-25			
 https://github.com/MrLesk/Backlog.md	skills|harnesses|map	active	ingest	2026-11-21			manual
 https://github.com/NVIDIA-AI-Blueprints	learning|frameworks|map	active	2026-07-28 NVIDIA NeMo directed refresh	2026-07-28		2026-07-28	manual
 https://github.com/NVIDIA-AI-Blueprints/ai-virtual-assistant	learning	active	2026-07-28 NVIDIA NeMo directed refresh	2026-07-28			
@@ -521,6 +523,7 @@ https://github.com/gabrielchua/open-notebooklm	media|learning	active	ingest	2026
 https://github.com/garrytan/gbrain	triage	triage	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/gboeing/osmnx	adjacent	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/getzep/graphiti	memory|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://github.com/ggml-org/llama.cpp	serving|map	active	deep-research 2026-11-24 local harness	2026-11-24			manual
 https://github.com/github/spec-kit	learning|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/google-gemini/gemini-cli	harnesses|map	active	ai-tooling-refresh-2026-07	2026-07-01			
 https://github.com/google-research/harness2	harnesses|tuning|map	active	2026-10-19 harness self-improvement + Tencent memory research	2026-10-19		2026-10-19	
@@ -608,10 +611,11 @@ https://github.com/mvanhorn/last30days-skill	skills	active	2026-07-14 firehose p
 https://github.com/n8n-io/n8n	frameworks	active	ingest	2026-11-21			manual
 https://github.com/nari-labs/dia	media|models	active	ingest	2026-09-18			
 https://github.com/nari-labs/dia2	media|models	active	ingest	2026-09-18			
+https://github.com/nekko-labs/nekko-agent	harnesses|map	active	deep-research 2026-11-24 local harness	2026-11-24			manual
 https://github.com/neo4j/neo4j	vectordb|map	active	ingest	2026-10-29			
 https://github.com/neuml/txtai	rag|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/nexu-io/open-design	frontend|harnesses	active	research-list-2026-11-10	2026-11-10			
-https://github.com/nousresearch/hermes-agent	harnesses	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://github.com/nousresearch/hermes-agent	harnesses|map	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/nv-morpheus/Morpheus	security|serving|adjacent|map	active	manual	2026-08-07			manual
 https://github.com/ollama/ollama	serving	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://github.com/omnigent-ai/omnigent	harnesses|frameworks|security|map	active	2026-07-14 firehose paste	2026-07-14			
@@ -715,6 +719,7 @@ https://googleapis.github.io/python-genai	docs|frameworks	active	AI-AGENT-DEV-TO
 https://goose-docs.ai/docs/guides/goose-cli-commands	docs|harnesses	active	ingest	2026-11-21			
 https://goose-docs.ai/docs/guides/recipes/recipe-reference	docs|harnesses|map	active	ingest	2026-11-21			
 https://huggingface.co/Jiunsong/supergemma4-26b-uncensored-gguf-v2	models	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://huggingface.co/LiquidAI/LFM3-Audio-2B	models|media	active	ingest	2026-11-25			manual
 https://huggingface.co/OpenMOSS-Team/MOSS-TTSD-v1.0	models	active	ingest	2026-09-18			
 https://huggingface.co/Qwen/Qwen3.6-27B	models	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
 https://huggingface.co/bosonai/higgs-audio-v2-generation-3B-base	models	active	ingest	2026-09-18			
@@ -745,6 +750,7 @@ https://learn.microsoft.com/en-us/azure/devops/mcp-server/remote-mcp-server?view
 https://learn.microsoft.com/en-us/rest/api/azure/devops/wit/work-items/create?view=azure-devops-rest-7.1	docs|frameworks|map	active	ingest	2026-11-21			
 https://linear.app/developers/agents	adjacent	active	ingest	2026-11-21			
 https://lmcache.ai/	serving	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
+https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus	learning|map	active	deep-research 2026-11-24 local harness	2026-11-24			manual
 https://medium.com/@drensin/elephants-goldfish-and-the-new-golden-age-of-software-engineering-c33641a48874	adjacent	active	research-list-2026-11-10	2026-11-10			
 https://modelcontextprotocol.io/seps/2596-spec-feature-lifecycle-and-deprecation	adjacent|map	active	ingest	2026-11-21			
 https://modelcontextprotocol.io/specification/2026-07-28	docs|skills|map	active	ingest	2026-11-01			manual
@@ -754,6 +760,7 @@ https://ollama.com/blog/tool-support	serving|models	active	AI-AGENT-DEV-TOOLS-MA
 https://ollama.com/library/embeddinggemma	serving|models	active	ingest	2026-10-09			
 https://ollama.com/library/inkling-2-mini	serving|models|map	active	ingest	2026-11-22			
 https://ollama.com/library/laya	serving|models	active	ingest	2026-10-09			
+https://ollama.com/library/lfm3-audio	serving|models|media	active	ingest	2026-11-25			manual
 https://ollama.com/library/nemotron-3-nano	serving|models|map	active	2026-07-28 NVIDIA NeMo directed refresh	2026-07-28		2026-07-28	
 https://ollama.com/library/tev1	serving|models	active	ingest	2026-10-09			
 https://openai.com/index/introducing-openai-privacy-filter	security	active	AI-AGENT-DEV-TOOLS-MAIN.md	2026-06-29			
