@@ -14,6 +14,7 @@ What each push changes, newest first, for machines pulling this repo.
 
 ### Changed
 
+- `goldfish` also reads a README, guide, runbook or any other documentation against the code it describes, with its own reader brief (claims the code contradicts, guesses, dead references, user-facing omissions). Spec mode is unchanged.
 - `sprint-board`: stories have a relevance rule (intention, execution details and acceptance criteria; a known blocker stated as a fact in the step it affects). `references/anatomy.md` budgets story purpose at 1-3 sentences and story key activities at 3-6 checkboxes, which `board_lint.py` warns on.
 - `specs/HARNESS-ENGINEERING.md` is now the hub for every harness. It covers:
   - what a harness is;
