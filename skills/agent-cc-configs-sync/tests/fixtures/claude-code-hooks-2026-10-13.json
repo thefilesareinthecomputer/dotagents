@@ -29,7 +29,8 @@
       {"matcher": "WebFetch", "hooks": [{"type": "command", "command": "python3 ~/.claude/hooks/web_fetch_guard.py", "timeout": 5}]}
     ],
     "SessionEnd": [
-      {"hooks": [{"type": "command", "command": "python3 ~/.claude/hooks/web_session_end.py", "timeout": 10}]}
+      {"hooks": [{"type": "command", "command": "python3 ~/.claude/hooks/web_session_end.py", "timeout": 10},
+                 {"type": "command", "command": "python3 ~/.claude/hooks/claude_mem_last_session.py", "timeout": 10}]}
     ],
     "PostToolUse": [
       {"matcher": "Write|Edit|MultiEdit|NotebookEdit|Update|Create", "hooks": [{"type": "command", "command": "python3 ~/.claude/hooks/memory_lint.py", "timeout": 10}]},
@@ -43,7 +44,8 @@
         {"type": "command", "command": "python3 ~/.claude/hooks/cmon_nudge.py", "timeout": 5},
         {"type": "command", "command": "python3 ~/.claude/hooks/claude_mem_health.py", "timeout": 15}
       ]},
-      {"matcher": "startup", "hooks": [{"type": "command", "command": "python3 ~/.claude/hooks/harness_version_check.py", "timeout": 15}]},
+      {"matcher": "startup", "hooks": [{"type": "command", "command": "python3 ~/.claude/hooks/harness_version_check.py", "timeout": 15},
+                                       {"type": "command", "command": "python3 ~/.claude/hooks/plugin_update_check.py", "timeout": 10}]},
       {"matcher": "startup|resume", "hooks": [{"type": "command", "command": "python3 ~/.claude/hooks/reaper.py", "timeout": 10}]},
       {"matcher": "startup|resume|clear|compact", "hooks": [
         {"type": "command", "command": "python3 ~/.claude/hooks/daemon_restart_storm.py", "timeout": 10},
@@ -54,6 +56,7 @@
       {"hooks": [
         {"type": "command", "command": "python3 ~/.claude/hooks/daemon_restart_storm.py", "timeout": 10},
         {"type": "command", "command": "python3 ~/.claude/hooks/memory_pressure_gate.py", "timeout": 10},
+        {"type": "command", "command": "python3 ~/.claude/hooks/reaper.py", "timeout": 10},
         {"type": "command", "command": "python3 ~/.claude/hooks/cmon_nudge.py", "timeout": 5}
       ]}
     ]

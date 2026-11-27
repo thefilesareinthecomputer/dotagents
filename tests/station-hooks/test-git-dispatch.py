@@ -167,6 +167,48 @@ class TestCommit(DispatchCase):
         self.assertIn("content check did not run", r.stderr)
 
 
+MDKG = HOOKS.parents[1] / "skills" / "markdown-kg" / "scripts" / "markdown_kg.py"
+
+
+class TestDocsLinkCheck(DispatchCase):
+    """A repo with a docs/ graph: a staged docs note that points at an
+    untracked file blocks the commit."""
+
+    def setUp(self):
+        super().setUp()
+        self.st.write(".gitignore", "kb/\n.kg/\n")
+        self.st.write("kb/notes.md", "# Notes\n")
+        self.st.write("docs/guide.md", "# Guide\n")
+        self.st.git("add", ".gitignore", "docs")
+        self.st.git("commit", "-q", "-m", "docs")
+        self.st.run("python3", str(MDKG), "ingest", str(self.st.repo / "docs"))
+
+    def stage_and_commit(self, body):
+        self.st.write("docs/cite.md", "# Cite\n\n" + body + "\n")
+        self.st.git("add", "docs")
+        return self.st.git("commit", "-m", "cite", check=False)
+
+    def test_a_link_to_an_untracked_file_blocks_the_commit(self):
+        r = self.stage_and_commit("See [notes](../kb/notes.md).")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("FORBIDDEN", r.stderr)
+        self.assertIn("commit blocked", r.stderr)
+
+    def test_a_code_span_naming_an_untracked_file_blocks_the_commit(self):
+        r = self.stage_and_commit("Steps are in `kb/notes.md`.")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("commit blocked", r.stderr)
+
+    def test_a_link_to_a_committed_file_passes(self):
+        r = self.stage_and_commit("See [guide](guide.md) and the lane `kb/`.")
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_without_a_docs_graph_nothing_runs(self):
+        shutil.rmtree(self.st.repo / "docs" / ".kg")
+        r = self.stage_and_commit("See [notes](../kb/notes.md).")
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+
 class TestPush(DispatchCase):
     def setUp(self):
         super().setUp()

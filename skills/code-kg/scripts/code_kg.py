@@ -7955,7 +7955,7 @@ def vault_mentions(vault_dir_: str, fid: str,
 
 
 def docs_report(repo: Path, name: str, mentions: bool = False,
-                limit: int = 0) -> dict:
+                limit: int = 0, asked: list | None = None) -> dict:
     """The doc sections that link to one file. `doc_links` is what this
     graph holds: the markdown files with a link edge to it, by line.
     `sections` comes from markdown-kg, asked once per vault inside the repo:
@@ -7983,6 +7983,8 @@ def docs_report(repo: Path, name: str, mentions: bool = False,
         return [{**r, "vault": vault, "doc": posixpath.normpath(
             posixpath.join(vault, r["note_path"]))} for r in rows]
 
+    if asked is not None:
+        asked.extend(vaults[:VAULT_CAP])
     for vault in vaults[:VAULT_CAP]:
         got, why = sibling_json("refs", str(repo / vault),
                                 posixpath.relpath(fid, vault))
@@ -8383,9 +8385,56 @@ def dead_symbols_report(repo: Path, limit: int = SYMBOLS_LIMIT) -> dict:
             "flagged": total, "status": status, "note": LIVENESS_NOTE}
 
 
+def docs_scope(repo: Path, asked: list[str]) -> dict:
+    """What `docs` covered, in markdown-kg's scope shape: the vaults it
+    asked, by label, and the graphs and unindexed lanes markdown-kg's
+    `graphs` finds around the repo that it did not ask. markdown-kg is
+    reached through its command line only; when it cannot answer, the
+    other two lists are null."""
+    found, _ = sibling_json("graphs", str(repo))
+    root = Path(found["root"]) if isinstance(found, dict) else repo
+    times = ({g["path"]: g["ingested_at"] for g in found["graphs"]}
+             if isinstance(found, dict) else {})
+    searched, done = [], set()
+    for v in asked:
+        p = (repo / v).resolve()
+        done.add(str(p))
+        try:
+            label = p.relative_to(root).as_posix()
+        except ValueError:
+            label = str(p)
+        searched.append({"graph": label, "ingested_at": times.get(str(p))})
+    if not isinstance(found, dict):
+        return {"searched": searched, "not_searched": None,
+                "not_indexed": None, "git": None}
+    return {"searched": searched,
+            "not_searched": [g["label"] for g in found["graphs"]
+                             if g["path"] not in done],
+            "not_indexed": [n["label"] for n in found["not_indexed"]],
+            "git": None}
+
+
+def docs_scope_text(scope: dict) -> str:
+    searched = ", ".join(f"{g['graph']} (ingested {g['ingested_at'] or 'unknown'})"
+                         for g in scope["searched"]) or "none"
+
+    def names(key):
+        rows = scope[key]
+        return "unknown" if rows is None else ", ".join(rows) or "none"
+    return (f"scope: {searched}; not searched: {names('not_searched')};"
+            f" not indexed: {names('not_indexed')}")
+
+
 def cmd_docs(args: argparse.Namespace) -> int:
-    payload = docs_report(repo_dir(args.repo), args.path, args.mentions,
-                          args.limit)
+    repo = repo_dir(args.repo)
+    asked: list[str] = []
+    payload = docs_report(repo, args.path, args.mentions, args.limit, asked)
+    scope = docs_scope(repo, asked)
+    if args.json:
+        print(json.dumps({"scope": scope}, sort_keys=True, ensure_ascii=False),
+              file=sys.stderr)
+    else:
+        print(docs_scope_text(scope))
 
     def render(p):
         print(f"{p['file']}: {len(p['sections'])} doc sections,"

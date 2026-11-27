@@ -8,6 +8,14 @@ description: >-
 
 A project vault is the hub object of a knowledge stack. It is one flat directory, and the filename prefix is the category: `00-brd` states the why, `01-north-star` says who the vault serves and who is who, `notes-*` capture what happened, `notes-learnings` holds what turned out to be true, `notes-questions` is the one register of open questions, `user-stories*` hold the work, its backlog and its research, and `user-runsheet` holds the steps for the work in flight. `index.md` and `log.md` are the OKF front door and change history. The full contract is `templates/knowledge-vault/AGENTS.md`, and that file ships into every vault, so the contract has exactly one copy. The documents written around the vault (the BRD, solution designs, ADRs and knowledge-base entries) have their templates in `templates/templates/`.
 
+| Shape | Where the vault lives | Its ADRs and designs | Seeded with |
+|---|---|---|---|
+| Vault in a repo | `kb/`, beside the repo's `docs/` and `tasks/` | the repo's `docs/adr/` and `docs/designs/` | `--into kb` (repo mode) |
+| Workspace of projects | `<root>/PROJECTS/<NAME>/` | the `PROJECTS/<NAME>-DELIVERABLES/` sibling | `--target <root> --name <NAME>` |
+| Knowledge engine | queries one, some or all of a workspace's vaults | not applicable | markdown-kg's `search --all` |
+
+Where a repo's `docs/`, `tasks/` and `kb/` each fit, how content graduates into `docs/`, which way links may point, and how to read a query across graphs are in `references/lanes.md`, the one statement of that model.
+
 ## Commands
 
 ```
@@ -19,20 +27,22 @@ test      python3 -m unittest discover -s tests
 
 ## Where a vault lives
 
-Before seeding a new vault, ask the user once where it goes, and offer a default. In a code repo the default is `kb/`, and the other offers are `knowledge/`, `knowledge-base/`, `docs/kb/`, and `docs/` when it is empty or absent; seed any of them with `--into <folder>`. In a knowledge engine that holds several projects the default is `<root>/PROJECTS/<NAME>/`, seeded with `--target <root> --name <NAME>`. Wherever it lands, its graph is always `<vault>/.kg/`, which the scaffolder builds, and the pointer line is what tells every later session and skill where it is.
+Before seeding a new vault, ask the user once where it goes, and offer a default. In a code repo the vault is `kb/`, seeded with `--into kb` from the repo root; graph discovery, `search --all` and the scope line look for `kb/` by that name. In a knowledge engine that holds several projects the default is `<root>/PROJECTS/<NAME>/`, seeded with `--target <root> --name <NAME>`. Wherever it lands, its graph is always `<vault>/.kg/`, which the scaffolder builds, and the pointer line is what tells every later session and skill where it is.
 
-Beside every vault sits its deliverables folder, `<vault>-DELIVERABLES/`, such as `PROJECTS/<NAME>-DELIVERABLES/`. It holds the documents the project ships to the people who build and run the system: solution designs in `solution-designs/`, ADRs in `adrs/`, and guides and runbooks at its top level. It is not a vault. It mirrors the layout of a code repo's documentation folder so it can be copied there whole, its links are relative markdown links, its own `AGENTS.md` ships with it, and it has its own graph in `<vault>-DELIVERABLES/.kg/`. Vault notes name its files in backticks.
+**`--into` is repo mode.** On every run the scaffolder finds the repo root above the folder and derives the roles the repo owns: a `docs/SPEC.md` or root `SPEC.md` holds what `00-brd` and `01-north-star` would, so those two are not seeded, and the seed files that would link them come from `templates/knowledge-vault-repo/`. A rerun derives the same roles, so it never brings them back. Repo mode makes no deliverables folder: the repo's ADRs and designs go to its `docs/adr/` and `docs/designs/`.
 
-`--into <folder>` also fills a vault that already lives somewhere else, and nothing ever needs moving, because the linter and every dependent skill take the vault folder wherever it is. `--into` refuses a folder that has its own `AGENTS.md` or `CLAUDE.md`, because the vault's copies are its contract, and a folder that is not a vault yet but holds subfolders, such as a populated `docs/`, because a vault is flat. Offer `docs/kb/` there, or adopt the folder (below). A parent folder's own graph, such as a markdown-kg graph at the repo root, should ignore the vault's folder in its `.kgignore`, as a parent vault ignores `PROJECTS/**`. Inside a code repo, the vault's `CLAUDE.md` loads the whole contract into a session's context the first time that session touches a file in the vault; that is by design, since every agent writing there needs it.
+A workspace vault (`--target`) has a deliverables folder beside it, `PROJECTS/<NAME>-DELIVERABLES/`. It holds the documents the project ships to the people who build and run the system: solution designs in `solution-designs/`, ADRs in `adrs/`, and guides and runbooks at its top level. It is not a vault. It plays the part a code repo's `docs/` plays, its links are relative markdown links, its own `AGENTS.md` ships with it, and it has its own graph in `<vault>-DELIVERABLES/.kg/`. Vault notes name its files in backticks.
 
-**After seeding**, the scaffolder prints a pointer line naming the vault, its graph and its deliverables folder, relative to the host repo. Add it to the host repo's root `AGENTS.md` (`CLAUDE.md` where there is no `AGENTS.md`) and save it to the harness's persistent memory for the project, so the next session goes straight to the vault.
+`--into <folder>` also fills a vault that already lives somewhere else, and nothing ever needs moving, because the linter and every dependent skill take the vault folder wherever it is. It refuses a folder whose `AGENTS.md` or `CLAUDE.md` is something other than the vault's own copy of the contract, and a folder that is not a vault yet but holds subfolders, such as a populated `docs/`, because a vault is flat. A folder counts as a vault when it holds the contract, or, from before the contract, `index.md`, `log.md` and `00-brd.md` together. Offer `kb/` instead, or adopt the folder (below). Inside a code repo, the vault's `CLAUDE.md` loads the whole contract into a session's context the first time that session touches a file in the vault; that is by design, since every agent writing there needs it.
+
+**After seeding**, the scaffolder prints a pointer line relative to the host repo. In repo mode it reads "This repo's project vault is `kb/` (graph `kb/.kg/`); graduated docs are in `docs/`", followed by the `init` and `ingest` commands for `docs/` when it has no graph yet; for a workspace vault it names the vault, its graph and its deliverables folder. Add it to the host repo's root `AGENTS.md` (`CLAUDE.md` where there is no `AGENTS.md`) and save it to the harness's persistent memory for the project, so the next session goes straight to the vault.
 
 **Finding a vault** takes the pointer line first, then memory, then a search: `grep -rl --include=AGENTS.md '^# Project Knowledge Vault - the contract' <root>`, run from the host repo's top level, lists every vault's contract, and the vault is the folder holding it. A vault older than the contract has no `AGENTS.md` and shows as a folder holding `index.md`, `log.md` and `00-brd.md`. A vault found by search gets its pointer line and memory written then.
 
 ## How the work flows
 
 1. **Seed the vault**, then fill the intake in `00-brd.md`. An agent drafts the BRD's derived requirements, then its whole-project technical design, and each pass is written only after the operator approves it.
-2. **Design each feature** in a solution design in the deliverables folder, which starts from the BRD's technical design and can override it. Each decision it depends on gets an ADR in the same folder, which holds the options and the choice.
+2. **Design each feature** in a solution design, in the repo's `docs/designs/` or a workspace's deliverables folder, which starts from the BRD's (or the repo `SPEC.md`'s) technical design and can override it. Each decision it depends on gets an ADR, in `docs/adr/` or the deliverables folder, which holds the options and the choice.
 3. **Review the design** with whoever approves it. The solution design moves to Approved and its ADRs to Accepted.
 4. **Plan the work.** The delivery slices become stories in `user-stories.md` through sprint-board, and `user-runsheet.md` holds the steps for the stories in flight.
 5. **Capture as the work happens.** Meetings, chat, email and status updates go to their `notes-*` logs, and every open question goes to `notes-questions.md`, its only home.
@@ -43,9 +53,9 @@ Beside every vault sits its deliverables folder, `<vault>-DELIVERABLES/`, such a
 
 The scaffolder works in this order, and exits 1 when a file can be neither written nor skipped or the graph step fails:
 
-1. **Copies the seed:** `templates/knowledge-vault/`, plus `templates/templates/brd.md` as `00-brd.md`. It never overwrites, so a run against a part-built vault fills the gaps and reports the rest as skipped. A role held under an older filename (`user-stories-runsheet.md` or `user-stories-tasks.md` for the run sheet) is not given the new name as a second file. It resolves no dates, so two runs produce byte-identical notes.
-2. **Copies the deliverables seed** into `<vault>-DELIVERABLES/`: `templates/deliverables/`, the ADR and solution design templates into its `templates/`, and empty `adrs/` and `solution-designs/` folders. It never overwrites there either.
-3. **Seeds a graph in each folder**, `<vault>/.kg/` and `<vault>-DELIVERABLES/.kg/`. It runs markdown-kg's `init` when a folder has no graph config, and merges the rows in `templates/markdown-kg-profiles.md` that are missing: profile rows into the config, ignore rows into the folder's `.kgignore`. When this run's `init` wrote the config, the shipped rows also replace the rows `init` detected for the same files. It checks `.kg/.gitignore` holds `*` or `*.db*`, because the database holds every note's full text, warns when it does not, and ingests when a note or a row was added. A vault whose graph is still in a legacy `markdown-kg/` or `vault-kg/` folder is skipped with an instruction to run markdown-kg's `migrate`, and when markdown-kg is not installed beside this skill the step is reported and skipped.
+1. **Copies the seed:** `templates/knowledge-vault/`, plus `templates/templates/brd.md` as `00-brd.md`, less the roles a repo owns in repo mode. It never overwrites, so a run against a part-built vault fills the gaps and reports the rest as skipped. A role held under an older filename (`user-stories-runsheet.md` or `user-stories-tasks.md` for the run sheet) is not given the new name as a second file. It resolves no dates, so two runs produce byte-identical notes.
+2. **Copies the deliverables seed** for a workspace vault only, into `<vault>-DELIVERABLES/`: `templates/deliverables/`, the ADR and solution design templates into its `templates/`, and empty `adrs/` and `solution-designs/` folders. It never overwrites there either.
+3. **Seeds a graph in each folder**, `<vault>/.kg/` and, for a workspace vault, `<vault>-DELIVERABLES/.kg/`. It runs markdown-kg's `init` when a folder has no graph config, and merges the rows in `templates/markdown-kg-profiles.md` that are missing, less those for roles the repo owns: profile rows into the config, ignore rows into the folder's `.kgignore`. When this run's `init` wrote the config, the shipped rows also replace the rows `init` detected for the same files. It writes `.kg/.gitignore` with `*.db*` when the file is missing, because the database holds every note's full text, warns when an existing one has neither `*` nor `*.db*`, and ingests when a note or a row was added. A vault whose graph is still in a legacy `markdown-kg/` or `vault-kg/` folder is skipped with an instruction to run markdown-kg's `migrate`, and when markdown-kg is not installed beside this skill the step is reported and skipped.
 4. **Prints the pointer line** described under "Where a vault lives".
 
 The linter is the anti-drift mechanism. Every check fires on positive evidence, and an unreadable file is a failure rather than a pass. Exit 0 clean, 1 on any finding.
@@ -90,7 +100,7 @@ A vault is append-only by design, so its `notes-*` files grow without bound, and
 - `adr.md` - an architecture decision record. Keep its lowercase section headings (`tl-dr`, `context`, `decision`, `rationale`, `consequences`, `references`, `alternate-options-considered`) exact, because other documents link to them by anchor.
 - `kb-entry.md` - one knowledge-base entry. Its H1 equals the filename stem, `## ELI5-EXECUTIVE-SUMMARY` comes first with at least two lines, `## EXTERNAL-RESOURCES` comes last with its five `#####` subsections, and the frontmatter holds `date-created`, `last-modified`, `tags` and `source-research`. A knowledge base's verifier checks exactly that shape, so the middle sections are the only free part.
 
-None of the other three is a vault family, so none goes inside a vault folder. A solution design and an ADR are written in the deliverables folder from the copies the scaffolder put in its `templates/`, and a knowledge-base entry is written in the knowledge base.
+None of the other three is a vault family, so none goes inside a vault folder. A solution design and an ADR are written from the templates in `templates/templates/`, in the repo's `docs/designs/` and `docs/adr/`, or in a workspace's deliverables folder from the copies the scaffolder put in its `templates/`; a knowledge-base entry is written in the knowledge base.
 
 ## Adopting an existing folder
 
@@ -128,7 +138,9 @@ Before changing a family, a filename, a `type` value or the heading grammar, gre
 
 - `templates/knowledge-vault/` - the vault seed files, including the contract; with `00-brd.md` they make 18
 - `templates/templates/` - the BRD, solution design, ADR and knowledge-base entry templates
-- `templates/deliverables/` - the deliverables folder's seed, including its own `AGENTS.md`
+- `templates/knowledge-vault-repo/` - repo mode's variants of the seed files that would link a role the repo owns
+- `templates/deliverables/` - a workspace vault's deliverables folder seed, including its own `AGENTS.md`
+- `references/lanes.md` - the one statement of the `docs/`, `tasks/` and `kb/` model, linked by every skill that touches those folders
 - `templates/markdown-kg-profiles.md` - the graph config rows the scaffolder merges
 - `scripts/vault_scaffold.py`, `scripts/vault_lint.py`
 - `tests/` - scaffold and graph seeding, one adversarial fixture per linter check, and the compatibility tests against sprint-board and markdown-kg

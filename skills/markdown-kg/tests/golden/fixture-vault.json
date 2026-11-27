@@ -11,81 +11,81 @@
  },
  "backlinks <VAULT> Home": {
   "err": "",
-  "out": "wiki/link  <-  archive/Note  (as 'Home')  in Note\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nwiki/link  <-  archive/Note  (as 'Home')  in Note\n",
   "rc": 0
  },
  "backlinks <VAULT> Home --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"heading_path\": \"Note\",\n    \"kind\": \"link\",\n    \"section_id\": \"archive/Note#Note\",\n    \"src\": \"archive/Note\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Home\"\n  }\n]\n",
   "rc": 0
  },
  "backlinks <VAULT> Scratch": {
   "err": "",
-  "out": "no backlinks\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nno backlinks\nThis covers only .. To widen: python3 <SCRIPT> init <VAULT>/PROJECTS/inner && python3 <SCRIPT> ingest <VAULT>/PROJECTS/inner\n",
   "rc": 0
  },
  "backlinks <VAULT> Scratch --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "backlinks <VAULT> Seed List": {
   "err": "",
-  "out": "wiki/embed  <-  Home  (as 'Seed List')  in Home\nmd/link  <-  plans/Garden Plan  (as '../Seed List.md')  in Garden Plan 2026\nwiki/link  <-  plans/Garden Plan  (as 'Seed List')  in Garden Plan 2026\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nwiki/embed  <-  Home  (as 'Seed List')  in Home\nmd/link  <-  plans/Garden Plan  (as '../Seed List.md')  in Garden Plan 2026\nwiki/link  <-  plans/Garden Plan  (as 'Seed List')  in Garden Plan 2026\n",
   "rc": 0
  },
  "backlinks <VAULT> Seed List --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"heading_path\": \"Home\",\n    \"kind\": \"embed\",\n    \"section_id\": \"Home#Home\",\n    \"src\": \"Home\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Seed List\"\n  },\n  {\n    \"heading_path\": \"Garden Plan 2026\",\n    \"kind\": \"link\",\n    \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n    \"src\": \"plans/Garden Plan\",\n    \"syntax\": \"md\",\n    \"target\": \"../Seed List.md\"\n  },\n  {\n    \"heading_path\": \"Garden Plan 2026\",\n    \"kind\": \"link\",\n    \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n    \"src\": \"plans/Garden Plan\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Seed List\"\n  }\n]\n",
   "rc": 0
  },
  "backlinks <VAULT> archive/Note": {
   "err": "",
-  "out": "no backlinks\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nno backlinks\nThis covers only .. To widen: python3 <SCRIPT> init <VAULT>/PROJECTS/inner && python3 <SCRIPT> ingest <VAULT>/PROJECTS/inner\n",
   "rc": 0
  },
  "backlinks <VAULT> archive/Note --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "backlinks <VAULT> plans/Garden Plan": {
   "err": "",
-  "out": "wiki/link  <-  Home  (as 'Garden Plan')  in Home\nmd/link  <-  Seed List  (as 'plans/Garden Plan.md')  in Seed List\nwiki/link  <-  plans/Watering Guide  (as 'The Plan')  in Watering Guide\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nwiki/link  <-  Home  (as 'Garden Plan')  in Home\nmd/link  <-  Seed List  (as 'plans/Garden Plan.md')  in Seed List\nwiki/link  <-  plans/Watering Guide  (as 'The Plan')  in Watering Guide\n",
   "rc": 0
  },
  "backlinks <VAULT> plans/Garden Plan --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"heading_path\": \"Home\",\n    \"kind\": \"link\",\n    \"section_id\": \"Home#Home\",\n    \"src\": \"Home\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Garden Plan\"\n  },\n  {\n    \"heading_path\": \"Seed List\",\n    \"kind\": \"link\",\n    \"section_id\": \"Seed List#Seed List\",\n    \"src\": \"Seed List\",\n    \"syntax\": \"md\",\n    \"target\": \"plans/Garden Plan.md\"\n  },\n  {\n    \"heading_path\": \"Watering Guide\",\n    \"kind\": \"link\",\n    \"section_id\": \"plans/Watering Guide#Watering Guide\",\n    \"src\": \"plans/Watering Guide\",\n    \"syntax\": \"wiki\",\n    \"target\": \"The Plan\"\n  }\n]\n",
   "rc": 0
  },
  "backlinks <VAULT> plans/Watering Guide": {
   "err": "",
-  "out": "wiki/link  <-  plans/Garden Plan  (as 'Watering Guide')  in Garden Plan 2026\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nwiki/link  <-  plans/Garden Plan  (as 'Watering Guide')  in Garden Plan 2026\n",
   "rc": 0
  },
  "backlinks <VAULT> plans/Watering Guide --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"heading_path\": \"Garden Plan 2026\",\n    \"kind\": \"link\",\n    \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n    \"src\": \"plans/Garden Plan\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Watering Guide\"\n  }\n]\n",
   "rc": 0
  },
  "backlinks <VAULT> projects/Note": {
   "err": "",
-  "out": "wiki/link  <-  Home  (as 'projects/Note')  in Home\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nwiki/link  <-  Home  (as 'projects/Note')  in Home\n",
   "rc": 0
  },
  "backlinks <VAULT> projects/Note --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"heading_path\": \"Home\",\n    \"kind\": \"link\",\n    \"section_id\": \"Home#Home\",\n    \"src\": \"Home\",\n    \"syntax\": \"wiki\",\n    \"target\": \"projects/Note\"\n  }\n]\n",
   "rc": 0
  },
  "backlinks <VAULT> projects/inner/Deep Note": {
   "err": "",
-  "out": "wiki/link  <-  projects/Note  (as 'Deep Note')  in Note\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nwiki/link  <-  projects/Note  (as 'Deep Note')  in Note\n",
   "rc": 0
  },
  "backlinks <VAULT> projects/inner/Deep Note --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"heading_path\": \"Note\",\n    \"kind\": \"link\",\n    \"section_id\": \"projects/Note#Note\",\n    \"src\": \"projects/Note\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Deep Note\"\n  }\n]\n",
   "rc": 0
  },
@@ -102,51 +102,51 @@
  },
  "links <VAULT> --unresolved": {
   "err": "",
-  "out": "wiki/link  ->  UNRESOLVED  (as 'Missing Page') from Home  in Home#Home\nwiki/link  ->  AMBIGUOUS  (as 'Note') from Home  in Home#Home\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nwiki/link  ->  UNRESOLVED  (as 'Missing Page') from Home  in Home#Home\nwiki/link  ->  AMBIGUOUS  (as 'Note') from Home  in Home#Home\n",
   "rc": 0
  },
  "links <VAULT> --unresolved --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"Home#Home\",\n    \"src\": \"Home\",\n    \"status\": \"unresolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Missing Page\"\n  },\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"Home#Home\",\n    \"src\": \"Home\",\n    \"status\": \"ambiguous\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Note\"\n  }\n]\n",
   "rc": 0
  },
  "links <VAULT> Home --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"Home#Home\",\n    \"src\": \"Home\",\n    \"status\": \"ambiguous\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Note\"\n  },\n  {\n    \"dst\": \"Seed List\",\n    \"kind\": \"embed\",\n    \"section_id\": \"Home#Home\",\n    \"src\": \"Home\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Seed List\"\n  },\n  {\n    \"dst\": \"plans/Garden Plan\",\n    \"kind\": \"link\",\n    \"section_id\": \"Home#Home\",\n    \"src\": \"Home\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Garden Plan\"\n  },\n  {\n    \"dst\": \"projects/Note\",\n    \"kind\": \"link\",\n    \"section_id\": \"Home#Home\",\n    \"src\": \"Home\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"projects/Note\"\n  },\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"Home#Home\",\n    \"src\": \"Home\",\n    \"status\": \"unresolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Missing Page\"\n  }\n]\n",
   "rc": 0
  },
  "links <VAULT> Scratch --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "links <VAULT> Seed List --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"dst\": \"plans/Garden Plan\",\n    \"kind\": \"link\",\n    \"section_id\": \"Seed List#Seed List\",\n    \"src\": \"Seed List\",\n    \"status\": \"resolved\",\n    \"syntax\": \"md\",\n    \"target\": \"plans/Garden Plan.md\"\n  }\n]\n",
   "rc": 0
  },
  "links <VAULT> archive/Note --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"dst\": \"Home\",\n    \"kind\": \"link\",\n    \"section_id\": \"archive/Note#Note\",\n    \"src\": \"archive/Note\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Home\"\n  }\n]\n",
   "rc": 0
  },
  "links <VAULT> plans/Garden Plan --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"dst\": \"Seed List\",\n    \"kind\": \"link\",\n    \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n    \"src\": \"plans/Garden Plan\",\n    \"status\": \"resolved\",\n    \"syntax\": \"md\",\n    \"target\": \"../Seed List.md\"\n  },\n  {\n    \"dst\": \"Seed List\",\n    \"kind\": \"link\",\n    \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n    \"src\": \"plans/Garden Plan\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Seed List\"\n  },\n  {\n    \"dst\": \"plans/Watering Guide\",\n    \"kind\": \"link\",\n    \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n    \"src\": \"plans/Garden Plan\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Watering Guide\"\n  }\n]\n",
   "rc": 0
  },
  "links <VAULT> plans/Watering Guide --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"dst\": \"plans/Garden Plan\",\n    \"kind\": \"link\",\n    \"section_id\": \"plans/Watering Guide#Watering Guide\",\n    \"src\": \"plans/Watering Guide\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"The Plan\"\n  }\n]\n",
   "rc": 0
  },
  "links <VAULT> projects/Note --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"dst\": \"projects/inner/Deep Note\",\n    \"kind\": \"link\",\n    \"section_id\": \"projects/Note#Note\",\n    \"src\": \"projects/Note\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Deep Note\"\n  }\n]\n",
   "rc": 0
  },
  "links <VAULT> projects/inner/Deep Note --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
@@ -256,27 +256,27 @@
   "rc": 0
  },
  "query <VAULT> garden plan --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Garden Plan 2026\",\n    \"lines\": \"9-14\",\n    \"note_id\": \"plans/Garden Plan\",\n    \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n    \"snippet\": \"# [Garden] [Plan] 2026\\n\\nRaised beds along the south fence; trellis for beans and cucumbers ... \"\n  },\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Home\",\n    \"lines\": \"5-24\",\n    \"note_id\": \"Home\",\n    \"section_id\": \"Home#Home\",\n    \"snippet\": \"# Home\\n\\nThe hub note for the fixture [garden] vault.\\n\\n- [Plan] of record: [[[Garden] [Plan] ... \"\n  },\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Seed List\",\n    \"lines\": \"6-16\",\n    \"note_id\": \"Seed List\",\n    \"section_id\": \"Seed List#Seed List\",\n    \"snippet\": \" ... frost.\\n\\n## Autumn\\n\\nDirect-sow garlic cloves; see the [full [plan]](plans/[Garden] [Plan].md).\\n\"\n  }\n]\n",
   "rc": 0
  },
  "query <VAULT> irrigation --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Garden Plan 2026\",\n    \"lines\": \"9-14\",\n    \"note_id\": \"plans/Garden Plan\",\n    \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n    \"snippet\": \" ... Timing follows [[Seed List#Spring]], and [irrigation] follows\\n[[Watering Guide|how to water]]. Inventory ... \"\n  }\n]\n",
   "rc": 0
  },
  "query <VAULT> note --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Note\",\n    \"lines\": \"5-7\",\n    \"note_id\": \"archive/Note\",\n    \"section_id\": \"archive/Note#Note\",\n    \"snippet\": \"# [Note]\\n\\nOld archived [note]. Points back to [[Home]].\\n\"\n  },\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Note\",\n    \"lines\": \"5-7\",\n    \"note_id\": \"projects/Note\",\n    \"section_id\": \"projects/Note#Note\",\n    \"snippet\": \"# [Note]\\n\\nAlpha project journal. Detail work continues in [[Deep [Note]]].\\n\"\n  },\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Deep Note\",\n    \"lines\": \"1-3\",\n    \"note_id\": \"projects/inner/Deep Note\",\n    \"section_id\": \"projects/inner/Deep Note#Deep Note\",\n    \"snippet\": \"# Deep [Note]\\n\\nNested two folders down. Unique token: cobalt.\\n\"\n  },\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Home\",\n    \"lines\": \"5-24\",\n    \"note_id\": \"Home\",\n    \"section_id\": \"Home#Home\",\n    \"snippet\": \"# Home\\n\\nThe hub [note] for the fixture garden vault.\\n\\n- Plan of record: [[Garden Plan ... \"\n  }\n]\n",
   "rc": 0
  },
  "query <VAULT> review --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "query <VAULT> water --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Garden Plan 2026\",\n    \"lines\": \"9-14\",\n    \"note_id\": \"plans/Garden Plan\",\n    \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n    \"snippet\": \" ... Timing follows [[Seed List#Spring]], and irrigation follows\\n[[Watering Guide|how to [water]]]. Inventory ... \"\n  }\n]\n",
   "rc": 0
  },
@@ -292,76 +292,76 @@
  },
  "search <VAULT> garden plan": {
   "err": "",
-  "out": "COMPLETE  (rung: all-terms)\nplans/Garden Plan#Garden Plan 2026  [9-14]\n    # [Garden] [Plan] 2026\n\nRaised beds along the south fence; trellis for beans and cucumbers ... \nHome#Home  [5-24]\n    # Home\n\nThe hub note for the fixture [garden] vault.\n\n- [Plan] of record: [[[Garden] [Plan] ... \nSeed List#Seed List  [6-16]\n     ... frost.\n\n## Autumn\n\nDirect-sow garlic cloves; see the [full [plan]](plans/[Garden] [Plan].md).\n\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nCOMPLETE  (rung: all-terms)\nplans/Garden Plan#Garden Plan 2026  [9-14]\n    # [Garden] [Plan] 2026\n\nRaised beds along the south fence; trellis for beans and cucumbers ... \nHome#Home  [5-24]\n    # Home\n\nThe hub note for the fixture [garden] vault.\n\n- [Plan] of record: [[[Garden] [Plan] ... \nSeed List#Seed List  [6-16]\n     ... frost.\n\n## Autumn\n\nDirect-sow garlic cloves; see the [full [plan]](plans/[Garden] [Plan].md).\n\n",
   "rc": 0
  },
  "search <VAULT> garden plan --budget 400 --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"budget\": 400,\n  \"capped\": false,\n  \"query\": \"garden plan\",\n  \"results\": [\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Garden Plan 2026\",\n      \"is_unit\": true,\n      \"line_end\": 14,\n      \"line_start\": 9,\n      \"lines\": \"9-14\",\n      \"note_id\": \"plans/Garden Plan\",\n      \"oversize\": false,\n      \"path\": \"plans/Garden Plan.md\",\n      \"score\": 3.8414,\n      \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# [Garden] [Plan] 2026\\n\\nRaised beds along the south fence; trellis for beans and cucumbers ... \",\n      \"text\": \"# Garden Plan 2026\\n\\nRaised beds along the south fence; trellis for beans and cucumbers.\\n\\nTiming follows [[Seed List#Spring]], and irrigation follows\\n[[Watering Guide|how to water]]. Inventory lives in [seeds](../Seed List.md).\\n\",\n      \"title\": \"Garden Plan 2026\",\n      \"words\": 34\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Home\",\n      \"is_unit\": true,\n      \"line_end\": 24,\n      \"line_start\": 5,\n      \"lines\": \"5-24\",\n      \"note_id\": \"Home\",\n      \"oversize\": false,\n      \"path\": \"Home.md\",\n      \"score\": 1.1621,\n      \"section_id\": \"Home#Home\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# Home\\n\\nThe hub note for the fixture [garden] vault.\\n\\n- [Plan] of record: [[[Garden] [Plan] ... \",\n      \"text\": \"# Home\\n\\nThe hub note for the fixture garden vault.\\n\\n- Plan of record: [[Garden Plan]]\\n- Project journal: [[projects/Note]]\\n- Which note? [[Note]]\\n- Broken pointer: [[Missing Page]]\\n\\nSeed inventory, transcluded:\\n\\n![[Seed List]]\\n\\nCode must never produce edges:\\n\\n```text\\n[[Fenced Target]] lives inside a fenced block.\\n```\\n\\nInline code too: `[[Inline Target]]` stays out of the graph.\\n\",\n      \"title\": \"Home\",\n      \"words\": 53\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Seed List\",\n      \"is_unit\": true,\n      \"line_end\": 16,\n      \"line_start\": 6,\n      \"lines\": \"6-16\",\n      \"note_id\": \"Seed List\",\n      \"oversize\": false,\n      \"path\": \"Seed List.md\",\n      \"score\": 1.0826,\n      \"section_id\": \"Seed List#Seed List\",\n      \"slot\": \"authored\",\n      \"snippet\": \" ... frost.\\n\\n## Autumn\\n\\nDirect-sow garlic cloves; see the [full [plan]](plans/[Garden] [Plan].md).\\n\",\n      \"text\": \"# Seed List\\n\\nPackets on hand: tomato, basil, marigold.\\n\\n## Spring\\n\\nStart tomato and basil trays indoors six weeks before last frost.\\n\\n## Autumn\\n\\nDirect-sow garlic cloves; see the [full plan](plans/Garden Plan.md).\\n\",\n      \"title\": \"Seed List\",\n      \"words\": 32\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"spent\": 273,\n  \"status\": \"COMPLETE\",\n  \"total\": 3\n}\n",
   "rc": 0
  },
  "search <VAULT> garden plan --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"capped\": false,\n  \"query\": \"garden plan\",\n  \"results\": [\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Garden Plan 2026\",\n      \"is_unit\": true,\n      \"line_end\": 14,\n      \"line_start\": 9,\n      \"lines\": \"9-14\",\n      \"note_id\": \"plans/Garden Plan\",\n      \"oversize\": false,\n      \"path\": \"plans/Garden Plan.md\",\n      \"score\": 3.8414,\n      \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# [Garden] [Plan] 2026\\n\\nRaised beds along the south fence; trellis for beans and cucumbers ... \",\n      \"title\": \"Garden Plan 2026\",\n      \"words\": 34\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Home\",\n      \"is_unit\": true,\n      \"line_end\": 24,\n      \"line_start\": 5,\n      \"lines\": \"5-24\",\n      \"note_id\": \"Home\",\n      \"oversize\": false,\n      \"path\": \"Home.md\",\n      \"score\": 1.1621,\n      \"section_id\": \"Home#Home\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# Home\\n\\nThe hub note for the fixture [garden] vault.\\n\\n- [Plan] of record: [[[Garden] [Plan] ... \",\n      \"title\": \"Home\",\n      \"words\": 53\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Seed List\",\n      \"is_unit\": true,\n      \"line_end\": 16,\n      \"line_start\": 6,\n      \"lines\": \"6-16\",\n      \"note_id\": \"Seed List\",\n      \"oversize\": false,\n      \"path\": \"Seed List.md\",\n      \"score\": 1.0826,\n      \"section_id\": \"Seed List#Seed List\",\n      \"slot\": \"authored\",\n      \"snippet\": \" ... frost.\\n\\n## Autumn\\n\\nDirect-sow garlic cloves; see the [full [plan]](plans/[Garden] [Plan].md).\\n\",\n      \"title\": \"Seed List\",\n      \"words\": 32\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"status\": \"COMPLETE\",\n  \"total\": 3\n}\n",
   "rc": 0
  },
  "search <VAULT> irrigation": {
   "err": "",
-  "out": "COMPLETE  (rung: all-terms)\nplans/Garden Plan#Garden Plan 2026  [9-14]\n     ... Timing follows [[Seed List#Spring]], and [irrigation] follows\n[[Watering Guide|how to water]]. Inventory ... \n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nCOMPLETE  (rung: all-terms)\nplans/Garden Plan#Garden Plan 2026  [9-14]\n     ... Timing follows [[Seed List#Spring]], and [irrigation] follows\n[[Watering Guide|how to water]]. Inventory ... \n",
   "rc": 0
  },
  "search <VAULT> irrigation --budget 400 --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"budget\": 400,\n  \"capped\": false,\n  \"query\": \"irrigation\",\n  \"results\": [\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Garden Plan 2026\",\n      \"is_unit\": true,\n      \"line_end\": 14,\n      \"line_start\": 9,\n      \"lines\": \"9-14\",\n      \"note_id\": \"plans/Garden Plan\",\n      \"oversize\": false,\n      \"path\": \"plans/Garden Plan.md\",\n      \"score\": 2.1245,\n      \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n      \"slot\": \"authored\",\n      \"snippet\": \" ... Timing follows [[Seed List#Spring]], and [irrigation] follows\\n[[Watering Guide|how to water]]. Inventory ... \",\n      \"text\": \"# Garden Plan 2026\\n\\nRaised beds along the south fence; trellis for beans and cucumbers.\\n\\nTiming follows [[Seed List#Spring]], and irrigation follows\\n[[Watering Guide|how to water]]. Inventory lives in [seeds](../Seed List.md).\\n\",\n      \"title\": \"Garden Plan 2026\",\n      \"words\": 34\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"spent\": 75,\n  \"status\": \"COMPLETE\",\n  \"total\": 1\n}\n",
   "rc": 0
  },
  "search <VAULT> irrigation --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"capped\": false,\n  \"query\": \"irrigation\",\n  \"results\": [\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Garden Plan 2026\",\n      \"is_unit\": true,\n      \"line_end\": 14,\n      \"line_start\": 9,\n      \"lines\": \"9-14\",\n      \"note_id\": \"plans/Garden Plan\",\n      \"oversize\": false,\n      \"path\": \"plans/Garden Plan.md\",\n      \"score\": 2.1245,\n      \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n      \"slot\": \"authored\",\n      \"snippet\": \" ... Timing follows [[Seed List#Spring]], and [irrigation] follows\\n[[Watering Guide|how to water]]. Inventory ... \",\n      \"title\": \"Garden Plan 2026\",\n      \"words\": 34\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"status\": \"COMPLETE\",\n  \"total\": 1\n}\n",
   "rc": 0
  },
  "search <VAULT> note": {
   "err": "",
-  "out": "COMPLETE  (rung: all-terms)\nprojects/Note#Note  [5-7]\n    # [Note]\n\nAlpha project journal. Detail work continues in [[Deep [Note]]].\n\narchive/Note#Note  [5-7]\n    # [Note]\n\nOld archived [note]. Points back to [[Home]].\n\nprojects/inner/Deep Note#Deep Note  [1-3]\n    # Deep [Note]\n\nNested two folders down. Unique token: cobalt.\n\nHome#Home  [5-24]\n    # Home\n\nThe hub [note] for the fixture garden vault.\n\n- Plan of record: [[Garden Plan ... \n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nCOMPLETE  (rung: all-terms)\nprojects/Note#Note  [5-7]\n    # [Note]\n\nAlpha project journal. Detail work continues in [[Deep [Note]]].\n\narchive/Note#Note  [5-7]\n    # [Note]\n\nOld archived [note]. Points back to [[Home]].\n\nprojects/inner/Deep Note#Deep Note  [1-3]\n    # Deep [Note]\n\nNested two folders down. Unique token: cobalt.\n\nHome#Home  [5-24]\n    # Home\n\nThe hub [note] for the fixture garden vault.\n\n- Plan of record: [[Garden Plan ... \n",
   "rc": 0
  },
  "search <VAULT> note --budget 400 --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"budget\": 400,\n  \"capped\": false,\n  \"query\": \"note\",\n  \"results\": [\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Note\",\n      \"is_unit\": true,\n      \"line_end\": 7,\n      \"line_start\": 5,\n      \"lines\": \"5-7\",\n      \"note_id\": \"projects/Note\",\n      \"oversize\": false,\n      \"path\": \"projects/Note.md\",\n      \"score\": 4.1,\n      \"section_id\": \"projects/Note#Note\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# [Note]\\n\\nAlpha project journal. Detail work continues in [[Deep [Note]]].\\n\",\n      \"text\": \"# Note\\n\\nAlpha project journal. Detail work continues in [[Deep Note]].\\n\",\n      \"title\": \"Note\",\n      \"words\": 10\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Note\",\n      \"is_unit\": true,\n      \"line_end\": 7,\n      \"line_start\": 5,\n      \"lines\": \"5-7\",\n      \"note_id\": \"archive/Note\",\n      \"oversize\": false,\n      \"path\": \"archive/Note.md\",\n      \"score\": 4.05,\n      \"section_id\": \"archive/Note#Note\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# [Note]\\n\\nOld archived [note]. Points back to [[Home]].\\n\",\n      \"text\": \"# Note\\n\\nOld archived note. Points back to [[Home]].\\n\",\n      \"title\": \"Note\",\n      \"words\": 8\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Deep Note\",\n      \"is_unit\": true,\n      \"line_end\": 3,\n      \"line_start\": 1,\n      \"lines\": \"1-3\",\n      \"note_id\": \"projects/inner/Deep Note\",\n      \"oversize\": false,\n      \"path\": \"projects/inner/Deep Note.md\",\n      \"score\": 3.05,\n      \"section_id\": \"projects/inner/Deep Note#Deep Note\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# Deep [Note]\\n\\nNested two folders down. Unique token: cobalt.\\n\",\n      \"text\": \"# Deep Note\\n\\nNested two folders down. Unique token: cobalt.\\n\",\n      \"title\": \"Deep Note\",\n      \"words\": 9\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Home\",\n      \"is_unit\": true,\n      \"line_end\": 24,\n      \"line_start\": 5,\n      \"lines\": \"5-24\",\n      \"note_id\": \"Home\",\n      \"oversize\": false,\n      \"path\": \"Home.md\",\n      \"score\": 0.7,\n      \"section_id\": \"Home#Home\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# Home\\n\\nThe hub [note] for the fixture garden vault.\\n\\n- Plan of record: [[Garden Plan ... \",\n      \"text\": \"# Home\\n\\nThe hub note for the fixture garden vault.\\n\\n- Plan of record: [[Garden Plan]]\\n- Project journal: [[projects/Note]]\\n- Which note? [[Note]]\\n- Broken pointer: [[Missing Page]]\\n\\nSeed inventory, transcluded:\\n\\n![[Seed List]]\\n\\nCode must never produce edges:\\n\\n```text\\n[[Fenced Target]] lives inside a fenced block.\\n```\\n\\nInline code too: `[[Inline Target]]` stays out of the graph.\\n\",\n      \"title\": \"Home\",\n      \"words\": 53\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"spent\": 187,\n  \"status\": \"COMPLETE\",\n  \"total\": 4\n}\n",
   "rc": 0
  },
  "search <VAULT> note --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"capped\": false,\n  \"query\": \"note\",\n  \"results\": [\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Note\",\n      \"is_unit\": true,\n      \"line_end\": 7,\n      \"line_start\": 5,\n      \"lines\": \"5-7\",\n      \"note_id\": \"projects/Note\",\n      \"oversize\": false,\n      \"path\": \"projects/Note.md\",\n      \"score\": 4.1,\n      \"section_id\": \"projects/Note#Note\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# [Note]\\n\\nAlpha project journal. Detail work continues in [[Deep [Note]]].\\n\",\n      \"title\": \"Note\",\n      \"words\": 10\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Note\",\n      \"is_unit\": true,\n      \"line_end\": 7,\n      \"line_start\": 5,\n      \"lines\": \"5-7\",\n      \"note_id\": \"archive/Note\",\n      \"oversize\": false,\n      \"path\": \"archive/Note.md\",\n      \"score\": 4.05,\n      \"section_id\": \"archive/Note#Note\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# [Note]\\n\\nOld archived [note]. Points back to [[Home]].\\n\",\n      \"title\": \"Note\",\n      \"words\": 8\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Deep Note\",\n      \"is_unit\": true,\n      \"line_end\": 3,\n      \"line_start\": 1,\n      \"lines\": \"1-3\",\n      \"note_id\": \"projects/inner/Deep Note\",\n      \"oversize\": false,\n      \"path\": \"projects/inner/Deep Note.md\",\n      \"score\": 3.05,\n      \"section_id\": \"projects/inner/Deep Note#Deep Note\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# Deep [Note]\\n\\nNested two folders down. Unique token: cobalt.\\n\",\n      \"title\": \"Deep Note\",\n      \"words\": 9\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Home\",\n      \"is_unit\": true,\n      \"line_end\": 24,\n      \"line_start\": 5,\n      \"lines\": \"5-24\",\n      \"note_id\": \"Home\",\n      \"oversize\": false,\n      \"path\": \"Home.md\",\n      \"score\": 0.7,\n      \"section_id\": \"Home#Home\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# Home\\n\\nThe hub [note] for the fixture garden vault.\\n\\n- Plan of record: [[Garden Plan ... \",\n      \"title\": \"Home\",\n      \"words\": 53\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"status\": \"COMPLETE\",\n  \"total\": 4\n}\n",
   "rc": 0
  },
  "search <VAULT> review": {
   "err": "",
-  "out": "no matches for 'review'\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nno matches for 'review'\nThis covers only .. To widen: python3 <SCRIPT> init <VAULT>/PROJECTS/inner && python3 <SCRIPT> ingest <VAULT>/PROJECTS/inner\n",
   "rc": 0
  },
  "search <VAULT> review --budget 400 --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"capped\": false,\n  \"query\": \"review\",\n  \"results\": [],\n  \"rung\": null,\n  \"status\": \"COMPLETE\",\n  \"total\": 0\n}\n",
   "rc": 0
  },
  "search <VAULT> review --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"capped\": false,\n  \"query\": \"review\",\n  \"results\": [],\n  \"rung\": null,\n  \"status\": \"COMPLETE\",\n  \"total\": 0\n}\n",
   "rc": 0
  },
  "search <VAULT> water": {
   "err": "",
-  "out": "COMPLETE  (rung: all-terms)\nplans/Garden Plan#Garden Plan 2026  [9-14]\n     ... Timing follows [[Seed List#Spring]], and irrigation follows\n[[Watering Guide|how to [water]]]. Inventory ... \n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nCOMPLETE  (rung: all-terms)\nplans/Garden Plan#Garden Plan 2026  [9-14]\n     ... Timing follows [[Seed List#Spring]], and irrigation follows\n[[Watering Guide|how to [water]]]. Inventory ... \n",
   "rc": 0
  },
  "search <VAULT> water --budget 400 --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"budget\": 400,\n  \"capped\": false,\n  \"query\": \"water\",\n  \"results\": [\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Garden Plan 2026\",\n      \"is_unit\": true,\n      \"line_end\": 14,\n      \"line_start\": 9,\n      \"lines\": \"9-14\",\n      \"note_id\": \"plans/Garden Plan\",\n      \"oversize\": false,\n      \"path\": \"plans/Garden Plan.md\",\n      \"score\": 2.1245,\n      \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n      \"slot\": \"authored\",\n      \"snippet\": \" ... Timing follows [[Seed List#Spring]], and irrigation follows\\n[[Watering Guide|how to [water]]]. Inventory ... \",\n      \"text\": \"# Garden Plan 2026\\n\\nRaised beds along the south fence; trellis for beans and cucumbers.\\n\\nTiming follows [[Seed List#Spring]], and irrigation follows\\n[[Watering Guide|how to water]]. Inventory lives in [seeds](../Seed List.md).\\n\",\n      \"title\": \"Garden Plan 2026\",\n      \"words\": 34\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"spent\": 75,\n  \"status\": \"COMPLETE\",\n  \"total\": 1\n}\n",
   "rc": 0
  },
  "search <VAULT> water --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"capped\": false,\n  \"query\": \"water\",\n  \"results\": [\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Garden Plan 2026\",\n      \"is_unit\": true,\n      \"line_end\": 14,\n      \"line_start\": 9,\n      \"lines\": \"9-14\",\n      \"note_id\": \"plans/Garden Plan\",\n      \"oversize\": false,\n      \"path\": \"plans/Garden Plan.md\",\n      \"score\": 2.1245,\n      \"section_id\": \"plans/Garden Plan#Garden Plan 2026\",\n      \"slot\": \"authored\",\n      \"snippet\": \" ... Timing follows [[Seed List#Spring]], and irrigation follows\\n[[Watering Guide|how to [water]]]. Inventory ... \",\n      \"title\": \"Garden Plan 2026\",\n      \"words\": 34\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"status\": \"COMPLETE\",\n  \"total\": 1\n}\n",
   "rc": 0
  },
@@ -407,12 +407,12 @@
  },
  "stats <VAULT>": {
   "err": "",
-  "out": "notes: 8\nsections: 8 (8 units, 0 oversize)\nedges by syntax/kind:\n  md/link [resolved]: 2\n  wiki/embed [resolved]: 1\n  wiki/link [ambiguous]: 1\n  wiki/link [resolved]: 7\n  wiki/link [unresolved]: 1\norphan notes: 1 (Scratch)\nambiguous links: 1 (e.g. Home -> [[Note]])\nignored links: 0\nunresolved links: 1 (e.g. Home -> [[Missing Page]])\nignored files: 0\nrepeated heading paths: 0\nsuspect headings: 0\ntags: 6\nentities: 0 (0 mentions)\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: PROJECTS/inner\nnotes: 8\nsections: 8 (8 units, 0 oversize)\nedges by syntax/kind:\n  md/link [resolved]: 2\n  wiki/embed [resolved]: 1\n  wiki/link [ambiguous]: 1\n  wiki/link [resolved]: 7\n  wiki/link [unresolved]: 1\nfile links: 0 resolved, 0 external, 0 forbidden, 0 unresolved\norphan notes: 1 (Scratch)\nambiguous links: 1 (e.g. Home -> [[Note]])\nignored links: 0\nunresolved links: 1 (e.g. Home -> [[Missing Page]])\nignored files: 0\nrepeated heading paths: 0\nsuspect headings: 0\ntags: 6\nentities: 0 (0 mentions)\n",
   "rc": 0
  },
  "stats <VAULT> --json": {
-  "err": "",
-  "out": "{\n  \"annotations\": [],\n  \"custom_markers\": [],\n  \"edges\": [\n    {\n      \"count\": 2,\n      \"kind\": \"link\",\n      \"status\": \"resolved\",\n      \"syntax\": \"md\"\n    },\n    {\n      \"count\": 1,\n      \"kind\": \"embed\",\n      \"status\": \"resolved\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 1,\n      \"kind\": \"link\",\n      \"status\": \"ambiguous\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 7,\n      \"kind\": \"link\",\n      \"status\": \"resolved\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 1,\n      \"kind\": \"link\",\n      \"status\": \"unresolved\",\n      \"syntax\": \"wiki\"\n    }\n  ],\n  \"entities\": 0,\n  \"heading_collisions\": [],\n  \"ignored_files\": [],\n  \"link_problems\": {\n    \"ambiguous\": [\n      {\n        \"src\": \"Home\",\n        \"target\": \"Note\"\n      }\n    ],\n    \"ignored\": [],\n    \"unresolved\": [\n      {\n        \"src\": \"Home\",\n        \"target\": \"Missing Page\"\n      }\n    ]\n  },\n  \"marker_candidates\": {\n    \"status\": \"COMPLETE\",\n    \"tokens\": [],\n    \"total\": 0\n  },\n  \"mentions\": 0,\n  \"notes\": 8,\n  \"orphans\": [\n    \"Scratch\"\n  ],\n  \"oversize_units\": 0,\n  \"sections\": 8,\n  \"suspect_headings\": {\n    \"rows\": [],\n    \"status\": \"COMPLETE\",\n    \"total\": 0\n  },\n  \"tags\": 6,\n  \"units\": 8\n}\n",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [\"PROJECTS/inner\"], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
+  "out": "{\n  \"annotations\": [],\n  \"custom_markers\": [],\n  \"edges\": [\n    {\n      \"count\": 2,\n      \"kind\": \"link\",\n      \"status\": \"resolved\",\n      \"syntax\": \"md\"\n    },\n    {\n      \"count\": 1,\n      \"kind\": \"embed\",\n      \"status\": \"resolved\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 1,\n      \"kind\": \"link\",\n      \"status\": \"ambiguous\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 7,\n      \"kind\": \"link\",\n      \"status\": \"resolved\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 1,\n      \"kind\": \"link\",\n      \"status\": \"unresolved\",\n      \"syntax\": \"wiki\"\n    }\n  ],\n  \"entities\": 0,\n  \"file_links\": {\n    \"external\": 0,\n    \"forbidden\": 0,\n    \"resolved\": 0,\n    \"unresolved\": 0\n  },\n  \"heading_collisions\": [],\n  \"ignored_files\": [],\n  \"link_problems\": {\n    \"ambiguous\": [\n      {\n        \"src\": \"Home\",\n        \"target\": \"Note\"\n      }\n    ],\n    \"ignored\": [],\n    \"unresolved\": [\n      {\n        \"src\": \"Home\",\n        \"target\": \"Missing Page\"\n      }\n    ]\n  },\n  \"marker_candidates\": {\n    \"status\": \"COMPLETE\",\n    \"tokens\": [],\n    \"total\": 0\n  },\n  \"mentions\": 0,\n  \"notes\": 8,\n  \"orphans\": [\n    \"Scratch\"\n  ],\n  \"oversize_units\": 0,\n  \"sections\": 8,\n  \"suspect_headings\": {\n    \"rows\": [],\n    \"status\": \"COMPLETE\",\n    \"total\": 0\n  },\n  \"tags\": 6,\n  \"units\": 8\n}\n",
   "rc": 0
  },
  "tables": {

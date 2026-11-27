@@ -155,7 +155,7 @@ Four exceptions, each fixed by file:
 | An action still to run | `user-runsheet.md` |
 | Work not on the board yet | `user-stories-backlog.md` |
 | A note added, removed, renamed or archived | `log.md`, under today's date |
-| A solution design, ADR, guide or runbook this project ships | the deliverables folder beside this one, `<this folder>-DELIVERABLES/`, which has its own `AGENTS.md`; notes here name its files in backticks |
+| A solution design, ADR, guide or runbook this project ships | in a code repo, the repo's `docs/` (ADRs in `docs/adr/`, designs in `docs/designs/`); in a workspace, the deliverables folder beside this one, `<this folder>-DELIVERABLES/`, which has its own `AGENTS.md`. Notes here name those files in backticks |
 
 ## Filing loose material
 
@@ -170,13 +170,13 @@ Material rarely arrives in the vault's shape. A file is classified by what it ho
 | Facts, gotchas, "turns out" notes | `notes-learnings.md` |
 | Lists of open questions | `notes-questions.md` |
 | Scratch notes and journals | the log their content matches; otherwise `notes-general-notes.md` |
-| Solution designs, ADRs, guides and runbooks this project writes to ship | the deliverables folder, `<this folder>-DELIVERABLES/` |
+| Solution designs, ADRs, guides and runbooks this project writes to ship | the repo's `docs/` in a code repo; the deliverables folder, `<this folder>-DELIVERABLES/`, in a workspace |
 | Documentation, SOWs, proposals, contracts, runbooks and decks received from elsewhere | `docs-internal-<slug>.md`, or `docs-research-<slug>.md` for external material |
 | Code snippets, scripts, configs, repository dumps | `code-<repo>[-<subsystem>].md` |
 | User stories, tickets, agile boards, backlog exports | `user-stories.md` while open, `user-stories-completed.md` once closed |
 | Work intake requests and work not yet on the board | `user-stories-backlog.md` |
 | Ordered steps someone works through | `user-runsheet.md` |
-| Requirements and scope | `00-brd.md`; audience, team and standing facts go to `01-north-star.md` |
+| Requirements and scope | `00-brd.md`; audience, team and standing facts go to `01-north-star.md`. In a code repo whose `SPEC.md` owns them, that `SPEC.md` |
 
 A file that mixes kinds is filed by its main content, and its other parts are linked from the notes they belong to rather than split out.
 
@@ -218,4 +218,4 @@ As a family grows past what is useful to read, compact the oldest entries: fold 
 
 ## Nothing secret
 
-A vault travels further than the people who wrote it, and its history keeps what a later cleanup removes. No credentials of any kind, no connection strings, no hostnames, workspace URLs, account or workspace ids, and no personal data. People are named by the aliases in `01-north-star.md`. Where a real value is needed to make a note usable, name the place it is stored rather than the value. The graph database in `.kg/` holds the full text of every note, so it stays out of git: `.kg/.gitignore` holds a `*` or `*.db*` line, which the graph engine writes and the scaffolder warns about when it is missing.
+A vault travels further than the people who wrote it, and its history keeps what a later cleanup removes. No credentials of any kind, no connection strings, no hostnames, workspace URLs, account or workspace ids, and no personal data. People are named by the aliases in `01-north-star.md`. Where a real value is needed to make a note usable, name the place it is stored rather than the value. The graph database in `.kg/` holds the full text of every note, so it stays out of git: `.kg/.gitignore` holds a `*` or `*.db*` line, which the scaffolder writes when the file is missing and warns about when an existing file lacks it.

@@ -11,121 +11,121 @@
  },
  "backlinks <VAULT> Notes/Duplicate": {
   "err": "",
-  "out": "wiki/link  <-  hub  (as 'Notes/Duplicate')  in Hub\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nwiki/link  <-  hub  (as 'Notes/Duplicate')  in Hub\n",
   "rc": 0
  },
  "backlinks <VAULT> Notes/Duplicate --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"heading_path\": \"Hub\",\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Notes/Duplicate\"\n  }\n]\n",
   "rc": 0
  },
  "backlinks <VAULT> Other/Duplicate": {
   "err": "",
-  "out": "no backlinks\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nno backlinks\nThis covers only .; no other graph was found.\n",
   "rc": 0
  },
  "backlinks <VAULT> Other/Duplicate --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "backlinks <VAULT> aliased": {
   "err": "",
-  "out": "wiki/link  <-  hub  (as 'Zone Map')  in Hub\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nwiki/link  <-  hub  (as 'Zone Map')  in Hub\n",
   "rc": 0
  },
  "backlinks <VAULT> aliased --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"heading_path\": \"Hub\",\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Zone Map\"\n  }\n]\n",
   "rc": 0
  },
  "backlinks <VAULT> generated/summary": {
   "err": "",
-  "out": "no backlinks\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nno backlinks\nThis covers only .; no other graph was found.\n",
   "rc": 0
  },
  "backlinks <VAULT> generated/summary --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "backlinks <VAULT> hub": {
   "err": "",
-  "out": "no backlinks\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nno backlinks\nThis covers only .; no other graph was found.\n",
   "rc": 0
  },
  "backlinks <VAULT> hub --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "backlinks <VAULT> journal": {
   "err": "",
-  "out": "no backlinks\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nno backlinks\nThis covers only .; no other graph was found.\n",
   "rc": 0
  },
  "backlinks <VAULT> journal --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "backlinks <VAULT> longform": {
   "err": "",
-  "out": "no backlinks\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nno backlinks\nThis covers only .; no other graph was found.\n",
   "rc": 0
  },
  "backlinks <VAULT> longform --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "backlinks <VAULT> monolith": {
   "err": "",
-  "out": "no backlinks\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nno backlinks\nThis covers only .; no other graph was found.\n",
   "rc": 0
  },
  "backlinks <VAULT> monolith --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "backlinks <VAULT> private": {
   "err": "",
-  "out": "no backlinks\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nno backlinks\nThis covers only .; no other graph was found.\n",
   "rc": 0
  },
  "backlinks <VAULT> private --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "backlinks <VAULT> roster": {
   "err": "",
-  "out": "no backlinks\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nno backlinks\nThis covers only .; no other graph was found.\n",
   "rc": 0
  },
  "backlinks <VAULT> roster --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "backlinks <VAULT> setext": {
   "err": "",
-  "out": "wiki/link  <-  hub  (as 'setext')  in Hub\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nwiki/link  <-  hub  (as 'setext')  in Hub\n",
   "rc": 0
  },
  "backlinks <VAULT> setext --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"heading_path\": \"Hub\",\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"syntax\": \"wiki\",\n    \"target\": \"setext\"\n  }\n]\n",
   "rc": 0
  },
  "backlinks <VAULT> sources": {
   "err": "",
-  "out": "wiki/embed  <-  hub  (as 'sources')  in Hub\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nwiki/embed  <-  hub  (as 'sources')  in Hub\n",
   "rc": 0
  },
  "backlinks <VAULT> sources --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"heading_path\": \"Hub\",\n    \"kind\": \"embed\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"syntax\": \"wiki\",\n    \"target\": \"sources\"\n  }\n]\n",
   "rc": 0
  },
@@ -172,71 +172,71 @@
  },
  "links <VAULT> --unresolved": {
   "err": "",
-  "out": "wiki/link  ->  AMBIGUOUS  (as 'Duplicate') from hub  in hub#Hub\nwiki/link  ->  UNRESOLVED  (as 'Missing Page') from hub  in hub#Hub\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nwiki/link  ->  AMBIGUOUS  (as 'Duplicate') from hub  in hub#Hub\nwiki/link  ->  UNRESOLVED  (as 'Missing Page') from hub  in hub#Hub\nwiki/file  ->  UNRESOLVED  (as 'diagram.png') from hub  in hub#Hub\n",
   "rc": 0
  },
  "links <VAULT> --unresolved --json": {
-  "err": "",
-  "out": "[\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"ambiguous\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Duplicate\"\n  },\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"unresolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Missing Page\"\n  }\n]\n",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
+  "out": "[\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"ambiguous\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Duplicate\"\n  },\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"unresolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Missing Page\"\n  },\n  {\n    \"dst\": \"<VAULT>/diagram.png\",\n    \"kind\": \"file\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"unresolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"diagram.png\"\n  }\n]\n",
   "rc": 0
  },
  "links <VAULT> Notes/Duplicate --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "links <VAULT> Other/Duplicate --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "links <VAULT> aliased --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "links <VAULT> generated/summary --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "links <VAULT> hub --json": {
-  "err": "",
-  "out": "[\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"ambiguous\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Duplicate\"\n  },\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"ignored\",\n    \"syntax\": \"wiki\",\n    \"target\": \"superseded\"\n  },\n  {\n    \"dst\": \"sources\",\n    \"kind\": \"embed\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"sources\"\n  },\n  {\n    \"dst\": \"Notes/Duplicate\",\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Notes/Duplicate\"\n  },\n  {\n    \"dst\": \"aliased\",\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Zone Map\"\n  },\n  {\n    \"dst\": \"setext\",\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"setext\"\n  },\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"unresolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Missing Page\"\n  }\n]\n",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
+  "out": "[\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"ambiguous\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Duplicate\"\n  },\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"ignored\",\n    \"syntax\": \"wiki\",\n    \"target\": \"superseded\"\n  },\n  {\n    \"dst\": \"sources\",\n    \"kind\": \"embed\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"sources\"\n  },\n  {\n    \"dst\": \"Notes/Duplicate\",\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Notes/Duplicate\"\n  },\n  {\n    \"dst\": \"aliased\",\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Zone Map\"\n  },\n  {\n    \"dst\": \"setext\",\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"resolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"setext\"\n  },\n  {\n    \"dst\": null,\n    \"kind\": \"link\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"unresolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"Missing Page\"\n  },\n  {\n    \"dst\": \"<VAULT>/diagram.png\",\n    \"kind\": \"file\",\n    \"section_id\": \"hub#Hub\",\n    \"src\": \"hub\",\n    \"status\": \"unresolved\",\n    \"syntax\": \"wiki\",\n    \"target\": \"diagram.png\"\n  }\n]\n",
   "rc": 0
  },
  "links <VAULT> journal --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "links <VAULT> longform --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "links <VAULT> monolith --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "links <VAULT> private --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "links <VAULT> roster --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "links <VAULT> setext --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "links <VAULT> sources --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
@@ -386,27 +386,27 @@
   "rc": 0
  },
  "query <VAULT> garden plan --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[]\n",
   "rc": 0
  },
  "query <VAULT> irrigation --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Field Journal > 2026-06-15\",\n    \"lines\": \"38-46\",\n    \"note_id\": \"journal\",\n    \"section_id\": \"journal#Field Journal > 2026-06-15\",\n    \"snippet\": \" ... Drip [irrigation] beat the sprinkler comparison\\non every zone. Drip won on coverage and ... \"\n  },\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Field Journal > 2026-06-15 > Reflection\",\n    \"lines\": \"43-46\",\n    \"note_id\": \"journal\",\n    \"section_id\": \"journal#Field Journal > 2026-06-15 > Reflection\",\n    \"snippet\": \"### Reflection\\n\\nConfidence in drip [irrigation] is high now. The sprinkler option is closed.\\n\\n\"\n  },\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Sources > Suppliers\",\n    \"lines\": \"5-10\",\n    \"note_id\": \"sources\",\n    \"section_id\": \"sources#Sources > Suppliers\",\n    \"snippet\": \" ... crop\\n- Harrow Tool - hand tools, repair parts\\n- Valley Drip - drip [irrigation] line and emitters\\n\\n\"\n  }\n]\n",
   "rc": 0
  },
  "query <VAULT> note --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Duplicate\",\n    \"lines\": \"1-4\",\n    \"note_id\": \"Other/Duplicate\",\n    \"section_id\": \"Other/Duplicate#Duplicate\",\n    \"snippet\": \"# Duplicate\\n\\nThe other [note] with this basename. This one is under Other and carries ... \"\n  },\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Monolith Log > 2026-05-11\",\n    \"lines\": \"7-9\",\n    \"note_id\": \"monolith\",\n    \"section_id\": \"monolith#Monolith Log > 2026-05-11\",\n    \"snippet\": \"## 2026-05-11\\n\\nA short second entry so the [note] has more than one ... \"\n  },\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Hub\",\n    \"lines\": \"5-31\",\n    \"note_id\": \"hub\",\n    \"section_id\": \"hub#Hub\",\n    \"snippet\": \"# Hub\\n\\nEvery link shape the resolver has to handle, in one [note].\\n\\n## Resolvable\\n\\n- Alias ... \"\n  },\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"(top)\",\n    \"lines\": \"1-26\",\n    \"note_id\": \"longform\",\n    \"section_id\": \"longform#(top)\",\n    \"snippet\": \"This [note] has no headings at all. It is a single run of prose ... \"\n  }\n]\n",
   "rc": 0
  },
  "query <VAULT> review --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Field Journal > 2026-06-15\",\n    \"lines\": \"38-46\",\n    \"note_id\": \"journal\",\n    \"section_id\": \"journal#Field Journal > 2026-06-15\",\n    \"snippet\": \"## 2026-06-15\\n\\nSeason [review] with Dana Okonjo. Drip irrigation beat the sprinkler comparison ... \"\n  }\n]\n",
   "rc": 0
  },
  "query <VAULT> water --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "[\n  {\n    \"git\": \"none\",\n    \"heading_path\": \"Field Journal > 2026-06-15\",\n    \"lines\": \"38-46\",\n    \"note_id\": \"journal\",\n    \"section_id\": \"journal#Field Journal > 2026-06-15\",\n    \"snippet\": \" ... Drip won on coverage and on [water] use.\\n\\n### Reflection\\n\\nConfidence in drip irrigation is ... \"\n  }\n]\n",
   "rc": 0
  },
@@ -422,76 +422,76 @@
  },
  "search <VAULT> garden plan": {
   "err": "",
-  "out": "no matches for 'garden plan'\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nno matches for 'garden plan'\nThis covers only .; no other graph was found.\n",
   "rc": 0
  },
  "search <VAULT> garden plan --budget 400 --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"capped\": false,\n  \"query\": \"garden plan\",\n  \"results\": [],\n  \"rung\": null,\n  \"status\": \"COMPLETE\",\n  \"total\": 0\n}\n",
   "rc": 0
  },
  "search <VAULT> garden plan --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"capped\": false,\n  \"query\": \"garden plan\",\n  \"results\": [],\n  \"rung\": null,\n  \"status\": \"COMPLETE\",\n  \"total\": 0\n}\n",
   "rc": 0
  },
  "search <VAULT> irrigation": {
   "err": "",
-  "out": "COMPLETE  (rung: all-terms)\njournal#Field Journal > 2026-06-15  [38-46]  2026-06-15\n     ... Drip [irrigation] beat the sprinkler comparison\non every zone. Drip won on coverage and ... \nsources#Sources > Suppliers  [5-10]\n     ... crop\n- Harrow Tool - hand tools, repair parts\n- Valley Drip - drip [irrigation] line and emitters\n\n\njournal#Field Journal > 2026-06-15 > Reflection  [43-46]  2026-06-15\n    ### Reflection\n\nConfidence in drip [irrigation] is high now. The sprinkler option is closed.\n\n\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nCOMPLETE  (rung: all-terms)\njournal#Field Journal > 2026-06-15  [38-46]  2026-06-15\n     ... Drip [irrigation] beat the sprinkler comparison\non every zone. Drip won on coverage and ... \nsources#Sources > Suppliers  [5-10]\n     ... crop\n- Harrow Tool - hand tools, repair parts\n- Valley Drip - drip [irrigation] line and emitters\n\n\njournal#Field Journal > 2026-06-15 > Reflection  [43-46]  2026-06-15\n    ### Reflection\n\nConfidence in drip [irrigation] is high now. The sprinkler option is closed.\n\n\n",
   "rc": 0
  },
  "search <VAULT> irrigation --budget 400 --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"budget\": 400,\n  \"capped\": false,\n  \"query\": \"irrigation\",\n  \"results\": [\n    {\n      \"doc_date\": \"2026-06-15\",\n      \"git\": \"none\",\n      \"heading_path\": \"Field Journal > 2026-06-15\",\n      \"is_unit\": true,\n      \"line_end\": 46,\n      \"line_start\": 38,\n      \"lines\": \"38-46\",\n      \"note_id\": \"journal\",\n      \"oversize\": false,\n      \"path\": \"journal.md\",\n      \"score\": 3.087,\n      \"section_id\": \"journal#Field Journal > 2026-06-15\",\n      \"slot\": \"authored\",\n      \"snippet\": \" ... Drip [irrigation] beat the sprinkler comparison\\non every zone. Drip won on coverage and ... \",\n      \"text\": \"## 2026-06-15\\n\\nSeason review with Dana Okonjo. Drip irrigation beat the sprinkler comparison\\non every zone. Drip won on coverage and on water use.\\n\\n### Reflection\\n\\nConfidence in drip irrigation is high now. The sprinkler option is closed.\\n\\n\",\n      \"title\": \"Field Journal\",\n      \"words\": 36\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Sources > Suppliers\",\n      \"is_unit\": true,\n      \"line_end\": 10,\n      \"line_start\": 5,\n      \"lines\": \"5-10\",\n      \"note_id\": \"sources\",\n      \"oversize\": false,\n      \"path\": \"sources.md\",\n      \"score\": 3.0513,\n      \"section_id\": \"sources#Sources > Suppliers\",\n      \"slot\": \"authored\",\n      \"snippet\": \" ... crop\\n- Harrow Tool - hand tools, repair parts\\n- Valley Drip - drip [irrigation] line and emitters\\n\\n\",\n      \"text\": \"## Suppliers\\n\\n- Northfield Seed - bulk trays and cover crop\\n- Harrow Tool - hand tools, repair parts\\n- Valley Drip - drip irrigation line and emitters\\n\\n\",\n      \"title\": \"Sources\",\n      \"words\": 21\n    },\n    {\n      \"doc_date\": \"2026-06-15\",\n      \"git\": \"none\",\n      \"heading_path\": \"Field Journal > 2026-06-15 > Reflection\",\n      \"is_unit\": false,\n      \"line_end\": 46,\n      \"line_start\": 43,\n      \"lines\": \"43-46\",\n      \"note_id\": \"journal\",\n      \"oversize\": false,\n      \"path\": \"journal.md\",\n      \"score\": 2.9382,\n      \"section_id\": \"journal#Field Journal > 2026-06-15 > Reflection\",\n      \"slot\": \"authored\",\n      \"snippet\": \"### Reflection\\n\\nConfidence in drip [irrigation] is high now. The sprinkler option is closed.\\n\\n\",\n      \"text\": \"### Reflection\\n\\nConfidence in drip irrigation is high now. The sprinkler option is closed.\\n\\n\",\n      \"title\": \"Field Journal\",\n      \"words\": 13\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"spent\": 160,\n  \"status\": \"COMPLETE\",\n  \"total\": 3\n}\n",
   "rc": 0
  },
  "search <VAULT> irrigation --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"capped\": false,\n  \"query\": \"irrigation\",\n  \"results\": [\n    {\n      \"doc_date\": \"2026-06-15\",\n      \"git\": \"none\",\n      \"heading_path\": \"Field Journal > 2026-06-15\",\n      \"is_unit\": true,\n      \"line_end\": 46,\n      \"line_start\": 38,\n      \"lines\": \"38-46\",\n      \"note_id\": \"journal\",\n      \"oversize\": false,\n      \"path\": \"journal.md\",\n      \"score\": 3.087,\n      \"section_id\": \"journal#Field Journal > 2026-06-15\",\n      \"slot\": \"authored\",\n      \"snippet\": \" ... Drip [irrigation] beat the sprinkler comparison\\non every zone. Drip won on coverage and ... \",\n      \"title\": \"Field Journal\",\n      \"words\": 36\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Sources > Suppliers\",\n      \"is_unit\": true,\n      \"line_end\": 10,\n      \"line_start\": 5,\n      \"lines\": \"5-10\",\n      \"note_id\": \"sources\",\n      \"oversize\": false,\n      \"path\": \"sources.md\",\n      \"score\": 3.0513,\n      \"section_id\": \"sources#Sources > Suppliers\",\n      \"slot\": \"authored\",\n      \"snippet\": \" ... crop\\n- Harrow Tool - hand tools, repair parts\\n- Valley Drip - drip [irrigation] line and emitters\\n\\n\",\n      \"title\": \"Sources\",\n      \"words\": 21\n    },\n    {\n      \"doc_date\": \"2026-06-15\",\n      \"git\": \"none\",\n      \"heading_path\": \"Field Journal > 2026-06-15 > Reflection\",\n      \"is_unit\": false,\n      \"line_end\": 46,\n      \"line_start\": 43,\n      \"lines\": \"43-46\",\n      \"note_id\": \"journal\",\n      \"oversize\": false,\n      \"path\": \"journal.md\",\n      \"score\": 2.9382,\n      \"section_id\": \"journal#Field Journal > 2026-06-15 > Reflection\",\n      \"slot\": \"authored\",\n      \"snippet\": \"### Reflection\\n\\nConfidence in drip [irrigation] is high now. The sprinkler option is closed.\\n\\n\",\n      \"title\": \"Field Journal\",\n      \"words\": 13\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"status\": \"COMPLETE\",\n  \"total\": 3\n}\n",
   "rc": 0
  },
  "search <VAULT> note": {
   "err": "",
-  "out": "COMPLETE  (rung: all-terms)\nOther/Duplicate#Duplicate  [1-4]\n    # Duplicate\n\nThe other [note] with this basename. This one is under Other and carries ... \nmonolith#Monolith Log > 2026-05-11  [7-9]  2026-05-11\n    ## 2026-05-11\n\nA short second entry so the [note] has more than one ... \nhub#Hub  [5-31]\n    # Hub\n\nEvery link shape the resolver has to handle, in one [note].\n\n## Resolvable\n\n- Alias ... \nlongform#(top)  [1-26]\n    This [note] has no headings at all. It is a single run of prose ... \n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nCOMPLETE  (rung: all-terms)\nOther/Duplicate#Duplicate  [1-4]\n    # Duplicate\n\nThe other [note] with this basename. This one is under Other and carries ... \nmonolith#Monolith Log > 2026-05-11  [7-9]  2026-05-11\n    ## 2026-05-11\n\nA short second entry so the [note] has more than one ... \nhub#Hub  [5-31]\n    # Hub\n\nEvery link shape the resolver has to handle, in one [note].\n\n## Resolvable\n\n- Alias ... \nlongform#(top)  [1-26]\n    This [note] has no headings at all. It is a single run of prose ... \n",
   "rc": 0
  },
  "search <VAULT> note --budget 400 --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"budget\": 400,\n  \"capped\": false,\n  \"query\": \"note\",\n  \"results\": [\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Duplicate\",\n      \"is_unit\": true,\n      \"line_end\": 4,\n      \"line_start\": 1,\n      \"lines\": \"1-4\",\n      \"note_id\": \"Other/Duplicate\",\n      \"oversize\": false,\n      \"path\": \"Other/Duplicate.md\",\n      \"score\": 2.8278,\n      \"section_id\": \"Other/Duplicate#Duplicate\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# Duplicate\\n\\nThe other [note] with this basename. This one is under Other and carries ... \",\n      \"text\": \"# Duplicate\\n\\nThe other note with this basename. This one is under Other and carries the\\nunique token vermilion.\\n\",\n      \"title\": \"Duplicate\",\n      \"words\": 18\n    },\n    {\n      \"doc_date\": \"2026-05-11\",\n      \"git\": \"none\",\n      \"heading_path\": \"Monolith Log > 2026-05-11\",\n      \"is_unit\": true,\n      \"line_end\": 9,\n      \"line_start\": 7,\n      \"lines\": \"7-9\",\n      \"note_id\": \"monolith\",\n      \"oversize\": false,\n      \"path\": \"monolith.md\",\n      \"score\": 2.767,\n      \"section_id\": \"monolith#Monolith Log > 2026-05-11\",\n      \"slot\": \"authored\",\n      \"snippet\": \"## 2026-05-11\\n\\nA short second entry so the [note] has more than one ... \",\n      \"text\": \"## 2026-05-11\\n\\nA short second entry so the note has more than one dated unit.\\n\",\n      \"title\": \"Monolith Log\",\n      \"words\": 14\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Hub\",\n      \"is_unit\": true,\n      \"line_end\": 31,\n      \"line_start\": 5,\n      \"lines\": \"5-31\",\n      \"note_id\": \"hub\",\n      \"oversize\": false,\n      \"path\": \"hub.md\",\n      \"score\": 2.6388,\n      \"section_id\": \"hub#Hub\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# Hub\\n\\nEvery link shape the resolver has to handle, in one [note].\\n\\n## Resolvable\\n\\n- Alias ... \",\n      \"text\": \"# Hub\\n\\nEvery link shape the resolver has to handle, in one note.\\n\\n## Resolvable\\n\\n- Alias target: [[Zone Map]]\\n- Path-qualified past a collision: [[Notes/Duplicate]]\\n- Setext note: [[setext]]\\n\\n## Not resolvable\\n\\n- Bare basename collision: [[Duplicate]]\\n- Nothing by that name: [[Missing Page]]\\n- Excluded from the index: [[superseded]]\\n\\n## Embeds\\n\\n![[sources]]\\n\\n![[diagram.png]]\\n\\nInline code `[[Inline Target]]` and the fenced block below are never edges.\\n\\n```markdown\\n[[Fenced Target]]\\n```\\n\",\n      \"title\": \"Hub\",\n      \"words\": 62\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"spent\": 226,\n  \"status\": \"TRUNCATED 3 of 4\",\n  \"total\": 4\n}\n",
   "rc": 0
  },
  "search <VAULT> note --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"capped\": false,\n  \"query\": \"note\",\n  \"results\": [\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Duplicate\",\n      \"is_unit\": true,\n      \"line_end\": 4,\n      \"line_start\": 1,\n      \"lines\": \"1-4\",\n      \"note_id\": \"Other/Duplicate\",\n      \"oversize\": false,\n      \"path\": \"Other/Duplicate.md\",\n      \"score\": 2.8278,\n      \"section_id\": \"Other/Duplicate#Duplicate\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# Duplicate\\n\\nThe other [note] with this basename. This one is under Other and carries ... \",\n      \"title\": \"Duplicate\",\n      \"words\": 18\n    },\n    {\n      \"doc_date\": \"2026-05-11\",\n      \"git\": \"none\",\n      \"heading_path\": \"Monolith Log > 2026-05-11\",\n      \"is_unit\": true,\n      \"line_end\": 9,\n      \"line_start\": 7,\n      \"lines\": \"7-9\",\n      \"note_id\": \"monolith\",\n      \"oversize\": false,\n      \"path\": \"monolith.md\",\n      \"score\": 2.767,\n      \"section_id\": \"monolith#Monolith Log > 2026-05-11\",\n      \"slot\": \"authored\",\n      \"snippet\": \"## 2026-05-11\\n\\nA short second entry so the [note] has more than one ... \",\n      \"title\": \"Monolith Log\",\n      \"words\": 14\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"Hub\",\n      \"is_unit\": true,\n      \"line_end\": 31,\n      \"line_start\": 5,\n      \"lines\": \"5-31\",\n      \"note_id\": \"hub\",\n      \"oversize\": false,\n      \"path\": \"hub.md\",\n      \"score\": 2.6388,\n      \"section_id\": \"hub#Hub\",\n      \"slot\": \"authored\",\n      \"snippet\": \"# Hub\\n\\nEvery link shape the resolver has to handle, in one [note].\\n\\n## Resolvable\\n\\n- Alias ... \",\n      \"title\": \"Hub\",\n      \"words\": 62\n    },\n    {\n      \"doc_date\": \"\",\n      \"git\": \"none\",\n      \"heading_path\": \"(top)\",\n      \"is_unit\": true,\n      \"line_end\": 26,\n      \"line_start\": 1,\n      \"lines\": \"1-26\",\n      \"note_id\": \"longform\",\n      \"oversize\": false,\n      \"path\": \"longform.md\",\n      \"score\": 1.6483,\n      \"section_id\": \"longform#(top)\",\n      \"slot\": \"authored\",\n      \"snippet\": \"This [note] has no headings at all. It is a single run of prose ... \",\n      \"title\": \"longform\",\n      \"words\": 203\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"status\": \"COMPLETE\",\n  \"total\": 4\n}\n",
   "rc": 0
  },
  "search <VAULT> review": {
   "err": "",
-  "out": "COMPLETE  (rung: all-terms)\njournal#Field Journal > 2026-06-15  [38-46]  2026-06-15\n    ## 2026-06-15\n\nSeason [review] with Dana Okonjo. Drip irrigation beat the sprinkler comparison ... \n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nCOMPLETE  (rung: all-terms)\njournal#Field Journal > 2026-06-15  [38-46]  2026-06-15\n    ## 2026-06-15\n\nSeason [review] with Dana Okonjo. Drip irrigation beat the sprinkler comparison ... \n",
   "rc": 0
  },
  "search <VAULT> review --budget 400 --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"budget\": 400,\n  \"capped\": false,\n  \"query\": \"review\",\n  \"results\": [\n    {\n      \"doc_date\": \"2026-06-15\",\n      \"git\": \"none\",\n      \"heading_path\": \"Field Journal > 2026-06-15\",\n      \"is_unit\": true,\n      \"line_end\": 46,\n      \"line_start\": 38,\n      \"lines\": \"38-46\",\n      \"note_id\": \"journal\",\n      \"oversize\": false,\n      \"path\": \"journal.md\",\n      \"score\": 3.1546,\n      \"section_id\": \"journal#Field Journal > 2026-06-15\",\n      \"slot\": \"authored\",\n      \"snippet\": \"## 2026-06-15\\n\\nSeason [review] with Dana Okonjo. Drip irrigation beat the sprinkler comparison ... \",\n      \"text\": \"## 2026-06-15\\n\\nSeason review with Dana Okonjo. Drip irrigation beat the sprinkler comparison\\non every zone. Drip won on coverage and on water use.\\n\\n### Reflection\\n\\nConfidence in drip irrigation is high now. The sprinkler option is closed.\\n\\n\",\n      \"title\": \"Field Journal\",\n      \"words\": 36\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"spent\": 80,\n  \"status\": \"COMPLETE\",\n  \"total\": 1\n}\n",
   "rc": 0
  },
  "search <VAULT> review --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"capped\": false,\n  \"query\": \"review\",\n  \"results\": [\n    {\n      \"doc_date\": \"2026-06-15\",\n      \"git\": \"none\",\n      \"heading_path\": \"Field Journal > 2026-06-15\",\n      \"is_unit\": true,\n      \"line_end\": 46,\n      \"line_start\": 38,\n      \"lines\": \"38-46\",\n      \"note_id\": \"journal\",\n      \"oversize\": false,\n      \"path\": \"journal.md\",\n      \"score\": 3.1546,\n      \"section_id\": \"journal#Field Journal > 2026-06-15\",\n      \"slot\": \"authored\",\n      \"snippet\": \"## 2026-06-15\\n\\nSeason [review] with Dana Okonjo. Drip irrigation beat the sprinkler comparison ... \",\n      \"title\": \"Field Journal\",\n      \"words\": 36\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"status\": \"COMPLETE\",\n  \"total\": 1\n}\n",
   "rc": 0
  },
  "search <VAULT> water": {
   "err": "",
-  "out": "COMPLETE  (rung: all-terms)\njournal#Field Journal > 2026-06-15  [38-46]  2026-06-15\n     ... Drip won on coverage and on [water] use.\n\n### Reflection\n\nConfidence in drip irrigation is ... \n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nCOMPLETE  (rung: all-terms)\njournal#Field Journal > 2026-06-15  [38-46]  2026-06-15\n     ... Drip won on coverage and on [water] use.\n\n### Reflection\n\nConfidence in drip irrigation is ... \n",
   "rc": 0
  },
  "search <VAULT> water --budget 400 --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"budget\": 400,\n  \"capped\": false,\n  \"query\": \"water\",\n  \"results\": [\n    {\n      \"doc_date\": \"2026-06-15\",\n      \"git\": \"none\",\n      \"heading_path\": \"Field Journal > 2026-06-15\",\n      \"is_unit\": true,\n      \"line_end\": 46,\n      \"line_start\": 38,\n      \"lines\": \"38-46\",\n      \"note_id\": \"journal\",\n      \"oversize\": false,\n      \"path\": \"journal.md\",\n      \"score\": 3.1546,\n      \"section_id\": \"journal#Field Journal > 2026-06-15\",\n      \"slot\": \"authored\",\n      \"snippet\": \" ... Drip won on coverage and on [water] use.\\n\\n### Reflection\\n\\nConfidence in drip irrigation is ... \",\n      \"text\": \"## 2026-06-15\\n\\nSeason review with Dana Okonjo. Drip irrigation beat the sprinkler comparison\\non every zone. Drip won on coverage and on water use.\\n\\n### Reflection\\n\\nConfidence in drip irrigation is high now. The sprinkler option is closed.\\n\\n\",\n      \"title\": \"Field Journal\",\n      \"words\": 36\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"spent\": 80,\n  \"status\": \"COMPLETE\",\n  \"total\": 1\n}\n",
   "rc": 0
  },
  "search <VAULT> water --json": {
-  "err": "",
+  "err": "{\"scope\": {\"git\": null, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
   "out": "{\n  \"capped\": false,\n  \"query\": \"water\",\n  \"results\": [\n    {\n      \"doc_date\": \"2026-06-15\",\n      \"git\": \"none\",\n      \"heading_path\": \"Field Journal > 2026-06-15\",\n      \"is_unit\": true,\n      \"line_end\": 46,\n      \"line_start\": 38,\n      \"lines\": \"38-46\",\n      \"note_id\": \"journal\",\n      \"oversize\": false,\n      \"path\": \"journal.md\",\n      \"score\": 3.1546,\n      \"section_id\": \"journal#Field Journal > 2026-06-15\",\n      \"slot\": \"authored\",\n      \"snippet\": \" ... Drip won on coverage and on [water] use.\\n\\n### Reflection\\n\\nConfidence in drip irrigation is ... \",\n      \"title\": \"Field Journal\",\n      \"words\": 36\n    }\n  ],\n  \"rung\": \"all-terms\",\n  \"status\": \"COMPLETE\",\n  \"total\": 1\n}\n",
   "rc": 0
  },
@@ -557,12 +557,12 @@
  },
  "stats <VAULT>": {
   "err": "",
-  "out": "notes: 12\nsections: 32 (23 units, 0 oversize)\nedges by syntax/kind:\n  wiki/embed [resolved]: 1\n  wiki/link [ambiguous]: 1\n  wiki/link [ignored]: 1\n  wiki/link [resolved]: 3\n  wiki/link [unresolved]: 1\norphan notes: 7 (Other/Duplicate, generated/summary, journal, longform, monolith)\nambiguous links: 1 (e.g. hub -> [[Duplicate]])\nignored links: 1 (e.g. hub -> [[superseded]])\nunresolved links: 1 (e.g. hub -> [[Missing Page]])\nignored files: 2\n  archive/superseded.md  (.kgignore: archive/**)\n  drafts/scratch.md  (.kgignore: drafts/)\nrepeated heading paths: 0\nsuspect headings: 2  [COMPLETE] - underlined, list-marker or clipped; check the file before trusting the section\n  setext:1  Top Level Setext  (setext)\n  setext:7  Second Level Setext  (setext)\ntags: 2\nentities: 3 (8 mentions)\n",
+  "out": "scope: . (ingested <UTC>); not searched: none; not indexed: none\nnotes: 12\nsections: 32 (23 units, 0 oversize)\nedges by syntax/kind:\n  wiki/embed [resolved]: 1\n  wiki/link [ambiguous]: 1\n  wiki/link [ignored]: 1\n  wiki/link [resolved]: 3\n  wiki/link [unresolved]: 1\nfile links: 0 resolved, 0 external, 0 forbidden, 1 unresolved\norphan notes: 7 (Other/Duplicate, generated/summary, journal, longform, monolith)\nambiguous links: 1 (e.g. hub -> [[Duplicate]])\nignored links: 1 (e.g. hub -> [[superseded]])\nunresolved links: 1 (e.g. hub -> [[Missing Page]])\nignored files: 2\n  archive/superseded.md  (.kgignore: archive/**)\n  drafts/scratch.md  (.kgignore: drafts/)\nrepeated heading paths: 0\nsuspect headings: 2  [COMPLETE] - underlined, list-marker or clipped; check the file before trusting the section\n  setext:1  Top Level Setext  (setext)\n  setext:7  Second Level Setext  (setext)\ntags: 2\nentities: 3 (8 mentions)\n",
   "rc": 0
  },
  "stats <VAULT> --json": {
-  "err": "",
-  "out": "{\n  \"annotations\": [],\n  \"custom_markers\": [],\n  \"edges\": [\n    {\n      \"count\": 1,\n      \"kind\": \"embed\",\n      \"status\": \"resolved\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 1,\n      \"kind\": \"link\",\n      \"status\": \"ambiguous\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 1,\n      \"kind\": \"link\",\n      \"status\": \"ignored\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 3,\n      \"kind\": \"link\",\n      \"status\": \"resolved\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 1,\n      \"kind\": \"link\",\n      \"status\": \"unresolved\",\n      \"syntax\": \"wiki\"\n    }\n  ],\n  \"entities\": 3,\n  \"heading_collisions\": [],\n  \"ignored_files\": [\n    {\n      \"path\": \"archive/superseded.md\",\n      \"rule\": \".kgignore: archive/**\"\n    },\n    {\n      \"path\": \"drafts/scratch.md\",\n      \"rule\": \".kgignore: drafts/\"\n    }\n  ],\n  \"link_problems\": {\n    \"ambiguous\": [\n      {\n        \"src\": \"hub\",\n        \"target\": \"Duplicate\"\n      }\n    ],\n    \"ignored\": [\n      {\n        \"src\": \"hub\",\n        \"target\": \"superseded\"\n      }\n    ],\n    \"unresolved\": [\n      {\n        \"src\": \"hub\",\n        \"target\": \"Missing Page\"\n      }\n    ]\n  },\n  \"marker_candidates\": {\n    \"status\": \"COMPLETE\",\n    \"tokens\": [],\n    \"total\": 0\n  },\n  \"mentions\": 8,\n  \"notes\": 12,\n  \"orphans\": [\n    \"Other/Duplicate\",\n    \"generated/summary\",\n    \"journal\",\n    \"longform\",\n    \"monolith\",\n    \"private\",\n    \"roster\"\n  ],\n  \"oversize_units\": 0,\n  \"sections\": 32,\n  \"suspect_headings\": {\n    \"rows\": [\n      {\n        \"heading\": \"Top Level Setext\",\n        \"line\": 1,\n        \"note_id\": \"setext\",\n        \"reasons\": [\n          \"setext\"\n        ]\n      },\n      {\n        \"heading\": \"Second Level Setext\",\n        \"line\": 7,\n        \"note_id\": \"setext\",\n        \"reasons\": [\n          \"setext\"\n        ]\n      }\n    ],\n    \"status\": \"COMPLETE\",\n    \"total\": 2\n  },\n  \"tags\": 2,\n  \"units\": 23\n}\n",
+  "err": "{\"scope\": {\"git\": false, \"not_indexed\": [], \"not_searched\": [], \"searched\": [{\"graph\": \".\", \"ingested_at\": \"<UTC>\"}]}}\n",
+  "out": "{\n  \"annotations\": [],\n  \"custom_markers\": [],\n  \"edges\": [\n    {\n      \"count\": 1,\n      \"kind\": \"embed\",\n      \"status\": \"resolved\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 1,\n      \"kind\": \"link\",\n      \"status\": \"ambiguous\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 1,\n      \"kind\": \"link\",\n      \"status\": \"ignored\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 3,\n      \"kind\": \"link\",\n      \"status\": \"resolved\",\n      \"syntax\": \"wiki\"\n    },\n    {\n      \"count\": 1,\n      \"kind\": \"link\",\n      \"status\": \"unresolved\",\n      \"syntax\": \"wiki\"\n    }\n  ],\n  \"entities\": 3,\n  \"file_links\": {\n    \"external\": 0,\n    \"forbidden\": 0,\n    \"resolved\": 0,\n    \"unresolved\": 1\n  },\n  \"heading_collisions\": [],\n  \"ignored_files\": [\n    {\n      \"path\": \"archive/superseded.md\",\n      \"rule\": \".kgignore: archive/**\"\n    },\n    {\n      \"path\": \"drafts/scratch.md\",\n      \"rule\": \".kgignore: drafts/\"\n    }\n  ],\n  \"link_problems\": {\n    \"ambiguous\": [\n      {\n        \"src\": \"hub\",\n        \"target\": \"Duplicate\"\n      }\n    ],\n    \"ignored\": [\n      {\n        \"src\": \"hub\",\n        \"target\": \"superseded\"\n      }\n    ],\n    \"unresolved\": [\n      {\n        \"src\": \"hub\",\n        \"target\": \"Missing Page\"\n      }\n    ]\n  },\n  \"marker_candidates\": {\n    \"status\": \"COMPLETE\",\n    \"tokens\": [],\n    \"total\": 0\n  },\n  \"mentions\": 8,\n  \"notes\": 12,\n  \"orphans\": [\n    \"Other/Duplicate\",\n    \"generated/summary\",\n    \"journal\",\n    \"longform\",\n    \"monolith\",\n    \"private\",\n    \"roster\"\n  ],\n  \"oversize_units\": 0,\n  \"sections\": 32,\n  \"suspect_headings\": {\n    \"rows\": [\n      {\n        \"heading\": \"Top Level Setext\",\n        \"line\": 1,\n        \"note_id\": \"setext\",\n        \"reasons\": [\n          \"setext\"\n        ]\n      },\n      {\n        \"heading\": \"Second Level Setext\",\n        \"line\": 7,\n        \"note_id\": \"setext\",\n        \"reasons\": [\n          \"setext\"\n        ]\n      }\n    ],\n    \"status\": \"COMPLETE\",\n    \"total\": 2\n  },\n  \"tags\": 2,\n  \"units\": 23\n}\n",
   "rc": 0
  },
  "tables": {

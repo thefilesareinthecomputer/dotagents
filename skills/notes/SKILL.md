@@ -10,7 +10,8 @@ from current truth.
 
 **The sweep runs once, forward.** Steps 3-5 settle the `tasks/` bundle; step 6
 then corrects false claims, root docs first, and is the only step that touches
-anything outside `tasks/`. Finish a step
+anything outside `tasks/`, apart from a graduation into `docs/` the user approved
+in step 4. Finish a step
 and do not reopen it - if step 6 surfaces something for `plan.md`, add the line
 and keep going. A late trim to a hot file is bounded and fine; reopening
 `README.md` or `SPEC.md` means re-running step 6's heading map.
@@ -28,7 +29,8 @@ progress.**
 
 ## Step 2 - Locate and measure
 
-Seven paths, at the repo root, and no others:
+Seven paths, relative to the repo root, and no others (where `docs/`, `tasks/` and
+`kb/` each fit is in the `project-knowledge-vault` skill's `references/lanes.md`):
 
 | File | Role |
 |------|------|
@@ -38,7 +40,7 @@ Seven paths, at the repo root, and no others:
 | `tasks/backlog/` | Parked but real - `backlog.md` plus written-but-unstarted specs; created on first need |
 | `tasks/completed/` | Cold store - dated `plan-completed-YYYY-MM-DD.md`, immutable after its day, plus retired feature specs moved in whole |
 | `README.md` | How to USE it. Roster level |
-| `SPEC.md` | What it IS - invariants, boundaries, constraining decisions |
+| `docs/SPEC.md` | What it IS - invariants, boundaries, constraining decisions; a root `SPEC.md` where the repo has not moved it |
 
 `references/doc-roles.md` has the full roles and the README/SPEC boundary.
 Everything else - `AGENTS.md`, rules files, skill bodies, code comments, configs -
@@ -54,7 +56,7 @@ into the files that exist and record the conversion as a `todo.md` entry. Never
 convert a layout during a sweep.
 
 ```bash
-wc -l SPEC.md README.md tasks/plan.md tasks/todo.md
+wc -l $(ls docs/SPEC.md SPEC.md 2>/dev/null) README.md tasks/plan.md tasks/todo.md
 ```
 
 | File | Budget | Over |
@@ -118,8 +120,15 @@ Finished work leaves the hot files for **today's** `plan-completed-YYYY-MM-DD.md
 **Relocate, never delete.**
 
 A shipped feature spec **moves as a file**:
-`git mv tasks/SPEC-NAME.md tasks/completed/SPEC-NAME-YYYY-MM-DD.md`. Never paste a
-spec body into the log.
+`git mv tasks/SPEC-NAME.md tasks/completed/SPEC-NAME-YYYY-MM-DD.md` (plain `mv` where
+`tasks/` is untracked). Never paste a spec body into the log.
+
+**Propose its graduation.** A spec that ships, or a `kb/` learning the user has
+verified, has durable facts that belong in `docs/`: what the system now is becomes a
+`docs/SPEC.md` section, a choice between options becomes an ADR in `docs/adr/`.
+Draft the text and ask; write into `docs/` only on the user's yes, and then add the
+new file's path, in backticks, to the graduated `kb/` entry. Under `wrap-up` the
+proposal goes to its one question.
 
 Past-date files are immutable. Corrections happen in the living docs.
 
@@ -137,11 +146,12 @@ Past-date files are immutable. Corrections happen in the living docs.
 
 ## Step 6 - False claims: root docs, then the rest of the repo
 
-Nothing moves into `README.md` or `SPEC.md`. The only question is whether the
-session made something they assert untrue.
+Nothing moves into `README.md` or `SPEC.md` here; graduation (step 4) lands only
+on the user's yes. The only question is whether the session made something they
+assert untrue.
 
 ```bash
-grep -nE '^#{1,5} ' README.md SPEC.md
+grep -nE '^#{1,5} ' README.md $(ls docs/SPEC.md SPEC.md 2>/dev/null)
 ```
 
 Heading by heading: did this session invalidate this? A renamed path, a changed
@@ -176,8 +186,9 @@ decision it needs - the report is chat output and does not outlive the session.
 - **Non-destructive, except downward.** Read before edit; merge, never gut.
   Relocation is the only sanctioned way hot files shrink, and it is not deletion.
 - **Appending is not maintaining.** A pass that only adds is incomplete.
-- **Writes into seven paths, corrects false claims anywhere in the repo, one
-  pass.** Memory belongs to reflect.
+- **Writes into seven paths, plus `docs/` and the graduated `kb/` entry on an
+  approved graduation, corrects false claims anywhere in the repo, one pass.**
+  Memory belongs to reflect.
 - **Don't name the user**, and **no secrets** - these files are tracked, so treat
   them as public. Record that a value exists and where it lives, never the value.
 - **Evidence over narrative.** Every claim traces to a real change.

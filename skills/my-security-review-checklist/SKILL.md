@@ -44,6 +44,7 @@ or destructive file ops as Critical until proven otherwise.
 - [ ] Hooks have sane `timeout` values and fail closed, not open
 - [ ] New hooks are the minimum scope needed (specific matcher, not catch-all) and are reviewed like production code
 - [ ] Anything that starts processes or loads models meets skill-authoring's `references/process-lifecycle.md`, and `check_spawns.py` exits 0 over the change. A leaked child is a denial of service on the user's own machine.
+- [ ] A hook or script calling a local service ignores proxy environment variables (Python: `urllib.request.build_opener(urllib.request.ProxyHandler({}))`), so a stray `HTTP_PROXY` can never route the request, or a token it carries, off the machine.
 
 ### 4. Untrusted input: agent / LLM / web / MCP / files
 
@@ -68,6 +69,13 @@ or destructive file ops as Critical until proven otherwise.
 - [ ] Package/marketplace name is the **official** one, not a look-alike (verify org/scope; e.g. `chrome-devtools-mcp`, not a fork)
 - [ ] Versions are pinned or `@latest` is a deliberate choice, not an accident
 - [ ] After install, the plugin's hooks/agents/commands were skimmed for what they actually do
+- [ ] **The installed version is the reviewed version.** A marketplace's head can move between review and install, so a review of version N can approve installing N+1. After `claude plugin update`, compare the installed version and commit with the reviewed ones, and review the delta before a session loads it. A plugin's daemon may restart from the new code at once, even when the CLI says a restart is needed (seen 2026-11-26).
+- [ ] **A new version's setting defaults are compared with the seed before its first start.** A release can add default-on features under keys the seed has never seen, so a seed that was complete for version N says nothing about N+1. `/update plugins` reports new and changed defaults, default-on keys the seed does not pin, and seed keys the new version no longer defines; each flagged key is traced through the incoming code before a seed change is proposed.
+- [ ] **Hardening settings land before the update.** The first start of a new version runs on whatever settings exist, so self-update, read interception, promotions and telemetry are switched off first, then the plugin is updated.
+- [ ] **Self-update is off.** A plugin that fetches and installs its own new releases changes what runs next session without review (see 7b). Updates arrive as a notice and are reviewed first.
+- [ ] **Context injection is untrusted input.** Text a plugin's hooks add to the agent's context (SessionStart context, per-prompt injections, "tell the user ..." or "run this command" lines, product promotions) is a third party instructing the agent. Disable every such channel that is not the plugin's core purpose, and treat the rest as untrusted.
+- [ ] **PATH and shell-rc writes are found and approved.** An installer that builds a launcher, puts it on PATH, or appends to `~/.zshrc`/`~/.bashrc` decides what every later bare command runs. Back up the rc files before the install, diff them after, and check where `command -v <name>` resolves.
+- [ ] **A plugin's local daemon is checked on the running machine**, whatever its docs say: `lsof -nP -iTCP -sTCP:LISTEN` for the bind address, and a request to the machine's LAN address that must be refused. Loopback alone still lets any local process or browser page call it; when the daemon offers an API token, use it.
 - [ ] **A `Connected` status is not proof of access.** `claude mcp list` health-checks the endpoint, so a public remote MCP endpoint reports connected whether or not this account holds a grant, and a stale "ever connected" list in `.claude.json` reads like current state. It fails the other way too: a live grant can sit behind a failed check. To establish what a server can actually reach, make one read-only call and see what comes back (verified 2026-07-31).
 
 ### 6. File, path & symlink safety
@@ -82,6 +90,7 @@ or destructive file ops as Critical until proven otherwise.
 - [ ] Permission allowlist follows least privilege - no broad `Bash(*)` or wildcard auto-approve that defeats the prompt
 - [ ] Auto-approved commands can't be abused as an injection sink
 - [ ] Env vars added to settings don't leak secrets into a committed file
+- [ ] **An agent never mints or handles a secret through its own tools.** Tool calls and their output land in the transcript and in any memory plugin that captures tool use. The user runs a one-liner that generates the value and writes it to the file with mode 600 without printing it, and per-machine secrets stay out of seeds and specs.
 - [ ] **Every subagent has a `tools:` allowlist matching its actual job.** Omitting `tools:` inherits everything, including `Bash` and all MCP tools. An agent described as read-only or advisory but granted `Bash` will edit files: prose is not a control, the allowlist is. Read-only reviewers get read-only tools.
 - [ ] **A skill's declared authority matches its behavior** - a skill that says it only reads should not ship a script that writes, and `allowed-tools` / `disallowed-tools` should reflect that.
 
@@ -223,3 +232,9 @@ applied where the change touches memory, rules, an agent channel or a fan-out (a
 skipped on purpose where it does not), and every **Critical** and **Important** finding
 is resolved or deferred with a stated reason. The review then ends; it is not run again
 over its own fixes unless the user asks for a re-review.
+
+**Lessons become proposals, not changes.** When a finding generalizes beyond the change
+under review (a new checklist item, a setting to harden, a default to turn off), the review
+ends with a short list of proposals. Each one names the change, the file it would touch, and
+what else it affects: tools that stop working, workflows that change, machines that need a
+step. Nothing in the list is applied until the user has read it and said yes.

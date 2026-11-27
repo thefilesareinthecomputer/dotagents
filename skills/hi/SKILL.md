@@ -58,9 +58,11 @@ after them corroborates and dates; when a later source disagrees with git, git w
      rule that is broad, inert, dead, machine-bound or duplicated at user scope is a
      finding for the briefing, not something to fix during orientation.
 
-3. **Living docs at the repo root** - whichever exist: `README.md`, `SPEC.md` (or legacy
-   root `PLAN.md` / `HANDOFF.md`), plus `AGENTS.md` / `CLAUDE.md` for repo-specific rules.
-   These describe the *active* state; crack open the cold files only if you need history.
+3. **Living docs** - whichever exist: `README.md`, `docs/SPEC.md` (else a root `SPEC.md`,
+   or legacy root `PLAN.md` / `HANDOFF.md`), plus `AGENTS.md` / `CLAUDE.md` for repo-specific
+   rules, and the pointer line naming the repo's project vault (`kb/`). These describe the
+   *active* state; crack open the cold files only if you need history. Where `docs/`,
+   `tasks/` and `kb/` each fit is in the `project-knowledge-vault` skill's `references/lanes.md`.
 4. **Memory - file-based.** If `MEMORY.md` was **not** already auto-injected into context
    this session, read this workspace's index at
    `~/.claude/projects/<slug>/memory/MEMORY.md` - where `<slug>` is the workspace's

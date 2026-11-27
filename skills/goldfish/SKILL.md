@@ -22,6 +22,8 @@ The session that wrote a document reads into it what it knows from its own
 context. A reviewer with none of that context finds the gaps before an
 implementer or a user does, or this session after a compaction, falls into them.
 
+Where `docs/`, `tasks/` and `kb/` each fit is in the `project-knowledge-vault` skill's `references/lanes.md`.
+
 Specs in this repo's `tasks/` right now:
 
 !`ls tasks/SPEC-*.md 2>/dev/null || echo "(no tasks/SPEC-*.md here)"`

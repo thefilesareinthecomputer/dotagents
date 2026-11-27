@@ -194,6 +194,39 @@ daemon reads this file once at start and caches it, so a change takes effect at
 its next restart (`bun scripts/worker-service.cjs restart` in the plugin's
 cache folder, or `POST /api/admin/restart` on its loopback port).
 
+**Hardening keys** (reviewed against claude-mem 17.0.0 source, 2026-11-26).
+Since 13.32 the read interception is also a separate default-on File Read Gate, so `CLAUDE_MEM_FILE_READ_GATE_ENABLED` is `false` beside the skip list.
+`CLAUDE_MEM_AUTO_UPDATE` is `false`: from 15.14 the worker otherwise installs new releases by itself, and every update is reviewed first (`plugin_update_check.py` gives the notice, and `/update plugins` compares the incoming version's defaults with this row).
+`CLAUDE_MEM_WELCOME_HINT_ENABLED` is `false`: from 16.1 it otherwise injects a product promotion into the agent's context at session start, with an instruction to relay it.
+`CLAUDE_MEM_WORK_STATE_ENABLED` and `CLAUDE_MEM_MEMORY_INSTRUCTIONS_ENABLED` are `false`: together they gate the MCP server's `instructions`, which otherwise tell the agent to use claude-mem's to-do store in place of its own and to attach deliverables, and name the hosted CMEM Pro service. With both off the server sends no instructions, the work-state tools answer "turned off", and the search tools are unchanged.
+`CLAUDE_MEM_MEMORY_SEARCH_HOOK_ENABLED` is `false`: its PreToolUse hook otherwise runs a local search when a Read, Bash, Grep or Glob call touches a memory folder and appends the result index with next-step instructions. The per-file prior-observations note on Read is a separate hook and stays on.
+`CLAUDE_MEM_DELIVERABLES_ENABLED` is `false`: on Stop and SubagentStop it otherwise copies every file a session wrote with an image, video, PDF, `.docx`, `.pptx`, `.key`, `.xlsx`, `.csv` or `.html` extension, when the file sits outside a git repo or is gitignored, into `~/.claude-mem/deliverables/<project>/`.
+`CLAUDE_MEM_MEDIA_CAPTURE_ENABLED` is `false`: it otherwise stores images and screenshots from tool output in the memory database. A one-time 17.x migration rewrites a saved `false` to `true` on a station whose `~/.claude-mem/.settings.json.media-capture-default-on-v1` marker is missing, so a station that has not yet started 17.x needs the seed re-applied after that first start.
+`CLAUDE_MEM_WORK_VIEW_AUTO_REFRESH` is `false`: it otherwise runs Claude passes every 10 to 20 minutes after new work to rewrite the "My Work" dashboard's story and preferences profile, outside the observer's transcripts. With it off the dashboard goes stale until it is refreshed by hand.
+`CLAUDE_MEM_TELEGRAM_ENABLED`, `CLAUDE_MEM_TELEGRAM_WRAPUPS_ENABLED`, `CLAUDE_MEM_GROK_BOT_INJECT_ENABLED` and `CLAUDE_MEM_CLOUD_SYNC_WS` are `false`. Each is inert without a token or an installed app, and the pins keep them inert if one appears.
+`CLAUDE_MEM_AUTO_CLEAR_ENABLED` is `false` and `CLAUDE_MEM_WORKER_HOST` is `127.0.0.1`, both pinned at their current defaults.
+Not settable: the session-start terminal banner advertises the hosted Pro plan on every station that has no Pro plan. Only `CLAUDE_MEM_CONTEXT_SHOW_TERMINAL_OUTPUT=false` hides it, and that also hides the terminal observation recap, so the setting is left on.
+`CLAUDE_MEM_IDLE_EXIT_SEC` is `300`: the worker stops itself after 5 idle minutes, the backstop for `claude_mem_last_session.py` (§8).
+Telemetry is switched off by the environment, not this file: `CLAUDE_MEM_TELEMETRY=false` and `DO_NOT_TRACK=1` in settings.json `env`. The `TELEMETRY` keys here are inert copies.
+From 13.38 a Setup step builds a `claude-mem` launcher, which every plugin hook then runs from PATH, and may add a PATH line to the shell rc file. After an upgrade, check where `command -v claude-mem` resolves and diff the rc file.
+Before an upgrade, back up the database, since a new version migrates it in place: `sqlite3 ~/.claude-mem/claude-mem.db ".backup '<backup dir>/claude-mem.db'"`, then `PRAGMA quick_check` on the copy. `.backup` is safe while the worker runs.
+
+**Tuning keys.** Secret redaction is opt-in upstream, so `CLAUDE_MEM_REDACT_ENABLED` and `CLAUDE_MEM_REDACT_GENERIC_ENABLED` are `true`; it narrows what secrets in tool output reach the database and the summarizer, and is not a guarantee.
+Growth: observations and summaries have no retention setting and grow for good (about 80 MB a month across the database and Chroma at heavy use). `CLAUDE_MEM_TOOL_USES_RETENTION_DAYS` at `90` and `CLAUDE_MEM_LOG_RETENTION_DAYS` at `30` bound the raw tool-use rows and the logs.
+Chroma, the local vector search, runs as a `chroma-mcp` child of the worker over a pipe, with no network port. `CLAUDE_MEM_CHROMA_PROCESS_NICE` at `10` keeps it below interactive work and `CLAUDE_MEM_CHROMA_MAX_THREADS` at `4` caps its embedding threads, which bounds the CPU of a bulk re-index; live indexing embeds a few short texts at a time.
+
+**Local API token (REQUIRED; per machine, never seeded).** Unset, any local process or a browser page can call the worker's API on loopback, settings writes included. The worker reads `CLAUDE_MEM_LOCAL_API_TOKEN` from `~/.claude-mem/settings.json` only (not from the environment) once at start, then refuses every route but `/api/health` without the `X-Claude-Mem-Token` header. claude-mem's own hooks, MCP search and CLI read it from the same file; `claude_mem_health.py` and `claude_mem_last_session.py` send it, and the health hook reports a station without one. Set it per station:
+
+1. The user runs this in their own terminal or with `!`; an agent never mints it, since tool output lands in transcripts and memory. It prints only `token set`:
+   `python3 -c 'import json,os,secrets;p=os.path.expanduser("~/.claude-mem/settings.json");d=json.load(open(p));d["CLAUDE_MEM_LOCAL_API_TOKEN"]=secrets.token_urlsafe(32);t=p+".tmp";open(t,"w").write(json.dumps(d,indent=2));os.chmod(t,0o600);os.replace(t,p);print("token set")'`
+2. Restart the worker so it reads the token: close every session (the SessionEnd hook stops it), or `curl -X POST -H "X-Claude-Mem-Token: $(jq -r .CLAUDE_MEM_LOCAL_API_TOKEN ~/.claude-mem/settings.json)" 127.0.0.1:<port>/api/admin/restart`; the next claude-mem hook starts it again.
+3. Verify: `/api/processing-status` answers `401` without the header and `200` with it.
+4. The web viewer opens once per browser as `/?token=<value>`: `open "http://127.0.0.1:<port>/?token=$(jq -r .CLAUDE_MEM_LOCAL_API_TOKEN ~/.claude-mem/settings.json)"`.
+
+A session started before the upgrade still runs the old plugin's hooks, which do not send the token; its own capture is refused until it is restarted.
+
+**Excluding projects.** `CLAUDE_MEM_EXCLUDED_PROJECTS` takes comma-separated globs (`*`, `**`, `?`, leading `~`), each matched against both the session's full working directory and its last folder name; `dir/**` also covers `dir` itself. A match stops capture and context injection for that project. Inside a prompt, text wrapped in `<private>...</private>` is stripped before storage (per claude-mem's docs, not tested here).
+
 **Durability note:** this file is per-machine and unversioned by claude-mem, so
 a fresh install or reinstall reverts to the default that intercepts reads.
 Re-run the station sync after any claude-mem install or reinstall; the plan
@@ -550,9 +583,10 @@ the orphan report (`reaper.py`, SessionStart), the dialog guard
 (`peer_turn_no_dialog.py`, refusing a question or plan dialog on a turn the user did not start),
 and the three web hooks (`web_fetch_guard.py`, remembering a host's refusal and spacing page fetches;
 `download_guard.py`, governing shell fetches and where a download lands; `web_session_end.py`, scanning
-the session's downloads and removing its web state).
-Ten are advisory/non-blocking (`read-size-advisory`,
-`cmon_nudge`, `harness_version_check`, `claude_mem_health`, `reaper`, `warn_cross_repo_git`, both `no-meta-commentary` sides,
+the session's downloads and removing its web state), the claude-mem worker stop (`claude_mem_last_session.py`,
+stopping the worker once the last session closes), and the plugin update notice (`plugin_update_check.py`).
+Eleven are advisory/non-blocking (`read-size-advisory`,
+`cmon_nudge`, `harness_version_check`, `plugin_update_check`, `claude_mem_health`, `reaper`, `warn_cross_repo_git`, both `no-meta-commentary` sides,
 `memory_lint`'s judgment checks, and `reject_identifiers`), and
 `memory-routing` is advisory until a memory folder reaches its cap;
 the rest can block.
@@ -1257,8 +1291,16 @@ hook stays silent. It also reports three conditions: anything besides the §3.1
 uvx wrapper (and its seed backup) in the wrapper's folder, which the worker
 puts first on `PATH`; a wrapper that is not executable; and, while search is
 healthy, a worker version that differs from the wrapper's `# cap-for:` line.
+Because claude-mem's capture can stall while `/api/health` stays `ok`, it also
+reads `GET /api/processing-status`, an authenticated route, so a refused or
+missing local API token is reported rather than silent. From that route it
+reports abandoned observer sessions, expired observer inputs, and nothing
+stored for 6 hours while work is queued. It reports an unset local API token
+(§3.1), and sends the token only to a loopback worker; the token never appears
+in its output.
 When everything is healthy, or when there is no claude-mem settings file, the
 hook is silent. Exit 0 on every path.
+Tests: `tests/station-hooks/test-claude-mem-health.py`.
 
 Overrides: `CLAUDE_MEM_HEALTH_HOME` (default `$CLAUDE_MEM_DATA_DIR`, then
 `~/.claude-mem`), `CLAUDE_MEM_HEALTH_BASE` (worker URL),
@@ -1385,6 +1427,30 @@ Tests: `tests/station-hooks/test-web-fetch-guard.py`.
 
 Script: [`../../hooks/web_session_end.py`](../../hooks/web_session_end.py).
 
+### `claude_mem_last_session.py`
+
+SessionEnd hook - non-blocking, never signals a process.
+claude-mem's hooks start a shared worker daemon that no session owns. It outlives every session and sits in the process coalition of the app that started the first one, where it can keep a macOS restart or logout from finishing.
+When a session ends and no other Claude Code session is running (the worker's own summarizer sessions do not count), the hook starts a drain under the companion `procguard.py` in `--detached` mode, capped at about 6 minutes, and returns.
+The drain waits 15 seconds for claude-mem's own SessionEnd work to queue, then polls `GET /api/processing-status` every 5 seconds. After three idle polls in a row (empty queue, nothing processing, no parked session) it sends `POST /api/admin/shutdown`, claude-mem's graceful stop.
+A session that starts meanwhile cancels the drain. A worker still busy after 5 minutes is left to claude-mem's own idle exit (`CLAUDE_MEM_IDLE_EXIT_SEC`, seeded at 300 in §3.1), which also covers sessions that end without this event: a crash, or a force-quit of the terminal.
+Reasons `clear` and `resume` are ignored, since the session process carries on. Each decision is one line in `<temp>/claude-mem-last-session-<uid>.log`.
+Tests: `tests/station-hooks/test-claude-mem-last-session.py`.
+
+Script: [`../../hooks/claude_mem_last_session.py`](../../hooks/claude_mem_last_session.py).
+
+### `plugin_update_check.py`
+
+SessionStart (matcher `startup`) - advisory, never installs anything.
+At most once a day it starts a detached check, capped at 3 minutes, that compares each installed plugin from a GitHub marketplace with that marketplace's current `marketplace.json`.
+A differing declared version is behind. With no declared version, a commit to the plugin's folder after its install time is behind.
+The next session start shows the outdated list to the user once that day, pointing at `/update plugins`, which inspects each incoming version and plans the cutover before `claude plugin update`.
+Marketplaces from other sources are listed as not checked. Network: `raw.githubusercontent.com` and `api.github.com`, unauthenticated, once a day.
+`plugin_update_check.py --report` runs the check in the foreground and prints it.
+Tests: `tests/station-hooks/test-plugin-update-check.py`.
+
+Script: [`../../hooks/plugin_update_check.py`](../../hooks/plugin_update_check.py).
+
 ### `web_download.py` (a command, not a hook)
 
 The batch downloader the main session runs: `python3 ~/.agents/hooks/web_download.py <manifest> [--out <folder>] [--allow-host <host>]`.
@@ -1425,6 +1491,8 @@ After the repo's hook, `pre-commit`, `commit-msg` and `pre-push` run `sanitize g
 Secrets, hidden-character attacks, home paths with a real login, text files over 1 GiB, a message that describes sensitivity and, at commit, agent-mail inbox files block the operation, and other identifier-shaped content warns.
 A repo that sets its own `core.hooksPath` (husky, lefthook) keeps it, and the gate does not run there.
 A missing `python3` or gate lets the operation through with one stderr line.
+`pre-commit` then runs markdown-kg's `links --forbidden` on the repo's `docs/` graph when `docs/.kg/` exists: a committed `docs/` note that links to, or names in a code span, a file that is not committed (or is under the graph's `holdback` globs) blocks the commit.
+Any other failure of that check prints one line and lets the commit through. The model it enforces is the `project-knowledge-vault` skill's `references/lanes.md`.
 Tests: `tests/station-hooks/test-git-dispatch.py` (throwaway repos, never the station's own config).
 
 ## 9. Status lines (`~/.claude/statusline.sh` + `subagent-statusline.sh`)
@@ -1462,9 +1530,9 @@ Script: [`claude-code/subagent-statusline.sh`](subagent-statusline.sh).
 
 ## 10. Keybindings (`~/.claude/keybindings.json`) + terminal setup
 
-**Requirement:** on every station, **Shift+Enter inserts a newline** in the
-chat prompt instead of submitting. Multi-line prompts are typed constantly;
-a station where Shift+Enter submits mid-thought is misconfigured.
+**Requirement:** on every station, **Shift+Enter and Option+Enter both insert a
+newline** in the chat prompt instead of submitting. Multi-line prompts are typed
+constantly; a station where either key submits mid-thought is misconfigured.
 
 Two independent layers have to agree, and they fail differently:
 
@@ -1499,6 +1567,17 @@ without a restart. The action id is `chat:newline` (verified against
   `~/.claude/keybindings.json`. Check which one is hosting the session with
   `ps -o comm= -p $PPID` up the tree, then look for
   `~/Library/Application Support/<Code|Cursor>/User/keybindings.json`.
+- **Apple Terminal (Terminal.app)** - the two keys need different things:
+  - **Shift+Enter:** Terminal 2.15 (macOS 27) reports it with no setup
+    (observed 2026-11-26 on two stations, no key mapping in any profile). The
+    profile's key mappings cannot change it on an older Terminal: their key
+    list has no Return. There, use Option+Enter or the §10.3 fallbacks.
+  - **Option+Enter:** reaches Claude Code as `alt+enter` only when the profile
+    has **Use Option as Meta Key** on (Settings > Profiles > Keyboard), which is
+    what `/terminal-setup` turns on. The cost is that Option no longer types
+    special characters (`é`, `™`) in that terminal.
+  - Set either in the profile the windows actually open with (Settings >
+    General > "New windows open with"), then open a new window.
 - **Cannot do it:** gnome-terminal, JetBrains terminals. Use the fallbacks.
 - **tmux** also needs extended keys forwarded in `~/.tmux.conf`:
   ```
@@ -1519,8 +1598,9 @@ fix on gnome-terminal or a JetBrains terminal.
 
 `~/.claude/keybindings.json` exists and parses (`jq . ~/.claude/keybindings.json`);
 `claude --debug` reports no keybinding validation warnings; typing Shift+Enter
-mid-prompt breaks the line instead of submitting. If the file is right but the
-key still submits, the failure is layer 2 (terminal), not layer 1.
+mid-prompt breaks the line instead of submitting, and so does Option+Enter. If
+the file is right but a key still submits, the failure is layer 2 (terminal),
+not layer 1.
 
 ## 11. Bootstrap procedure (new device)
 

@@ -81,6 +81,10 @@ def run(vault: Path, *argv: str) -> dict:
 
 
 def _norm(text: str, vault: Path) -> str:
+    # The widen line names this engine's script as a shell path, which
+    # depends on the folder the tests run from.
+    text = text.replace(markdown_kg.shell_path(
+        Path(markdown_kg.__file__).resolve()), "<SCRIPT>")
     for p in sorted({str(vault), str(vault.resolve())}, key=len, reverse=True):
         text = text.replace(p, "<VAULT>")
     return STAMP_RE.sub("<UTC>", text)

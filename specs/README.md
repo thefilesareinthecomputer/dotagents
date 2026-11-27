@@ -3,7 +3,7 @@
 One folder per agent harness: the station spec, plus every file that spec seeds.
 A spec states what a machine's install of that harness needs around these skills, and what it already provides on its own.
 
-`SPEC.md` at the repo root says what this repo IS. These say what a *harness*
+`docs/SPEC.md` says what this repo IS. These say what a *harness*
 needs around it. [`HARNESS-PROFILES.md`](HARNESS-PROFILES.md) compares the core
 harnesses side by side - installed version, config home, skills discovery,
 remote-control state, hooks state, models and what each is for - stamped from

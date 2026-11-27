@@ -536,9 +536,13 @@ class WikiVaultLinkTests(VaultCase):
     def test_broken_and_ambiguous_stay_on_the_worklist(self):
         got = {(e["src"], e["target"], e["status"])
                for e in self.json("links", "--unresolved")}
+        # Links to files whose target does not exist are on it too.
         self.assertEqual(got, {
             ("guides/setup", "missing-note.md", "unresolved"),
-            ("guides/sub/deep", "Notes.md", "ambiguous")})
+            ("guides/sub/deep", "Notes.md", "ambiguous"),
+            ("guides/sub/deep", "../../../elsewhere.md", "unresolved"),
+            ("guides/setup", "levels.csv", "unresolved"),
+            ("guides/setup", "/docs/intro", "unresolved")})
 
     def test_non_notes_and_fenced_links_make_no_edge(self):
         targets = {r[0] for r in self.rows(

@@ -2,6 +2,50 @@
 
 What each push changes, newest first, for machines pulling this repo.
 
+## 2026-11-26
+
+### Action needed
+
+- Re-seed the station: `python3 skills/agent-cc-configs-sync/scripts/seed.py apply --harness claude-code` (hooks, keybindings, claude-mem settings, `DO_NOT_TRACK`), then restart sessions.
+- Upgrading claude-mem: apply the seed first, then `claude plugin update claude-mem@thedotmack`, and follow SPEC-CLAUDE-CODE §3.1 (check `command -v claude-mem` and the shell rc file).
+- Set claude-mem's local API token (required) with the four steps in SPEC-CLAUDE-CODE §3.1; it is per machine and never seeded.
+- Re-seed the claude-mem settings row again for its ten new keys, then restart the worker. On a station that has not yet started claude-mem 17.x, re-seed once more after the first start (SPEC-CLAUDE-CODE §3.1, media capture).
+- Run `bash sync-skills.sh` to link the new `update` skill.
+- Root `SPEC.md` moved to `docs/SPEC.md`. To use the new commit-time link check in this repo, give `docs/` a graph once: `python3 skills/markdown-kg/scripts/markdown_kg.py init docs`, add `"holdback": ["/tasks/", "/_RESEARCH/"]` to `docs/.kg/markdown-kg-config.json` (gitignored, so per station), then `ingest docs`.
+- A project vault in `docs/kb/` moves to `kb/` (`git mv` when tracked), then `ingest kb`.
+
+### Added
+
+- Lanes model: `skills/project-knowledge-vault/references/lanes.md` states where `docs/` (graduated, tracked), `tasks/` (the agent's queue) and `kb/` (the project vault) fit, how content graduates one way into `docs/`, and which way links may point. ADR 0001 is amended to match.
+- markdown-kg: `graphs <path>` lists every graph in the workspace by label; `search`, `query`, `links`, `backlinks`, `refs` and `stats` print a scope line first (JSON mode: one line on stderr, stdout unchanged), and a zero-result answer ends with the exact command that widens it; `search --all` and `--graphs` fuse each graph's own search by reciprocal rank; `read --graph`, `backlinks --all` and `refs --all` reach sibling graphs read-only.
+- markdown-kg link statuses for links to files, computed at query time: `unresolved`, `forbidden` (a committed note points at a file in its repo that is uncommitted or held back), `external` (including anything outside the repo), `resolved`; `links --forbidden` (exit 3) also checks backticked paths; config key `holdback`; `stats` counts file links. A path wikilink that names no note is a file link.
+- Station git `pre-commit` runs `links --forbidden` on a repo's `docs/` graph when `docs/.kg/` exists.
+- code-kg `docs` prints markdown-kg's scope line.
+- **Breaking:** project-knowledge-vault repo mode (`--into`): no deliverables folder; a `docs/SPEC.md` or root `SPEC.md` skips `00-brd` and `01-north-star`, with variant `index.md` and `user-stories.md`; new pointer line; the shape table opens SKILL.md.
+
+- `update` skill: `/update plugins` lists installed plugins and their latest versions, fetches each incoming version through `web_download.py`, unpacks it safely and compares it with the installed copy (files, manifest, hooks, MCP servers, new network hosts, changelog, and setting defaults against the station seed and live settings), then plans the cutover. Read-only; the `global`, `system` and `repos` scopes are specced.
+- claude-mem seed keys for 17.0.0: agent instructions and the work-state store off, the memory-lookup hook off, the deliverables copier off, media capture off, the work-view auto-refresh off, and Telegram, Grok-bot inject and the cloud-sync socket pinned off.
+- my-security-review-checklist: a new plugin version's setting defaults are compared with the seed before its first start.
+- `docs/adr/0001-docs-and-tasks-layout.md` (Accepted): durable design in `docs/`, agent working state and in-progress feature specs in `tasks/`, the project vault in `kb/`.
+
+- `claude_mem_last_session.py` SessionEnd hook: stops claude-mem's worker through its graceful shutdown once the last Claude Code session closes and its queue drains.
+- `plugin_update_check.py` SessionStart hook: a once-a-day notice of installed plugins behind their marketplace; `--report` runs it on demand.
+- my-security-review-checklist: plugin-trust items (reviewed version equals installed version, hardening before update, self-update off, context injection as untrusted input, PATH and rc-file writes, live daemon checks), proxy-free local calls, and no agent-minted secrets.
+
+### Changed
+
+- `links --unresolved` also lists links to files that do not exist; `links <note>` lists file links with kind `file`.
+- project-knowledge-vault: `--into` no longer offers `docs/kb/` or `docs/`; a stray `index.md` or `log.md` no longer skips the flat check; the contract routes ADRs and designs to a repo's `docs/`.
+- `notes`, `wrap-up`, `hi`, the `spec` command, global `AGENTS.md` and `tasks/AGENTS.md` read `docs/SPEC.md` first and propose graduation into `docs/` on the user's yes.
+- `plugin_update_check.py` points its notice at `/update plugins`.
+- `repo-device-sync` Phase 4: a commit that only updates working notes waits for the next real work push, unless the other station would redo the work without it.
+- claude-mem seed keys: file-read gate, self-update, welcome promotion and auto-clear off; idle exit 300 s; secret redaction on; tool-use retention 90 days; Chroma at nice 10 with 4 embedding threads.
+- `claude_mem_health.py` sends claude-mem's local API token to a loopback worker, and reports a missing or refused token, abandoned or expired observer work, and a capture pipeline that stored nothing for 6 hours while work was queued.
+- Keybindings: Option+Enter inserts a newline alongside Shift+Enter; SPEC-CLAUDE-CODE §10.2 covers Apple Terminal.
+- SPEC-CLAUDE-CODE §3.1: back up claude-mem's database with `sqlite3 .backup` before an upgrade.
+- my-security-review-checklist: a review ends with proposals for any generalizable change, each with its effects, applied only after the user's yes.
+- `AGENTS.md`: the claude-mem worker check uses `/api/health`, which needs no local API token.
+
 ## 2026-11-25
 
 ### Action needed

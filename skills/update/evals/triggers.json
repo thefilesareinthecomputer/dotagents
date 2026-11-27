@@ -1,0 +1,16 @@
+[
+ {"name": "outdated-tools", "query": "are any of my installed plugins or CLI tools out of date?", "should_trigger": true,
+  "why": "out-of-date wording without the word update"},
+ {"name": "what-needs-updating", "query": "what on this machine needs updating? check my claude code plugins", "should_trigger": true,
+  "why": "the core question, no slash"},
+ {"name": "is-it-safe", "query": "the session start said claude-mem has a new version. is it safe to update, and what does the new version change?", "should_trigger": true,
+  "why": "pre-cutover review of a pending plugin update"},
+ {"name": "review-before-update", "query": "before I run claude plugin update on agent-skills, inspect what the new release changes and plan the cutover", "should_trigger": true,
+  "why": "migration planning wording"},
+ {"name": "settings-edit", "query": "update my settings.json to allow npm test without prompting", "should_trigger": false,
+  "why": "a settings change belongs to update-config"},
+ {"name": "readme-edit", "query": "update the README to describe the new install steps", "should_trigger": false,
+  "why": "the word update meaning edit a document"},
+ {"name": "git-pull", "query": "pull the latest changes from origin and push my commit", "should_trigger": false,
+  "why": "git sync belongs to repo-device-sync"}
+]

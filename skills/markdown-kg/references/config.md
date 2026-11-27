@@ -37,8 +37,15 @@ Two optional scalars sit beside the arrays:
 | `recency_k` | weight of recency in `search` scores, default `0.5`. Recency enters additively as `k * tier` (tier: newest dated entry of a note 1.0, oldest 1/N), so it reorders hits within `k` of each other on relevance and never buries a strong old match under a weak new one. `0` disables it. `search --recency-k` overrides it for one call. Written back only when set |
 | `link_resolution` | `obsidian` or `relative`: how a markdown link that misses its relative path is read. When it is unset, the engine detects the mode: a vault with an `.obsidian/` folder is `obsidian`, any other tree is `relative`. See [Markdown links](#markdown-links) |
 
-Three more arrays are optional, and an absent one is empty: `markers`, `entity_sources` and `relations`.
+Four more arrays are optional, and an absent one is empty: `markers`, `entity_sources`, `relations` and `holdback`.
 A config written before they existed loads exactly as it did.
+
+`holdback` is a list of gitignore-style globs matched against repo-relative POSIX paths,
+for files the repo tracks but never publishes, such as `["/tasks/", "/_RESEARCH/"]`.
+As in gitignore, a leading `/` anchors a pattern at the repo root, a pattern with no other `/` matches at any depth, and a trailing `/` means the folder and everything under it.
+The link check treats a held-back file as not committed, so a committed note that links to one is `forbidden`.
+It is read per graph, when a command runs, and `config` echoes it.
+Only a repo that tracks files it does not publish needs it: an untracked or gitignored file is already not committed.
 
 ## Checking an edit
 

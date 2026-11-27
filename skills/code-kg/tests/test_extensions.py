@@ -856,6 +856,24 @@ class TestDocs(unittest.TestCase):
         self.assertEqual(cut["status"], f"TRUNCATED mentions"
                          f" {code_kg.DOCS_LIMIT} of {code_kg.MENTION_TEXTS}")
 
+    def test_docs_reports_its_scope(self):
+        """Text output opens with the scope line; json keeps stdout as it
+        was and sends the scope to stderr. `docs` asks every vault inside
+        the repo, so nothing is left unsearched here."""
+        self.index_vault()
+        rc, out, _ = run("docs", str(self.repo), "src/tidelog/reader.py")
+        self.assertEqual(rc, 0)
+        self.assertRegex(out.splitlines()[0],
+                         r"^scope: docs \(ingested \S+\); not searched: none;"
+                         r" not indexed: none$")
+        rc, out, err = run("docs", str(self.repo), "src/tidelog/reader.py",
+                           "--json")
+        self.assertEqual(rc, 0)
+        self.assertNotIn("scope", json.loads(out))
+        scope = json.loads(err.strip().splitlines()[-1])["scope"]
+        self.assertEqual([g["graph"] for g in scope["searched"]], ["docs"])
+        self.assertEqual(scope["not_searched"], [])
+
     def test_docs_without_the_flag_is_as_before(self):
         # As before, plus the `status` every capped answer carries.
         self.index_vault()

@@ -15,6 +15,7 @@ in the message and hands text back; the script writes the review into the repo's
 `tasks/reviews/` under a dated name. Nothing the harness produces is applied
 anywhere. Every harness works the same way; multi-step agent work belongs to the
 task skills.
+Where `docs/`, `tasks/` and `kb/` each fit is in the `project-knowledge-vault` skill's `references/lanes.md`.
 
 ## The procedure
 

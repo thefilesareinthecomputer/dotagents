@@ -5,12 +5,17 @@
     vault_scaffold.py --into <folder> [--dry-run] [--no-graph]
 
 Copies every file in templates/knowledge-vault/, plus templates/templates/brd.md as 00-brd.md,
-to <target>/PROJECTS/<NAME>/, or with --into to <folder> itself, such as a repo's kb/ or docs/kb/ (a folder that
-already has its own AGENTS.md or CLAUDE.md is refused, since the vault's copies are its contract, and so is a
-folder that is not a vault yet and holds subfolders, since a vault is flat). A file that
+to <target>/PROJECTS/<NAME>/ beside a <NAME>-DELIVERABLES/ folder, or with --into to <folder> itself,
+such as a repo's kb/ (a folder whose own AGENTS.md or CLAUDE.md is not the vault contract is refused,
+and so is a folder that is not a vault yet and holds subfolders, since a vault is flat). A file that
 already exists is skipped and reported, so a run against a partly built vault fills the
 gaps and touches nothing else. Placeholders stay as placeholders: no date is resolved,
 so two runs on different days produce byte-identical notes.
+
+--into is repo mode. It makes no deliverables folder: ADRs and designs go to the repo's docs/.
+On every run it finds the repo root above the folder and derives the roles the repo owns: a
+docs/SPEC.md or root SPEC.md skips 00-brd.md and 01-north-star.md, and the seed files that would
+link them come from templates/knowledge-vault-repo/ instead.
 
 Then seeds the vault's knowledge graph in .kg/, because that is how a grown vault is read:
 runs markdown-kg's `init` when the vault has no graph config (a vault whose graph is still
@@ -33,12 +38,18 @@ import fnmatch
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 TEMPLATE_DIR = SKILL_DIR / "templates" / "knowledge-vault"
+# Repo mode: the roles a repo's SPEC.md owns, the files that show it does, and the seed files
+# whose base text links those roles.
+REPO_TEMPLATE_DIR = SKILL_DIR / "templates" / "knowledge-vault-repo"
+REPO_OWNED_ROLES = ("00-brd.md", "01-north-star.md")
+REPO_SPECS = ("docs/SPEC.md", "SPEC.md")
 # Document templates that are also vault notes: each keeps its one copy in templates/templates/
 # and is seeded under its vault filename.
 DOCUMENT_SEEDS = {"00-brd.md": SKILL_DIR / "templates" / "templates" / "brd.md"}
@@ -62,11 +73,30 @@ OLDER_NAMES = {"user-runsheet.md": ("user-stories-runsheet.md", "user-stories-ta
                "notes-general-notes.md": ("notes-chat-notes-client.md", "notes-chat-notes-internal.md")}
 
 
-def template_files() -> list[tuple[str, Path]]:
-    """Every seed file as (vault filename, source), in a stable order."""
+def template_files(skip: tuple[str, ...] = ()) -> list[tuple[str, Path]]:
+    """Every seed file as (vault filename, source), in a stable order. Roles in `skip` are left out,
+    and then the repo-mode variants replace the files that would link them."""
     files = {p.name: p for p in TEMPLATE_DIR.iterdir() if p.is_file() and not p.name.startswith(".")}
     files.update(DOCUMENT_SEEDS)
+    if skip:
+        for name in skip:
+            files.pop(name, None)
+        files.update({p.name: p for p in REPO_TEMPLATE_DIR.iterdir()
+                      if p.is_file() and not p.name.startswith(".")})
     return sorted(files.items())
+
+
+def host_repo(folder: Path) -> Path | None:
+    """The nearest folder at or above `folder` that holds `.git`."""
+    folder = folder.resolve()
+    return next((p for p in (folder, *folder.parents) if (p / ".git").exists()), None)
+
+
+def repo_roles(folder: Path) -> tuple[str, ...]:
+    """The vault roles a repo owns, derived on every run: a SPEC.md in docs/ or at the root of the
+    repo above `folder` (else of its parent folder) owns the BRD and the north star."""
+    root = host_repo(folder) or folder.resolve().parent
+    return REPO_OWNED_ROLES if any((root / s).is_file() for s in REPO_SPECS) else ()
 
 
 def deliverable_files() -> list[tuple[str, Path]]:
@@ -103,11 +133,14 @@ def is_contract(path: Path) -> bool:
     return bool(have.splitlines()) and have.splitlines()[0] == want.splitlines()[0]
 
 
-def seed_into(dest: Path, dry_run: bool = False) -> tuple[list[str], list[str], list[str]]:
-    """Copy the seed into dest itself, such as a code repo's docs/. Returns (written, skipped, failed).
+def seed_into(dest: Path, dry_run: bool = False,
+              skip: tuple[str, ...] = ()) -> tuple[list[str], list[str], list[str]]:
+    """Copy the seed into dest itself, such as a code repo's kb/, leaving out the roles in `skip`.
+    Returns (written, skipped, failed).
 
-    A folder that already holds its own AGENTS.md or CLAUDE.md belongs to something else: skipping
-    those files would leave a vault without its contract, so the whole run is refused."""
+    A folder whose AGENTS.md or CLAUDE.md is not the vault's own copy of the contract belongs to
+    something else: skipping those files would leave a vault without its contract, so the whole run
+    is refused. The vault's own copy is admitted, which is how a rerun fills a vault's gaps."""
     if dest.is_symlink():
         return [], [], [f"{dest}: is a symlink; refusing to seed through it"]
     for rules in ("AGENTS.md", "CLAUDE.md"):
@@ -116,10 +149,15 @@ def seed_into(dest: Path, dry_run: bool = False) -> tuple[list[str], list[str], 
             continue
         if path.is_symlink() or not path.is_file() or not is_contract(path):
             return [], [], [f"{rules}: {dest} already has its own {rules}, not the vault contract; "
-                             "seed into a folder of its own, such as docs/kb/"]
+                             "seed into a folder of its own, such as kb/"]
     # A vault is one flat folder. A folder that is not a vault yet and already holds subfolders,
-    # such as a code repo's docs/, would fail the linter's flat check from the first run.
-    marked = any((dest / n).is_file() and not (dest / n).is_symlink() for n in ("AGENTS.md", "index.md", "log.md"))
+    # such as a code repo's docs/, would fail the linter's flat check from the first run. A folder
+    # is already a vault when it holds the contract, or, from before the contract, index.md, log.md
+    # and 00-brd.md together; a stray index.md alone does not make one.
+    def plain(name: str) -> bool:
+        return (dest / name).is_file() and not (dest / name).is_symlink()
+    marked = (plain("AGENTS.md") and is_contract(dest / "AGENTS.md")) or all(
+        plain(n) for n in ("index.md", "log.md", "00-brd.md"))
     if dest.is_dir() and not marked:
         try:
             sub = next((p.name for p in sorted(dest.iterdir()) if p.is_dir() and not p.name.startswith(".")
@@ -129,7 +167,7 @@ def seed_into(dest: Path, dry_run: bool = False) -> tuple[list[str], list[str], 
         if sub:
             return [], [], [f"{dest} already holds {sub}/ and is not a vault; a vault is one flat folder, "
                             f"so seed into a folder of its own, such as {dest / 'kb'}/"]
-    return seed(dest, (dest,), dry_run)
+    return seed(dest, (dest,), dry_run, template_files(skip))
 
 
 def seed(dest: Path, guards: tuple[Path, ...], dry_run: bool, files: list[tuple[str, Path]] | None = None,
@@ -218,7 +256,7 @@ def add_ignore_rows(folder: Path, rows: list[dict]) -> int:
     return len(new)
 
 
-def merge_profiles(config: Path, replace_detected: bool = False) -> int:
+def merge_profiles(config: Path, replace_detected: bool = False, skip: tuple[str, ...] = ()) -> int:
     """Add the shipped profile rows whose path the config lacks, and the shipped ignore rows to the
     folder's .kgignore. Returns rows added.
 
@@ -236,6 +274,9 @@ def merge_profiles(config: Path, replace_detected: bool = False) -> int:
     if not isinstance(data, dict):
         raise ValueError(f"{config}: the config is not a json object")
     shipped_rows = json.loads(shipped.group(1))
+    # A role the repo owns is not seeded, so a row that only exists for it would match nothing.
+    shipped_rows["profiles"] = [r for r in shipped_rows["profiles"]
+                                if not any(fnmatch.fnmatchcase(n, r["path"]) for n in skip)]
     ignore_added = add_ignore_rows(config.parent.parent, shipped_rows.pop("ignore"))
     added = 0
     replaced = False
@@ -310,7 +351,7 @@ def graph_preflight(vault: Path) -> tuple[bool, str] | None:
     return None
 
 
-def seed_graph(vault: Path, notes_written: int) -> tuple[bool, str]:
+def seed_graph(vault: Path, notes_written: int, skip: tuple[str, ...] = ()) -> tuple[bool, str]:
     """Initialize, configure and ingest the vault's graph. Returns (ok, report line)."""
     stop = graph_preflight(vault)
     if stop:
@@ -325,7 +366,7 @@ def seed_graph(vault: Path, notes_written: int) -> tuple[bool, str]:
         initialized = True
     try:
         ignored = ignore_databases(kg_dir)
-        added = merge_profiles(config, replace_detected=initialized)
+        added = merge_profiles(config, replace_detected=initialized, skip=skip)
     except (OSError, ValueError) as exc:
         return False, f"graph: could not configure {KG_DIR}/: {exc}"
     git_note = "the database is gitignored" if ignored else f"WARNING: {KG_DIR}/.gitignore exists without a * or *.db* line; add one, the database holds every note's full text"
@@ -349,18 +390,31 @@ def dry_run_graph(vault: Path, notes_to_write: int) -> str:
     return f"graph: {KG_DIR}/ present; would merge any missing profile rows {ingest}"
 
 
-def pointer_steps(vault: Path, root: Path) -> str:
+def pointer_steps(vault: Path, root: Path, repo_mode: bool = False) -> str:
     """The lines that tell a host repo, and the next session's memory, where this vault lives.
-    Paths are relative to the nearest git root above the vault, else to the root given."""
+    Paths are relative to the nearest git root above the vault, else to the root given. In repo
+    mode, also the command that indexes the repo's docs/ when it has no graph yet."""
     vault = vault.resolve()
-    host = next((p for p in (vault, *vault.parents) if (p / ".git").exists()), root.resolve())
+    host = host_repo(vault) or root.resolve()
     rel = vault.relative_to(host).as_posix() if vault.is_relative_to(host) else vault.name
-    line = (f"Project knowledge vault: `{rel}/` - its `AGENTS.md` is the contract, "
-            f"its graph is `{rel}/{KG_DIR}/`, and its deliverables are in `{rel}-DELIVERABLES/`.")
-    return ("next: record where this vault lives, so later sessions find it without searching:\n"
-            "  1. add this line to the host repo's root AGENTS.md (CLAUDE.md where it has no AGENTS.md), unless it is there:\n"
-            f"     {line}\n"
-            "  2. save the same line to your harness's persistent memory for this project, where it has one")
+    if repo_mode:
+        line = (f"This repo's project vault is `{rel}/` (graph `{rel}/{KG_DIR}/`); "
+                "graduated docs are in `docs/`.")
+    else:
+        line = (f"Project knowledge vault: `{rel}/` - its `AGENTS.md` is the contract, "
+                f"its graph is `{rel}/{KG_DIR}/`, and its deliverables are in `{rel}-DELIVERABLES/`.")
+    steps = ("next: record where this vault lives, so later sessions find it without searching:\n"
+             "  1. add this line to the host repo's root AGENTS.md (CLAUDE.md where it has no AGENTS.md), unless it is there:\n"
+             f"     {line}\n"
+             "  2. save the same line to your harness's persistent memory for this project, where it has one")
+    docs = host / "docs"
+    if repo_mode and docs.is_dir() and not (docs / KG_DIR / KG_CONFIG).is_file():
+        steps += ("\n  3. give the repo's docs/ its own graph, so it can be searched beside the vault:\n"
+                  f"     python3 {shlex.quote(str(KG))} init {shlex.quote(str(docs))} && "
+                  f"python3 {shlex.quote(str(KG))} ingest {shlex.quote(str(docs))}\n"
+                  "     If the repo tracks folders it never publishes, list them under \"holdback\" in\n"
+                  "     docs/.kg/markdown-kg-config.json, such as [\"/tasks/\"] (the lanes reference in this skill)")
+    return steps
 
 
 def report_seed(dest: Path, verb: str, written: list[str], skipped: list[str], failed: list[str]) -> None:
@@ -377,7 +431,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--target", type=Path, help="folder that holds (or will hold) PROJECTS/; needs --name")
     parser.add_argument("--name", help="the project vault's folder name under PROJECTS/")
-    parser.add_argument("--into", type=Path, help="seed the vault into this folder itself, such as a repo's docs/")
+    parser.add_argument("--into", type=Path, help="repo mode: seed the vault into this folder itself, such as a repo's kb/")
     parser.add_argument("--dry-run", action="store_true", help="print the file list and write nothing")
     parser.add_argument("--no-graph", action="store_true", help="seed the notes only, without the markdown-kg graph")
     args = parser.parse_args(argv)
@@ -394,36 +448,44 @@ def main(argv: list[str] | None = None) -> int:
     if not TEMPLATE_DIR.is_dir():
         parser.error(f"template folder missing: {TEMPLATE_DIR}")
 
-    if args.into is not None:
+    repo_mode = args.into is not None
+    skip: tuple[str, ...] = ()
+    if repo_mode:
         dest = args.into
-        written, skipped, failed = seed_into(dest, args.dry_run)
+        skip = repo_roles(dest)
+        written, skipped, failed = seed_into(dest, args.dry_run, skip)
     else:
         dest = args.target / "PROJECTS" / args.name
         written, skipped, failed = scaffold(args.target, args.name, args.dry_run)
     verb = "would write" if args.dry_run else "wrote"
     report_seed(dest, verb, written, skipped, failed)
+    if skip:
+        print(f"  repo mode: the repo's SPEC.md owns {', '.join(skip)}, so they are not seeded")
     if failed:
         return 1
-    deliverables = deliverables_for(dest)
-    d_written, d_skipped, d_failed = seed(deliverables, (deliverables,), args.dry_run,
-                                          deliverable_files(), DELIVERABLE_FOLDERS)
-    report_seed(deliverables, verb, d_written, d_skipped, d_failed)
-    if d_failed:
-        return 1
-    folders = ((dest, len(written)), (deliverables, len(d_written)))
+    folders = [(dest, len(written), skip)]
+    if not repo_mode:
+        # A workspace vault ships its documents from a sibling folder; a vault in a repo uses docs/.
+        deliverables = deliverables_for(dest)
+        d_written, d_skipped, d_failed = seed(deliverables, (deliverables,), args.dry_run,
+                                              deliverable_files(), DELIVERABLE_FOLDERS)
+        report_seed(deliverables, verb, d_written, d_skipped, d_failed)
+        if d_failed:
+            return 1
+        folders.append((deliverables, len(d_written), ()))
     if args.dry_run:
         if not args.no_graph:
-            for folder, count in folders:
+            for folder, count, _ in folders:
                 print(f"{folder.resolve().name}: {dry_run_graph(folder, count)}")
         return 0
     ok = True
     if not args.no_graph:
-        for folder, count in folders:
-            folder_ok, report = seed_graph(folder, count)
+        for folder, count, roles in folders:
+            folder_ok, report = seed_graph(folder, count, roles)
             print(f"{folder.resolve().name}: {report}")
             ok = ok and folder_ok
     if ok:
-        print(pointer_steps(dest, args.target if args.target is not None else dest.parent))
+        print(pointer_steps(dest, args.target if args.target is not None else dest.parent, repo_mode))
     return 0 if ok else 1
 
 
