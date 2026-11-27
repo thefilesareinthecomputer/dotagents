@@ -8,6 +8,7 @@
     "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1",
     "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1",
     "CLAUDE_MEM_TELEMETRY": "false",
+    "DO_NOT_TRACK": "1",
     "CLAUDE_MEM_CHROMA_UVX_PATH": "~/.claude-mem/bin"
   },
   "attribution": {
@@ -260,6 +261,11 @@
             "type": "command",
             "command": "python3 ~/.claude/hooks/harness_version_check.py",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/plugin_update_check.py",
+            "timeout": 10
           }
         ]
       }
@@ -275,6 +281,11 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/daemon_restart_storm.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/reaper.py",
             "timeout": 10
           },
           {
@@ -335,6 +346,11 @@
           {
             "type": "command",
             "command": "python3 ~/.claude/hooks/web_session_end.py",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/claude_mem_last_session.py",
             "timeout": 10
           }
         ]

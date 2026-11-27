@@ -7,7 +7,9 @@ Run: python3 tests/station-hooks/test-claude-mem-health.py   (or via unittest di
 Contract: exit 0 on every path. Silent when claude-mem is absent or healthy; one
 systemMessage plus additionalContext when the worker does not answer or is degraded,
 when chroma reports anything but healthy past the warm-up, when the uvx wrapper is not
-executable, or when the worker's version has moved past the wrapper's cap-for line.
+executable, when the worker's version has moved past the wrapper's cap-for line, when the
+local API token is unset or refused, or when the capture pipeline reports abandoned or
+expired work, or nothing stored for hours while work is queued. The token never appears.
 """
 
 import contextlib
@@ -31,14 +33,26 @@ SYNC_WARN = ("[2026-10-17 14:02:12.702] [WARN ] [CHROMA_SYNC] Prompt watermark b
 OK_HEALTH = {"status": "ok", "uptime": 900, "version": "13.25.1"}
 
 
+TOKEN = "tok_xxxxxxxxxxxxxxxx"
+OK_STATUS = {"isProcessing": False, "queueDepth": 0, "parkedSessions": 0,
+             "lastSuccessfulStoreAt": int(time.time() * 1000), "abandonedStallSessions": [],
+             "expiredObserverInputs": 0}
+DEFAULTS = {"/api/processing-status": OK_STATUS}
+
+
 class Stub(http.server.BaseHTTPRequestHandler):
     routes: dict = {}
     delay: dict = {}
+    token: str = TOKEN      # every route but /api/health needs it, as claude-mem's guard does
 
     def do_GET(self):
         path = self.path.split("?")[0]
         time.sleep(self.delay.get(path, 0))
-        body = self.routes.get(path)
+        if path != "/api/health" and self.token and self.headers.get("X-Claude-Mem-Token") != self.token:
+            self.send_response(401)
+            self.end_headers()
+            return
+        body = self.routes[path] if path in self.routes else DEFAULTS.get(path)
         if body is None:
             self.send_response(404)
             self.end_headers()
@@ -56,8 +70,9 @@ class Stub(http.server.BaseHTTPRequestHandler):
 class TestClaudeMemHealth(unittest.TestCase):
     def setUp(self):
         self.home = Path(tempfile.mkdtemp(prefix="cmh-test-"))
-        (self.home / "settings.json").write_text(json.dumps({"CLAUDE_MEM_CHROMA_ENABLED": "true"}))
-        Stub.routes, Stub.delay = {}, {}
+        (self.home / "settings.json").write_text(json.dumps({"CLAUDE_MEM_CHROMA_ENABLED": "true",
+                                                             "CLAUDE_MEM_LOCAL_API_TOKEN": TOKEN}))
+        Stub.routes, Stub.delay, Stub.token = {}, {}, TOKEN
         self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Stub)
         self.server.daemon_threads = True
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
@@ -116,6 +131,52 @@ class TestClaudeMemHealth(unittest.TestCase):
         (self.home / "settings.json").write_text("{}")
         self.assertIn("not answering", self.message(self.run_hook(base="http://127.0.0.1:9", env_home=False)))
 
+    def healthy(self, **status):
+        Stub.routes = {"/api/health": OK_HEALTH, "/api/chroma/status": {"status": "healthy"},
+                       "/api/processing-status": dict(OK_STATUS, **status)}
+        self.wrapper()
+        return self.message(self.run_hook())
+
+    def test_missing_token_is_reported(self):
+        (self.home / "settings.json").write_text(json.dumps({"CLAUDE_MEM_CHROMA_ENABLED": "true"}))
+        Stub.token = ""
+        self.assertIn("local API token is not set", self.healthy())
+
+    def test_refused_token_is_reported_not_silent(self):
+        Stub.token = "tok_yyyyyyyyyyyyyyyy"           # the worker holds a different token
+        Stub.routes = {"/api/health": OK_HEALTH, "/api/chroma/status": {"status": "healthy"}}
+        self.wrapper()
+        msg = self.message(self.run_hook())
+        self.assertIn("refuses or drops its processing-status", msg)
+
+    def test_token_never_appears_in_output(self):
+        Stub.token = "tok_yyyyyyyyyyyyyyyy"
+        self.wrapper()
+        r = self.run_hook()
+        self.assertNotIn(TOKEN, r.stdout + r.stderr)
+
+    def test_abandoned_sessions_are_reported(self):
+        self.assertIn("abandoned 2 stalled", self.healthy(abandonedStallSessions=[{"id": 1}, {"id": 2}]))
+
+    def test_expired_inputs_are_reported(self):
+        self.assertIn("dropped 7 expired", self.healthy(expiredObserverInputs=7))
+
+    def test_stalled_observer_with_queued_work_is_reported(self):
+        old = int((time.time() - 8 * 3600) * 1000)
+        Stub.routes = {}
+        OK = dict(OK_HEALTH, uptime=9 * 3600)
+        Stub.routes = {"/api/health": OK, "/api/chroma/status": {"status": "healthy"},
+                       "/api/processing-status": dict(OK_STATUS, lastSuccessfulStoreAt=old, queueDepth=4)}
+        self.wrapper()
+        self.assertIn("stored nothing for 8h while work is queued", self.message(self.run_hook()))
+
+    def test_idle_worker_with_nothing_queued_is_not_a_stall(self):
+        old = int((time.time() - 8 * 3600) * 1000)
+        Stub.routes = {"/api/health": dict(OK_HEALTH, uptime=9 * 3600), "/api/chroma/status": {"status": "healthy"},
+                       "/api/processing-status": dict(OK_STATUS, lastSuccessfulStoreAt=old)}
+        self.wrapper()
+        self.assertIsNone(self.message(self.run_hook()))
+
     def test_worker_down_reports(self):
         self.assertIn("worker is not answering", self.message(self.run_hook(base="http://127.0.0.1:9")))
 
@@ -151,7 +212,8 @@ class TestClaudeMemHealth(unittest.TestCase):
         self.assertIsNone(self.message(self.run_hook()))
 
     def test_chroma_disabled_is_not_checked(self):
-        (self.home / "settings.json").write_text(json.dumps({"CLAUDE_MEM_CHROMA_ENABLED": "false"}))
+        (self.home / "settings.json").write_text(json.dumps({"CLAUDE_MEM_CHROMA_ENABLED": "false",
+                                                             "CLAUDE_MEM_LOCAL_API_TOKEN": TOKEN}))
         Stub.routes = {"/api/health": OK_HEALTH}
         self.assertIsNone(self.message(self.run_hook()))
 

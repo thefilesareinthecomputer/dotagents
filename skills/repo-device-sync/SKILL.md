@@ -97,6 +97,13 @@ why this needs saying out loud.
 
 ## Phase 4 - Outbound
 
+**A bookkeeping-only commit waits for real work.** When the commits to push
+change only working notes (`tasks/` ticks, a station line in a handoff), commit
+locally and push them with the next real work from this station. Standalone
+pushes of notes are what create merge commits on the handoff file when both
+stations edit it. Push one alone only when the other station would otherwise
+redo the work, such as a re-seed or a setup step.
+
 0. **Changelog.** When the repo keeps a root `CHANGELOG.md`, add what this push
    changes to its newest dated section and commit it with the push, following any
    path-scoped rule the repo has for that file.

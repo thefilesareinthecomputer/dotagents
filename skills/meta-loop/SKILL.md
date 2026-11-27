@@ -41,6 +41,7 @@ Where the goal is too vague to write acceptance criteria against, clarify it bef
 
 **A loop that will outlive this session writes its plan to a file.**
 In a repo following this one's docs lifecycle that file is the goal's own `tasks/SPEC-<NAME>.md`, already the source of truth for what remains, with `tasks/todo.md` carrying the one-line handoff naming the loop and the next action.
+Where `docs/`, `tasks/` and `kb/` each fit is in the `project-knowledge-vault` skill's `references/lanes.md`.
 Anywhere else, use the repo's own planning doc, or create one working file and name its path in the plan.
 Each entry carries state, deliverable, acceptance criteria and an evidence pointer, so a later session - or the other station - can read what this one meant:
 

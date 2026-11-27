@@ -70,7 +70,7 @@ Only when the session-start notice reported unprocessed mail, or the user asks: 
 
 ## 4. Notes and the reflect slate
 
-Run `notes`. Then run `reflect` through its slate (steps 1 to 3) without stopping: hold the slate for step 6. A stale in-repo claim reflect finds is fixed now, before the commit.
+Run `notes`. Then run `reflect` through its slate (steps 1 to 3) without stopping: hold the slate for step 6. A stale in-repo claim reflect finds is fixed now, before the commit. Hold any graduation `notes` proposes (a shipped spec's or a verified learning's durable facts into `docs/`, per the `project-knowledge-vault` skill's `references/lanes.md`) for step 6 as well.
 
 ## 5. Join and fix
 
@@ -88,7 +88,7 @@ python3 "<skill-dir>/scripts/review_gate.py" close <findings.json>   # exit 1 wh
 python3 "<skill-dir>/scripts/gitignore_audit.py" audit   # exit 1 on findings
 ```
 
-Ask everything that needs the user in one `AskUserQuestion`: review findings the fix could not settle, uncovered gitignore patterns, unprocessed inbox items that need a ruling, and reflect's slate. Recommend an answer for each. When nothing needs the user, skip the question.
+Ask everything that needs the user in one `AskUserQuestion`: review findings the fix could not settle, uncovered gitignore patterns, unprocessed inbox items that need a ruling, graduations into `docs/`, and reflect's slate. Recommend an answer for each. When nothing needs the user, skip the question.
 
 ## 7. Commit and push
 

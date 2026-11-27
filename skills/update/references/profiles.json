@@ -1,0 +1,10 @@
+{
+ "about": "How delta finds a plugin's settings defaults. key_pattern is a regex for setting names; defaults_glob picks the files whose object literals hold the defaults; settings is the live settings file, read only to show current values.",
+ "profiles": {
+  "claude-mem@thedotmack": {
+   "key_pattern": "CLAUDE_MEM_[A-Z0-9_]+",
+   "defaults_glob": ["scripts/*.cjs", "scripts/*.js"],
+   "settings": "~/.claude-mem/settings.json"
+  }
+ }
+}

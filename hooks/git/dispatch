@@ -14,10 +14,16 @@
 # pre-commit, commit-msg and pre-push also run `sanitize gate` (skills/sanitize/scripts/gate.py),
 # after the repo's hook, so the gate scans what is actually committed. A missing python3 or
 # gate prints one line and lets the operation through, matching the gate's own failure mode.
+#
+# pre-commit then runs markdown-kg's `links --forbidden` on the repo's docs/ graph, when
+# docs/.kg/ exists: a committed docs note that links to, or names in a code span, a file
+# that is not committed blocks the commit (exit 3). The check may refresh docs/.kg/, which
+# is gitignored. Any other failure prints one line and lets the commit through.
 
 name=$(basename "$0")
 here=$(cd "$(dirname "$0")" && pwd -P)
 gate="$here/../../skills/sanitize/scripts/sanitize.py"
+mdkg="$here/../../skills/markdown-kg/scripts/markdown_kg.py"
 
 # Run only from the station folder. A link to this file from anywhere else (a repo's
 # .git/hooks, a husky folder) would resolve the gate path inside that repo's own files.
@@ -45,10 +51,35 @@ run_gate() {
   python3 "$gate" gate "$@"
 }
 
+run_links_check() {
+  top=$(git rev-parse --show-toplevel 2>/dev/null) || return 0
+  [ -L "$top/docs" ] && return 0
+  [ -d "$top/docs/.kg" ] || return 0
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "station git hook: python3 not found, so the docs link check did not run" >&2
+    return 0
+  fi
+  if [ ! -f "$mdkg" ]; then
+    echo "station git hook: markdown-kg not found, so the docs link check did not run" >&2
+    return 0
+  fi
+  python3 "$mdkg" links "$top/docs" --forbidden 1>&2
+  rc=$?
+  if [ "$rc" -eq 3 ]; then
+    echo "station git hook: commit blocked - docs/ points at files that are not committed (listed above)" >&2
+    return 1
+  fi
+  if [ "$rc" -ne 0 ]; then
+    echo "station git hook: the docs link check failed (exit $rc), so it did not run" >&2
+  fi
+  return 0
+}
+
 case "$name" in
   pre-commit)
     if [ -n "$repo_hook" ]; then "$repo_hook" "$@" || exit $?; fi
-    run_gate --staged
+    run_gate --staged || exit $?
+    run_links_check
     exit $?
     ;;
   commit-msg)

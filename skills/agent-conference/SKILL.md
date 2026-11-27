@@ -130,6 +130,7 @@ connections.
   slug, default the question file's stem. A name that exists gets `-2`, `-3` on
   both the folder and the file. With `--chair session` the synthesis copy is yours
   to write there. `run.json` records the paths under `reviews`.
+  Where `docs/`, `tasks/` and `kb/` each fit is in the `project-knowledge-vault` skill's `references/lanes.md`.
 
 Exit codes: `0` every member answered, every review counted and the synthesis was
 written; `2` the arguments were bad or the sanitize gate refused the stage; `3`

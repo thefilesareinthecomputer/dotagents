@@ -159,6 +159,17 @@
       "script": "web_session_end.py",
       "harnesses": ["claude-code"],
       "bindings": [{"event": "SessionEnd", "timeout": 10}]
+    },
+    {
+      "script": "claude_mem_last_session.py",
+      "harnesses": ["claude-code"],
+      "bindings": [{"event": "SessionEnd", "timeout": 10}]
+    },
+    {
+      "script": "plugin_update_check.py",
+      "harnesses": ["claude-code"],
+      "advisory": true,
+      "bindings": [{"event": "SessionStart", "sources": ["startup"], "timeout": 10}]
     }
   ]
 }

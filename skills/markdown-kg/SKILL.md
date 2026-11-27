@@ -53,6 +53,33 @@ The config is plain json. **Edit it directly**
 whenever the user asks for a rule, a profile or an entity - there is no CLI write
 path and no submission protocol. Field reference: `references/config.md`.
 
+## Several graphs: scope, link status, `--all`
+
+A repo or workspace keeps one graph per lane (`docs/`, `kb/`, `PROJECTS/<NAME>/`), never one merged index.
+The model is in the `project-knowledge-vault` skill's `references/lanes.md`.
+A graph's **label** is its folder's path from the workspace root (the first folder up that holds `PROJECTS/` or `.git`).
+
+```bash
+python3 <skill-dir>/scripts/markdown_kg.py graphs    <path>                    # every graph around a path, by label and age
+python3 <skill-dir>/scripts/markdown_kg.py search    <vault> "question" --all  # every graph, fused by rank, hits labeled
+python3 <skill-dir>/scripts/markdown_kg.py search    <vault> "question" --graphs kb
+python3 <skill-dir>/scripts/markdown_kg.py read      <vault> <section-id> --graph kb
+python3 <skill-dir>/scripts/markdown_kg.py backlinks <vault> "Some Note" --all # plus file links from other graphs
+python3 <skill-dir>/scripts/markdown_kg.py refs      <vault> ../src/tool.py --all
+python3 <skill-dir>/scripts/markdown_kg.py links     <vault> --forbidden       # exits 3 when there are any
+```
+
+- **The scope line.** `search`, `query`, `links`, `backlinks`, `refs` and `stats` print `scope: <graph> (ingested <time>); not searched: <labels>; not indexed: <lanes>` first.
+  With `--json`, stdout is unchanged and the scope goes to stderr as one line, `{"scope": {"searched": [{"graph", "ingested_at"}], "not_searched", "not_indexed", "git"}}`; `git` says whether the tracked-state check ran (`links`, `stats`).
+- **A zero-result answer is a scoped miss**, followed by `This covers only <labels>. To widen: <command>` (`--all`, the same command on each other graph, or `init` and `ingest` for an unindexed lane). Run it before saying something does not exist.
+- **`search --all` and `--graphs`** run each graph's own search (up to `--limit` hits each), fuse them by reciprocal rank, never by bm25 score, and return the best `--limit` overall. `--graphs` adds the named graphs to this one; `--all` wins over it.
+  `--per-note`, `--path` and `--git` apply per graph, `--budget` after fusion; `--session` and `--slot` are refused. Other graphs open read-only and are never refreshed.
+- **Link statuses.** A link to a file that is not a note gets a status each time a command reads it, first match winning: `unresolved` (missing),
+  `forbidden` (a committed note points at a file in this repo that is not committed or is under `holdback`, `references/config.md`), `external` (outside this graph, or outside the repo), `resolved`.
+  `links` lists these rows with kind `file` and `stats` counts them. A path wikilink (`[[../docs/SPEC]]`) that names no note here is a file link.
+- **`links --forbidden`** also checks backticked paths in committed notes that resolve to an uncommitted file (repo root first, then the note's folder; folders never).
+  The station's git `pre-commit` hook runs it on a repo's `docs/` graph when `docs/.kg/` exists.
+
 ## Workflow
 
 1. **Set up once per vault.** `init` scaffolds the folder and writes only the
@@ -142,7 +169,7 @@ path and no submission protocol. Field reference: `references/config.md`.
 
    `backlinks` names the section each inbound link sits in, which answers "in
    what context". `links --unresolved` is a worklist of broken and ambiguous
-   links with the note that wrote them.
+   links, and links to files that do not exist, with the note that wrote them.
 
    Standard markdown links become edges the same way wikilinks do:
    `[text](note.md)`, reference-style `[text][label]`, and targets with

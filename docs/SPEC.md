@@ -12,15 +12,15 @@ available to Claude Code (and other skill-aware agents) on every device.
 Third-party/upstream skills are **not** published here - they are consumed from
 installed plugins (e.g. `agent-skills@addy-agent-skills`), which auto-update and
 expose namespaced `plugin:skill` entries. This repo carries only what the user
-authors or forks (**35 skills** `agent-conference`, `agent-cc-configs-sync`,
-`agent-mail`, `agent-review`, `ai-engineering`, `ai-slop-magic-eraser`,
+authors or forks (**37 skills** `agent-conference`, `agent-cc-configs-sync`,
+`agent-mail`, `agent-review`, `agent-team`, `ai-engineering`, `ai-slop-magic-eraser`,
 `cmon`, `code-kg`, `compact-notes`, `compress-media`,
 `deep-research`, `focus`, `frontend-aesthetics`, `gather-learnings`, `get-ready`,
 `goldfish`, `hi`, `local-model-task`, `markdown-kg`, `meta-loop`,
 `my-security-review-checklist`, `notes`, `obsidian`, `pr-review`,
 `project-knowledge-vault`, `reflect`, `repo-device-sync`,
 `sanitize`, `scan`, `skill-authoring`, `sprint-board`, `support-local`, `task`, `teach-me`,
-`wrap-up`, plus the `obsidian-kg` pointer that forwards to `markdown-kg` for one
+`update`, `wrap-up`, plus the `obsidian-kg` pointer that forwards to `markdown-kg` for one
 release and loads no description;
 **9 subagents** `my-security-reviewer`, `supervisor`, `ai-engineer`, `advisor`,
 `researcher`, `reader`, `worker`, `curator`, `support-local`;
@@ -41,8 +41,8 @@ stop charging every session; restoring one is a `git mv` back plus
 > model** (a stdlib checker script), because a checklist run by the model that
 > wrote the code is the model grading its own homework. Each passed fresh-context
 > security review before merge - which caught real, test-invisible defects
-> (a ReDoS hang, a socket-path miss, annotated-settings blindness). See
-> `tasks/plan.md` for the claims, and the `tasks/completed/` records they point at.
+> (a ReDoS hang, a socket-path miss, annotated-settings blindness). The claims and
+> their records are kept in the repo's working notes in `tasks/`, which are not published.
 
 > The `ai-engineering` skill folds what were three sibling skills into one
 > surface with three modes, split along the same seams: the **read path** in
@@ -94,14 +94,14 @@ assembly step, so:
 - Maintain `sync-skills.sh`, which assembles the per-device view by symlinking each
   tree into `~/.claude/{skills,agents,commands}`, preserving device-local entries.
 - Keep the living docs current (this file, `README.md` - incl. its Install
-  and What's inside sections - and `tasks/plan.md`).
+  and What's inside sections - and the working notes in `tasks/`).
 - Maintain `app/`, the agents chat app for talking to the harnesses over a
   markdown vault: a FastAPI server on loopback, a vanilla JS chat and graph UI
   with multi-agent group threads, and the `agents` CLI (alias `agn`). It is its own `uv` project with `fastapi` and
   `uvicorn` as its only runtime dependencies, loads the one `markdown-kg` engine
   from `skills/`, and never holds an API key; model calls go through a harness
   CLI or the local Ollama daemon.
-- Maintain [`specs/claude-code/SPEC-CLAUDE-CODE.md`](specs/claude-code/SPEC-CLAUDE-CODE.md) - the standing
+- Maintain [`specs/claude-code/SPEC-CLAUDE-CODE.md`](../specs/claude-code/SPEC-CLAUDE-CODE.md) - the standing
   seed spec for the full Claude Code station around this repo: required plugins,
   CLI deps, and the global `CLAUDE.md` pointer, `settings.json` and that harness's
   own hooks. Hooks every harness shares live once in `hooks/` with a manifest, and
@@ -112,7 +112,7 @@ assembly step, so:
 **Two kinds of `SPEC-*` file, and they do not mix.** `specs/<harness>/SPEC-<HARNESS>.md` is
 long-lived: one per agent harness, always describing current state, never
 retiring. `tasks/SPEC-FEATURE-NAME.md` is ephemeral: one per in-flight feature,
-folding into the root spec and moving to `tasks/completed/` when it ships. The test is
+graduating into this spec (`docs/SPEC.md`) or an ADR in `docs/adr/` and moving to `tasks/completed/` when it ships. The test is
 whether the document outlives the work it describes. Nothing external forces this
 layout - the `agent-skills` plugin hardcodes no doc paths (checked 2026-07-31).
 
@@ -219,8 +219,8 @@ and plain relative paths anywhere else. `communities` clusters the note graph an
 `related` ranks it from one note. Contradiction detection over entities remains
 phase 2. A Postgres/Docker/MCP design
 stays rejected as over-scaled,
-and an MCP wrapper waits until the CLI surface settles. Full design and the
-dropped-with-reasons list: `tasks/completed/SPEC-VAULT-KG-2026-08-08.md`.
+and an MCP wrapper waits until the CLI surface settles. The full design and the
+dropped-with-reasons list are in the archived vault-kg spec in the repo's working notes.
 
 ---
 

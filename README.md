@@ -110,7 +110,7 @@ Each entry's own file is authoritative: a skill's frontmatter `description` is i
 | `markdown-kg` | Offline section-level knowledge graph over any markdown corpus. |
 | `code-kg` | Offline symbol-level knowledge graph over a codebase and its infra: imports, calls and references across code, shell, Dockerfiles, compose, CI workflows, package scripts and Terraform, one environment-variable node across them, liveness, subsystems, coupling hotspots, a file inventory by folder, and diffs against a checkpoint. |
 | `obsidian` | Obsidian markdown standard plus a per-vault authoring workflow. |
-| `project-knowledge-vault` | Seeds, finds and lints a flat project vault and its deliverables folder: the contract, a scaffolder, a linter, and the BRD, solution design, ADR and knowledge-base entry templates. |
+| `project-knowledge-vault` | Seeds, finds and lints a flat project vault (in a repo's `kb/`, or a workspace vault with its deliverables folder): the contract, a scaffolder, a linter, the BRD, solution design, ADR and knowledge-base entry templates, and `references/lanes.md`, the shared model of `docs/`, `tasks/` and `kb/`. |
 | `gather-learnings` | Sweeps a vault's dated notes and the running session into its learnings file, and keeps its question register current. |
 | `compact-notes` | Rewrites one meeting-note section into a fixed summary format, with a backup and a verify. |
 | `get-ready` | Claims audit before a meeting or a piece of work, written into the vault's run sheet. |
@@ -137,6 +137,7 @@ Each entry's own file is authoritative: a skill's frontmatter `description` is i
 | `scan` | `/scan <path>` updates ClamAV's signatures if needed, scans a file or folder, and checks apps, installers and programs with Gatekeeper, the signer, the quarantine tag and a SHA-256; `--sweep` lists what in a folder was made on the Mac rather than downloaded. Report-only. |
 | `skill-authoring` | House profile for authoring and auditing skills, subagents, commands and hooks. |
 | `agent-cc-configs-sync` | Seeds or reconciles a machine's harness configs and hooks against `specs/`. |
+| `update` | `/update [plugins\|global\|system\|repos]` inspects pending updates read-only: what each incoming version changes, its new setting defaults against the station seed, and a cutover plan with rollback. The `plugins` scope is built. |
 | `agent-mail` | File-based messages between agents working separate repos on the same machine. |
 
 ### Subagents (`agents/*.md`)
@@ -223,7 +224,7 @@ Third-party plugins load from their own cache under `~/.claude/plugins/` and nev
 ## More
 
 - [`AGENTS.md`](AGENTS.md) - the rules every agent works under, in every harness. Claude Code loads it through the one-line pointer in [`specs/claude-code/CLAUDE.md.example`](specs/claude-code/CLAUDE.md.example).
-- [`SPEC.md`](SPEC.md) - what this repo is, its scope and invariants.
+- [`docs/SPEC.md`](docs/SPEC.md) - what this repo is, its scope and invariants; decisions are in [`docs/adr/`](docs/adr/).
 - [`CHANGELOG.md`](CHANGELOG.md) - what each push changes and any action a pulling machine needs to take.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) - setup, branches, skill conventions, verification and style.
 - [`SECURITY.md`](SECURITY.md) - reporting a vulnerability in a repo whose payload is instructions an agent executes.

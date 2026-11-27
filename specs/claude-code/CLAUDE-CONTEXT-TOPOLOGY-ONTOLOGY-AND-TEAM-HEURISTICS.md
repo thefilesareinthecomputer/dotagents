@@ -425,7 +425,7 @@ Then, in order:
 1. Check what already exists. If the organization runs a code search or RAG index, expose it through MCP rather than building a second one.
 2. For a typed codebase, try a code intelligence plugin first. Symbol navigation with no index to maintain covers many of the cases people reach for a graph to solve.
 3. If you are indexing anyway, pick the right parser for the corpus: link and heading structure for a markdown wiki, imports and symbols for a codebase.
-4. Store the index beside the corpus, gitignore it, and rebuild it rather than repairing it. It is a build output.
+4. Store the index beside the corpus, gitignore it, and rebuild it rather than repairing it. It is a build output. Where a repo keeps graduated docs and working notes apart (`docs/`, `kb/`), give each its own index and join them at query time, and have every query say which indexes it covered, so a miss in one is never read as absence from all.
 5. Give the agent a skill that says when and how to query the index, so it queries instead of reading files. Query results enter context; the index itself does not.
 6. If the corpus is a flat dump with no headings or links, add structure to the corpus first, because an index can only expose structure the corpus already has.
 

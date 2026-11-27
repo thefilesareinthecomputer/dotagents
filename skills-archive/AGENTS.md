@@ -7,7 +7,7 @@ registered with any harness or charged to any session's context.
 
 To restore a skill: `git mv skills-archive/<name> skills/<name>`, then run
 `bash ~/.agents/sync-skills.sh`. To retire one: the reverse, plus removing
-its rows from `README.md` and `SPEC.md`.
+its rows from `README.md` and `docs/SPEC.md`.
 
 A skill enters this folder instead of being deleted because deletion is a
 harder decision than retirement, and the usual reason for retiring one -

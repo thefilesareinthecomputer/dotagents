@@ -845,6 +845,22 @@ def git_status(root: Path, rels: list[str]) -> dict[str, str]:
             else "untracked" for r in rels}
 
 
+def git_ls_files(root: Path) -> set[str] | None:
+    """The repo-relative paths git tracks under the work tree at `root`, or
+    None outside a work tree or without git. One read-only call, with
+    `core.fsmonitor=` for the reason `git_status` gives."""
+    try:
+        r = subprocess.run(["git", "-c", "core.fsmonitor=",
+                            "--no-optional-locks", "-C", str(root),
+                            "ls-files", "-z", "--cached"],
+                           capture_output=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if r.returncode != 0:
+        return None
+    return {p for p in r.stdout.decode("utf-8", "replace").split("\0") if p}
+
+
 def line_starts(text: str) -> list[int]:
     """The offset each line of a text starts at, for `bisect`: the number
     of starts at or before an offset is its 1-indexed line."""

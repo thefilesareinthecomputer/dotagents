@@ -88,7 +88,7 @@ machine-readable.
 | `components <repo> [NAME]` | declared components: members, edges that cross between them, unassigned files |
 | `annotations <repo> [--marker M] [--path GLOB]` | comment markers (TODO, FIXME, HACK, XXX, NOTE, BUG, custom) with line and enclosing symbol |
 | `config <repo>` | what each config row matched; warns on a row that matched nothing |
-| `docs <repo> <path>` | the doc sections that link to a file, with line ranges, from every `markdown-kg` vault indexed inside the repo; without that skill or a vault database it says so in one line and lists the doc links this graph holds |
+| `docs <repo> <path>` | the doc sections that link to a file, with line ranges, from every `markdown-kg` vault indexed inside the repo; without that skill or a vault database it says so in one line and lists the doc links this graph holds. Text output opens with markdown-kg's scope line (the vaults asked, the graphs and unindexed lanes around the repo it did not ask); with `--json` the scope goes to stderr and stdout is unchanged |
 | `docs <repo> <path> --mentions` | also the sections that name the file, or a symbol defined in it, in a code span. `corroborated` is true when the same doc also names or links the file; without it, a bare name can be a coincidence. Each list is ranked (the file named outright, then corroborated symbols, then primary docs before archives) and cut at `--limit` (default 50, 0 for all); `status` says `COMPLETE` or what was cut |
 | `resolve <repo> <text> ...` | what a name written in a doc refers to: `file`, `symbol`, `ambiguous` (several definitions, listed, never guessed), `weak` (one definition, but an ordinary word or a member written without its class) or `none` |
 

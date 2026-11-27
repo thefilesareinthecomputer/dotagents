@@ -74,12 +74,14 @@ from __future__ import annotations
 import argparse
 import bisect
 import contextlib
+import fnmatch
 import hashlib
 import json
 import math
 import os
 import posixpath
 import re
+import shlex
 import sqlite3
 import sys
 import urllib.parse
@@ -95,7 +97,7 @@ try:
     from kg_core import (
         GIT_STATES, KG_DIR, RELATED_DAMPING, TREE_LIMIT, WORD_RE, ParseCache,
         Store, bfs_path, changed_keys, config_json_text, doc_rank, emit,
-        engine_fingerprint, est_tokens, git_status, glob_match,
+        engine_fingerprint, est_tokens, git_ls_files, git_status, glob_match,
         greedy_modularity, line_starts, linked_store,
         now_utc, other_file_rows, path_filter, print_capped, rank_from,
         relation_ruling, render_migrate, ro_connect, run_cli, run_sibling,
@@ -376,6 +378,9 @@ CREATE TABLE IF NOT EXISTS file_links(    -- links to files that are not notes
                                           -- vault. A wikilink keeps what was
                                           -- written: it names the end of a path
   syntax     TEXT NOT NULL,               -- 'wiki' | 'md'
+  repo_path  TEXT NOT NULL DEFAULT '',    -- the target, repo-relative; absolute
+                                          -- outside a repo. Its status is
+                                          -- computed when a command reads it
   PRIMARY KEY (src, section_id, syntax, target)
 );
 CREATE INDEX IF NOT EXISTS file_links_path ON file_links(path);
@@ -520,6 +525,7 @@ ADDED_COLUMNS = {
                  ("setext", "INTEGER NOT NULL DEFAULT 0")],
     "entities": [("origin", "TEXT NOT NULL DEFAULT 'config'")],
     "notes": [("git", "TEXT NOT NULL DEFAULT 'none'")],
+    "file_links": [("repo_path", "TEXT NOT NULL DEFAULT ''")],
 }
 
 
@@ -617,6 +623,14 @@ def _check_extensions(cfg: dict, cfg_file: Path) -> None:
         cfg.setdefault(key, [])
         if not isinstance(cfg[key], list):
             sys.exit(f"error: {cfg_file}: '{key}' must be a list")
+    # `holdback`: gitignore-style globs, relative to the repo root, for
+    # files the repo tracks but never publishes; the link check treats them
+    # as not committed (the project-knowledge-vault skill's lanes reference).
+    hold = cfg.setdefault("holdback", [])
+    if not isinstance(hold, list) or not all(
+            isinstance(g, str) and g.strip() for g in hold):
+        sys.exit(f"error: {cfg_file}: 'holdback' must be a list of"
+                 " non-empty glob strings")
     if "link_resolution" in cfg and cfg["link_resolution"] not in LINK_MODES:
         sys.exit(f"error: {cfg_file}: 'link_resolution' must be"
                  f" {' or '.join(repr(m) for m in LINK_MODES)}")
@@ -684,6 +698,8 @@ def dump_config(cfg: dict) -> str:
                                   key=lambda r: str(r.get("field", "")))
     if "link_resolution" in cfg:
         out["link_resolution"] = cfg["link_resolution"]
+    if cfg.get("holdback"):
+        out["holdback"] = list(cfg["holdback"])
     return json.dumps(out, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
 
 
@@ -1158,6 +1174,39 @@ def file_link_path(written: str, src_rel: str) -> str:
         return posixpath.normpath(written.lstrip("/") or ".")
     return posixpath.normpath(posixpath.join(posixpath.dirname(src_rel),
                                              written))
+
+
+def wiki_file_path(written: str, src_rel: str, vault: Path) -> str:
+    """The vault-relative path a path wikilink names, read like a markdown
+    link. A target with no extension names a note, so `.md` is added unless
+    the bare path exists and the `.md` one does not."""
+    path = file_link_path(written, src_rel)
+    if "." in path.rsplit("/", 1)[-1]:
+        return path
+    if os.path.lexists(vault / path) and not os.path.lexists(
+            vault / (path + ".md")):
+        return path
+    return path + ".md"
+
+
+def repo_root_of(path: Path) -> Path | None:
+    """The nearest folder at or above `path` that holds `.git`, looking no
+    higher than the home folder."""
+    home = Path.home()
+    for d in (path, *path.parents):
+        if os.path.lexists(d / ".git"):
+            return d
+        if d == home:
+            break
+    return None
+
+
+def repo_relative(path: Path, repo: Path | None) -> str:
+    """`path` relative to `repo` in POSIX form, or absolute outside it."""
+    if repo is not None:
+        with contextlib.suppress(ValueError):
+            return path.relative_to(repo).as_posix()
+    return str(path)
 
 
 # ---------- anchors: links that name a heading or a block ----------
@@ -2372,6 +2421,25 @@ def ingest(vault: Path, keep_previous: bool = False,
         return (src, sec, dst, target, anchor, dst_section, dst_line, syntax,
                 status)
 
+    repo = repo_root_of(vault)
+    attachments = sorted(r[0] for r in con.execute("SELECT path FROM other_files"))
+
+    def file_row(src: str, sec: str, written: str, path: str,
+                 syntax: str) -> tuple:
+        """One `file_links` row, with the target as a repo-relative path. A
+        wikilink to an attachment names the end of a path, so it lands on
+        the vault file that ends that way when there is no file at the
+        vault-relative path itself."""
+        target = vault / path
+        if syntax == "wiki" and not os.path.lexists(target):
+            tail = "/" + path.lower()
+            hit = next((a for a in attachments
+                        if ("/" + a.lower()).endswith(tail)), None)
+            if hit is not None:
+                target = vault / hit
+        return (src, sec, written, path, syntax,
+                repo_relative(Path(os.path.normpath(target)), repo))
+
     for nid in ids:
         doc = parsed[nid]
         text, sections = doc["text"], doc["sections"]
@@ -2398,10 +2466,18 @@ def ingest(vault: Path, keep_previous: bool = False,
                 ext = base.rsplit(".", 1)[-1].lower() if "." in base else ""
                 if ext in ASSET_EXTS:
                     report["skipped_assets"] += 1
-                    file_rows.append((nid, sec, target, posixpath.normpath(
-                        target.strip("/")), "wiki"))
+                    file_rows.append(file_row(nid, sec, target,
+                                              posixpath.normpath(
+                                                  target.strip("/")), "wiki"))
                     continue
                 dst, status = wiki_dst(target)
+                if status == "unresolved" and "/" in target:
+                    # A path, not a name: it points at a file outside this
+                    # graph, such as a `docs/` note cited from `kb/`.
+                    file_rows.append(file_row(nid, sec, target,
+                                              wiki_file_path(target, doc["rel"], vault),
+                                              "wiki"))
+                    continue
                 rows.append((nid, dst, target, "wiki", kind, status, sec))
             if anchor:
                 anchor_rows.append(anchor_row(nid, sec, dst, target, anchor,
@@ -2417,7 +2493,7 @@ def ingest(vault: Path, keep_previous: bool = False,
                 if found is None:
                     if style == "inline":
                         report["skipped_assets"] += 1
-                    file_rows.append((nid, sec, written, file_link_path(
+                    file_rows.append(file_row(nid, sec, written, file_link_path(
                         written, doc["rel"]), "md"))
                     continue
                 dst, status = found
@@ -2440,7 +2516,7 @@ def ingest(vault: Path, keep_previous: bool = False,
             " VALUES (?,?,?,?,?,?,?,?,?)", anchor_rows)
         con.executemany(
             "INSERT OR IGNORE INTO file_links(src, section_id, target, path,"
-            " syntax) VALUES (?,?,?,?,?)", file_rows)
+            " syntax, repo_path) VALUES (?,?,?,?,?,?)", file_rows)
         for field, origin, syntax, target, off in memo.get(
                 "scan_field_links", [h], lambda: list(scan_field_links(text))):
             if syntax == "wiki":
@@ -2959,11 +3035,113 @@ def section_tier(tiers: dict[str, dict[str, float]], note_id: str,
     return tiers.get(note_id, {}).get(doc_date, 1.0)
 
 
+def open_readonly(vault: Path) -> sqlite3.Connection:
+    """A graph opened for reading only, with no freshness check: how a
+    sibling graph is read, so a query across graphs never writes to one."""
+    db = STORE.db_path(vault)
+    if not db.is_file():
+        sys.exit(f"error: no graph at {vault} - run `ingest` on it first")
+    return ro_connect(str(db))
+
+
+def pack_hit(con: sqlite3.Connection, hit: dict, budget: int, spent: int,
+             packed: list) -> int:
+    """Add one hit's text to a `--budget` pack and return the tokens spent.
+    A unit that does not fit is represented by its children, never by a
+    truncated body - a half-entry reads as a whole one."""
+    sec = con.execute("SELECT body FROM sections WHERE id=?",
+                      (hit["section_id"],)).fetchone()
+    body = sec[0] if sec else ""
+    cost = est_tokens(body)
+    if spent + cost <= budget:
+        packed.append({**hit, "text": body})
+        return spent + cost
+    for cid, chp, cls, cle, cbody in con.execute(
+            "SELECT id, heading_path, line_start, line_end, body"
+            " FROM sections WHERE parent_id=? ORDER BY ord",
+            (hit["section_id"],)).fetchall():
+        ccost = est_tokens(cbody)
+        if spent + ccost > budget:
+            continue
+        packed.append({**hit, "section_id": cid, "heading_path": chp,
+                       "lines": f"{cls}-{cle}", "text": cbody,
+                       "substituted_for": hit["section_id"]})
+        spent += ccost
+    return spent
+
+
+RRF_K = 60      # reciprocal rank fusion constant for `search --all`
+
+
+def search_graphs(vault: Path, graphs: list[tuple[str, str]], question: str,
+                  limit: int = 10, per_note: int = 3,
+                  budget: int | None = None, recency_k: float | None = None,
+                  path: str | None = None, git: str = "all") -> dict:
+    """`search --all`: each graph's own search (its own term ladder, `limit`
+    hits each, `per_note` within each), fused by reciprocal rank. bm25
+    scores are relative to each corpus, so they are never compared. Ties go
+    to the earlier graph in `graphs`, then the better rank. `budget` packs
+    after fusion. The first graph is `vault`; the rest open read-only."""
+    runs = []
+    for order, (label, gpath) in enumerate(graphs):
+        res = search(Path(gpath), question, limit, per_note, None, None,
+                     recency_k, path, git, readonly=Path(gpath) != vault)
+        runs.append({"graph": label, "path": gpath, "rung": res["rung"],
+                     "capped": res["capped"], "total": res["total"]})
+        for rank, hit in enumerate(res["results"], 1):
+            hit.update(graph=label, fused=round(1.0 / (RRF_K + rank), 6),
+                       _order=(order, rank))
+            runs[-1].setdefault("hits", []).append(hit)
+    hits = [h for r in runs for h in r.pop("hits", [])]
+    hits.sort(key=lambda h: (-h["fused"], h["_order"]))
+    for h in hits:
+        h.pop("_order")
+    total = len(hits)
+    out = hits[:limit] if limit else hits
+    result = {"query": question, "rung": "fused", "capped":
+              any(r["capped"] for r in runs), "total": total,
+              "graphs": [{k: r[k] for k in ("graph", "rung", "total")}
+                         for r in runs]}
+    if budget:
+        packed, spent = [], 0
+        cons = {}
+        try:
+            for hit in hits:
+                gpath = next(r["path"] for r in runs if r["graph"] == hit["graph"])
+                if gpath not in cons:
+                    cons[gpath] = open_readonly(Path(gpath))
+                spent = pack_hit(cons[gpath], hit, budget, spent, packed)
+        finally:
+            for c in cons.values():
+                c.close()
+        out = packed[:limit] if limit else packed
+        result.update(budget=budget, spent=spent)
+    result["results"] = out
+    result["status"] = ("COMPLETE" if len(out) == total
+                        else f"TRUNCATED {len(out)} of {total}")
+    return result
+
+
+def resolve_graph(vault: Path, label: str) -> Path:
+    """The folder of the graph a label names, among the graphs around
+    `vault`."""
+    found = discover_graphs(vault)
+    if label == graph_label(vault, Path(found["root"])):
+        return vault
+    for g in found["graphs"]:
+        if g["label"] == label:
+            return Path(g["path"])
+    names = [g["label"] for g in found["graphs"]]
+    sys.exit(f"error: no graph labeled {label!r} here; graphs: "
+             f"{', '.join(names) or 'none'}")
+
+
 def search(vault: Path, question: str, limit: int = 10,
            per_note: int = 3, budget: int | None = None,
            slot: str | None = None, recency_k: float | None = None,
-           path: str | None = None, git: str = "all") -> dict:
-    con = open_fresh(vault)
+           path: str | None = None, git: str = "all",
+           readonly: bool = False) -> dict:
+    con = open_readonly(vault) if readonly else open_fresh(vault)
     if recency_k is None:
         recency_k = load_config(vault).get("recency_k", RECENCY_K)
     phrases, terms = tokenize(question, STOPWORDS)
@@ -3078,34 +3256,7 @@ def search(vault: Path, question: str, limit: int = 10,
     if budget:
         packed, spent = [], 0
         for hit in kept:
-            sec = con.execute(
-                "SELECT body FROM sections WHERE id=?",
-                (hit["section_id"],)).fetchone()
-            body = sec[0] if sec else ""
-            cost = est_tokens(body)
-            if spent + cost > budget:
-                children = con.execute(
-                    "SELECT id, heading_path, line_start, line_end, body"
-                    " FROM sections WHERE parent_id=? ORDER BY ord",
-                    (hit["section_id"],)).fetchall()
-                # A unit that does not fit is represented by its children, never
-                # by a truncated body - a half-entry reads as a whole one.
-                added = False
-                for cid, chp, cls, cle, cbody in children:
-                    ccost = est_tokens(cbody)
-                    if spent + ccost > budget:
-                        continue
-                    packed.append({**hit, "section_id": cid,
-                                   "heading_path": chp,
-                                   "lines": f"{cls}-{cle}", "text": cbody,
-                                   "substituted_for": hit["section_id"]})
-                    spent += ccost
-                    added = True
-                if not added:
-                    continue
-                continue
-            packed.append({**hit, "text": body})
-            spent += cost
+            spent = pack_hit(con, hit, budget, spent, packed)
         result = {"query": question, "rung": used_rung, "capped": capped,
                   "budget": budget, "spent": spent,
                   "total": total, "results": packed[:limit] if limit else packed}
@@ -3786,11 +3937,12 @@ def cmd_query(args: argparse.Namespace) -> int:
     def render(rows_):
         if not rows_:
             print("no matches")
+            print(widen_line(args))
             return 0
         for h in rows_:
             print(f"{h['section_id']}  [{h['lines']}]\n    {h['snippet']}")
         return 0
-    return emit(args, payload, render)
+    return emit_scoped(args, vault, payload, render)
 
 
 def query(vault: Path, q: str, limit: int = 20,
@@ -3818,9 +3970,24 @@ def query(vault: Path, q: str, limit: int = 20,
 
 def cmd_search(args: argparse.Namespace) -> int:
     vault = vault_dir(args.vault)
-    payload = search(vault, args.question, args.limit,
-                     args.per_note, args.budget, args.slot, args.recency_k,
-                     args.path, args.git)
+    wanted = ([s.strip() for s in args.graphs.split(",") if s.strip()]
+              if args.graphs and not args.all else None)
+    also: tuple[str, ...] = ()
+    if args.all or wanted is not None:
+        for flag, val in (("--session", args.session), ("--slot", args.slot)):
+            if val:
+                sys.exit(f"error: {flag} works on one graph; drop it or"
+                         " drop --all/--graphs")
+        graphs = sibling_graphs(vault, wanted)
+        ensure_fresh(vault)
+        payload = search_graphs(vault, graphs, args.question, args.limit,
+                                args.per_note, args.budget, args.recency_k,
+                                args.path, args.git)
+        also = tuple(lbl for lbl, _ in graphs[1:])
+    else:
+        payload = search(vault, args.question, args.limit,
+                         args.per_note, args.budget, args.slot, args.recency_k,
+                         args.path, args.git)
     record_session_reads(vault, args.session,
                          [h["section_id"] for h in payload["results"]],
                          "search")
@@ -3828,12 +3995,15 @@ def cmd_search(args: argparse.Namespace) -> int:
     def render(res):
         if not res["results"]:
             print(f"no matches for {res['query']!r}")
+            print(widen_line(args))
             return 0
         print(f"{res['status']}  (rung: {res['rung']})"
               + ("  CAPPED - only the best-ranked matches were scored;"
                  " narrow the query or add --slot" if res.get("capped") else ""))
         for h in res["results"]:
             head = f"{h['section_id']}  [{h['lines']}]"
+            if "graph" in h:
+                head = f"[{h['graph']}] {head}"
             if h.get("doc_date"):
                 head += f"  {h['doc_date']}"
             print(head)
@@ -3845,7 +4015,7 @@ def cmd_search(args: argparse.Namespace) -> int:
         if res.get("budget"):
             print(f"budget {res['spent']}/{res['budget']} tokens")
         return 0
-    return emit(args, payload, render)
+    return emit_scoped(args, vault, payload, render, also=also)
 
 
 def cmd_props(args: argparse.Namespace) -> int:
@@ -4010,7 +4180,11 @@ def cmd_sections(args: argparse.Namespace) -> int:
 
 def cmd_read(args: argparse.Namespace) -> int:
     vault = vault_dir(args.vault)
-    con = open_fresh(vault)
+    graph = resolve_graph(vault, args.graph) if args.graph else vault
+    if graph != vault and args.session:
+        sys.exit("error: --session records reads of this graph only; drop it"
+                 " or drop --graph")
+    con = open_readonly(graph) if graph != vault else open_fresh(vault)
     row = con.execute(
         "SELECT id, note_id, heading_path, line_start, line_end, body,"
         " doc_date, slot, words, oversize FROM sections WHERE id=?",
@@ -4029,6 +4203,8 @@ def cmd_read(args: argparse.Namespace) -> int:
                "lines": f"{row[3]}-{row[4]}", "doc_date": row[6],
                "slot": row[7], "words": row[8], "oversize": bool(row[9]),
                "text": body[offset:] if offset else body}
+    if args.graph:
+        payload["graph"] = args.graph
     record_session_reads(vault, args.session, [payload["section_id"]], "read")
 
     def render(p):
@@ -4077,6 +4253,7 @@ def cmd_link_anchors(args: argparse.Namespace, con: sqlite3.Connection,
     def render(rows_):
         if not rows_:
             print("no anchored links")
+            print(widen_line(args))
             return 0
         for e in rows_:
             where_ = f"  in {e['section_id']}" if e["section_id"] else ""
@@ -4093,7 +4270,7 @@ def cmd_link_anchors(args: argparse.Namespace, con: sqlite3.Connection,
                       f"(as {name!r} # {e['anchor']!r}) from {e['src']}"
                       f"{where_}")
         return 0
-    return emit(args, payload, render)
+    return emit_scoped(args, vault_dir(args.vault), payload, render)
 
 
 def cmd_links(args: argparse.Namespace) -> int:
@@ -4101,6 +4278,9 @@ def cmd_links(args: argparse.Namespace) -> int:
     con = open_fresh(vault)
     if getattr(args, "anchors", False):
         return cmd_link_anchors(args, con, inbound=False)
+    state = LinkState(vault)
+    if getattr(args, "forbidden", False):
+        return links_forbidden(args, vault, con, state)
     if args.unresolved and args.note is None:
         rows = con.execute(
             "SELECT src, dst, target, syntax, kind, status, section_id"
@@ -4121,6 +4301,12 @@ def cmd_links(args: argparse.Namespace) -> int:
     payload = [{"src": r[0], "dst": r[1], "target": r[2], "syntax": r[3],
                 "kind": r[4], "status": r[5], "section_id": r[6]}
                for r in rows]
+    # Links to files follow, in the same row shape with kind `file`; with
+    # --unresolved only the ones whose target is missing.
+    files = file_link_rows(con, state, None if args.note is None
+                           else resolve_note_arg(con, args.note))
+    payload += [r for r in files
+                if not args.unresolved or r["status"] == "unresolved"]
     # Provenance appears only behind the flag, so the default output shape
     # stays byte-identical for every existing consumer.
     if getattr(args, "include_inferred", False):
@@ -4139,11 +4325,16 @@ def cmd_links(args: argparse.Namespace) -> int:
     def render(rows_):
         if not rows_:
             print("no outbound links")
+            print(widen_line(args))
             return 0
         for e in rows_:
             where = f"  in {e['section_id']}" if e["section_id"] else ""
             if e.get("provenance") == "inferred":
                 print(f"inferred/{e['kind']}  ->  {e['dst']}{where}")
+            elif e["kind"] == "file" and e["status"] in ("resolved",
+                                                         "external"):
+                print(f"{e['syntax']}/file  ->  {e['dst']}  "
+                      f"({e['status']}){where}")
             elif e["status"] == "resolved":
                 print(f"{e['syntax']}/{e['kind']}  ->  {e['dst']}  "
                       f"(as {e['target']!r}){where}")
@@ -4152,7 +4343,35 @@ def cmd_links(args: argparse.Namespace) -> int:
                       f"{e['status'].upper()}  (as {e['target']!r}) "
                       f"from {e['src']}{where}")
         return 0
-    return emit(args, payload, render)
+    return emit_scoped(args, vault, payload, render, git=state.git)
+
+
+def links_forbidden(args: argparse.Namespace, vault: Path,
+                    con: sqlite3.Connection, state: LinkState) -> int:
+    """`links --forbidden`: links and code spans from a committed note to a
+    file that is not committed. Exit 3 when there are any, so a commit hook
+    can block on them; errors keep exit 1."""
+    nid = None if args.note is None else resolve_note_arg(con, args.note)
+    rows = [r for r in file_link_rows(con, state, nid)
+            if r["status"] == "forbidden"] + code_span_rows(con, state, nid)
+    con.close()
+
+    def render(rows_):
+        if not rows_:
+            print("no forbidden links" if state.git else
+                  "no forbidden links: the check did not run, because this"
+                  " graph is not in a git work tree or git could not list it")
+            return 0
+        for e in rows_:
+            where = f"  in {e['section_id']}" if e["section_id"] else ""
+            print(f"FORBIDDEN  {e['src']}  ->  {e['dst']}  "
+                  f"({e['syntax']} as {e['target']!r}){where}")
+        print(f"{len(rows_)} forbidden: a committed note points at a file"
+              " that is not committed. Graduate the target into docs/ and"
+              " repoint, or drop the link.")
+        return 0
+    rc = emit_scoped(args, vault, rows, render, git=state.git)
+    return 3 if rows and rc == 0 else rc
 
 
 def cmd_backlinks(args: argparse.Namespace) -> int:
@@ -4182,21 +4401,36 @@ def cmd_backlinks(args: argparse.Namespace) -> int:
                                 "heading_path": (hp[0] if hp and hp[0]
                                                  else "(top)"),
                                 "provenance": "inferred"})
+    also: tuple = ()
+    if args.all:
+        npath = con.execute("SELECT path FROM notes WHERE id=?",
+                            (nid,)).fetchone()[0]
+        here = graph_label(vault, workspace_root(vault))
+        for e in payload:
+            e["graph"] = here
+        rows, also = sibling_file_refs(vault, vault / npath)
+        payload += [{"src": r["src"], "target": r["target"],
+                     "syntax": r["syntax"], "kind": "file",
+                     "section_id": r["section_id"],
+                     "heading_path": r["heading_path"], "graph": r["graph"]}
+                    for r in rows]
     con.close()
 
     def render(rows_):
         if not rows_:
             print("no backlinks")
+            print(widen_line(args))
             return 0
         for e in rows_:
+            tag = f"[{e['graph']}] " if "graph" in e else ""
             if e.get("provenance") == "inferred":
-                print(f"inferred/{e['kind']}  <-  {e['src']}  "
+                print(f"{tag}inferred/{e['kind']}  <-  {e['src']}  "
                       f"in {e['heading_path']}")
             else:
-                print(f"{e['syntax']}/{e['kind']}  <-  {e['src']}  "
+                print(f"{tag}{e['syntax']}/{e['kind']}  <-  {e['src']}  "
                       f"(as {e['target']!r})  in {e['heading_path']}")
         return 0
-    return emit(args, payload, render)
+    return emit_scoped(args, vault, payload, render, also=also)
 
 
 def _inferred_rows(con: sqlite3.Connection,
@@ -4442,17 +4676,26 @@ def cmd_refs(args: argparse.Namespace) -> int:
     con = open_fresh(vault)
     payload = file_refs(con, args.path)
     con.close()
+    also: tuple = ()
+    if args.all:
+        here = graph_label(vault, workspace_root(vault))
+        for r in payload:
+            r["graph"] = here
+        rows, also = sibling_file_refs(vault, vault / args.path)
+        payload += rows
 
     def render(rows_):
         if not rows_:
             print(f"no section links to {posixpath.normpath(args.path)}")
+            print(widen_line(args))
             return 0
         for r in rows_:
             where = (f"{r['section_id']}  L{r['line_start']}-{r['line_end']}"
                      if r["section_id"] else f"{r['src']}  (top)")
-            print(f"{where}  ({r['syntax']} as {r['target']!r})")
+            tag = f"[{r['graph']}] " if "graph" in r else ""
+            print(f"{tag}{where}  ({r['syntax']} as {r['target']!r})")
         return 0
-    return emit(args, payload, render)
+    return emit_scoped(args, vault, payload, render, also=also)
 
 
 # The code-kg skill, reached through its command line only. CODE_KG_DBS is
@@ -5017,7 +5260,9 @@ def config_report(vault: Path) -> dict:
 
     core = set(CORE_MARKERS)
     mode, mode_source = link_mode(vault, cfg)
+    extra = {"holdback": cfg["holdback"]} if cfg.get("holdback") else {}
     return {
+        **extra,
         "path": cfg_file.relative_to(vault).as_posix(),
         "exists": cfg_file.exists(),
         "status": "WARNINGS" if warnings else "OK", "warnings": warnings,
@@ -5048,6 +5293,8 @@ def cmd_config(args: argparse.Namespace) -> int:
             print(f"  warning: {w}")
         print(f"  markdown links: {p['link_resolution']['mode']}"
               f" ({p['link_resolution']['source']})")
+        if p.get("holdback"):
+            print(f"  holdback: {', '.join(p['holdback'])}")
         for r in p["profiles"]:
             print(f"  profile {r['profile']} on {r['match']}:"
                   f" {r['matched']} notes")
@@ -5422,6 +5669,10 @@ def cmd_stats(args: argparse.Namespace) -> int:
     cand_rows = con.execute(
         "SELECT token, kind, count FROM annotation_candidates"
         " ORDER BY count DESC, token, kind LIMIT 20").fetchall()
+    state = LinkState(vault)
+    file_counts = dict.fromkeys(FILE_STATUSES, 0)
+    for r in file_link_rows(con, state):
+        file_counts[r["status"]] += 1
     con.close()
     custom_markers = [
         {"marker": str(r.get("marker", "")),
@@ -5433,6 +5684,7 @@ def cmd_stats(args: argparse.Namespace) -> int:
         "entities": ent, "mentions": men,
         "edges": [{"syntax": s, "kind": k, "status": st, "count": c}
                   for s, k, st, c in edges],
+        "file_links": file_counts,
         "orphans": orphans,
         "link_problems": {k: [{"src": s, "target": t} for s, t in v]
                           for k, v in problems.items()},
@@ -5462,6 +5714,8 @@ def cmd_stats(args: argparse.Namespace) -> int:
         print("edges by syntax/kind:")
         for e in p["edges"]:
             print(f"  {e['syntax']}/{e['kind']} [{e['status']}]: {e['count']}")
+        print("file links: " + ", ".join(
+            f"{n} {s}" for s, n in p["file_links"].items()))
         print(f"orphan notes: {len(p['orphans'])}"
               + (f" ({', '.join(p['orphans'][:5])})" if p["orphans"] else ""))
         for status, rows in sorted(p["link_problems"].items()):
@@ -5504,6 +5758,391 @@ def cmd_stats(args: argparse.Namespace) -> int:
                   " **TOKEN**: lines")
             for row in mc["tokens"]:
                 print(f"  {row['token']} ({row['kind']}): {row['count']}")
+        return 0
+    return emit_scoped(args, vault, payload, render, git=state.git)
+
+
+# ---------- lanes: graph discovery and scope ----------
+# A repo or workspace keeps one graph per lane or project vault, at fixed
+# spots under its workspace root (the project-knowledge-vault skill's
+# references/lanes.md). Discovery finds them on every call; there is no
+# registry. `tasks/` has no graph and is never a spot.
+LANE_SPOTS = ("docs", "kb")
+PROJECT_SPOTS = ("", "docs", "kb")      # under each PROJECTS/<NAME>/
+LEGACY_SPOT = "docs/kb"
+LEGACY_HINT = "move docs/kb/ to kb/ (git mv when tracked), then ingest kb/"
+NOT_NOTES = {"AGENTS.md", "CLAUDE.md", "README.md"}
+FEDERATED = ("search", "backlinks", "refs")     # the commands with --all
+
+
+def workspace_root(path: Path) -> Path:
+    """The first folder at or above `path` that holds `PROJECTS/` or `.git`,
+    or the home folder, never above it. With none of them on the way up,
+    `path` itself."""
+    start = path if path.is_dir() else path.parent
+    home = Path.home()
+    for d in (start, *start.parents):
+        if ((d / "PROJECTS").is_dir() or os.path.lexists(d / ".git")
+                or d == home):
+            return d
+    return start
+
+
+def has_graph(folder: Path) -> bool:
+    return STORE.db_path(folder).is_file()
+
+
+def graph_ingested_at(folder: Path) -> str | None:
+    """`meta.ingested_at` of the graph at `folder`, read without writing."""
+    try:
+        con = ro_connect(str(STORE.db_path(folder)))
+        try:
+            row = con.execute("SELECT value FROM meta"
+                              " WHERE key='ingested_at'").fetchone()
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return None
+    return row[0] if row else None
+
+
+def holds_notes(folder: Path) -> bool:
+    """A folder holds notes when some `.md` other than AGENTS.md, CLAUDE.md
+    and README.md sits in it or below it, outside dot-folders and outside
+    any subfolder that has a graph of its own."""
+    for dirpath, dirnames, filenames in os.walk(folder):
+        here = Path(dirpath)
+        dirnames[:] = sorted(
+            d for d in dirnames if not d.startswith(".")
+            and d not in KG_DIRS and not has_graph(here / d))
+        if any(f.endswith(".md") and f not in NOT_NOTES for f in filenames):
+            return True
+    return False
+
+
+def discover_graphs(path: Path) -> dict:
+    """Every graph at a fixed spot under the workspace root of `path`, in
+    spot order, plus the spots that hold notes and have no graph."""
+    root = workspace_root(path.expanduser().resolve())
+    spots = [root / s for s in LANE_SPOTS]
+    projects = root / "PROJECTS"
+    if projects.is_dir():
+        for p in sorted(projects.iterdir()):
+            if p.is_dir() and not p.is_symlink() and not p.name.startswith("."):
+                spots += [p / s if s else p for s in PROJECT_SPOTS]
+    graphs, not_indexed = [], []
+    for spot in spots:
+        if not spot.is_dir() or spot.is_symlink():
+            continue
+        label = spot.relative_to(root).as_posix()
+        if has_graph(spot):
+            graphs.append({"label": label, "path": str(spot),
+                           "ingested_at": graph_ingested_at(spot),
+                           "legacy": False, "hint": None})
+        elif holds_notes(spot):
+            not_indexed.append({"label": label, "path": str(spot)})
+    legacy = root / LEGACY_SPOT
+    if legacy.is_dir() and not legacy.is_symlink() and has_graph(legacy):
+        graphs.append({"label": LEGACY_SPOT, "path": str(legacy),
+                       "ingested_at": graph_ingested_at(legacy),
+                       "legacy": True, "hint": LEGACY_HINT})
+    return {"root": str(root), "graphs": graphs, "not_indexed": not_indexed}
+
+
+def graph_label(vault: Path, root: Path) -> str:
+    try:
+        return vault.relative_to(root).as_posix()
+    except ValueError:
+        return str(vault)
+
+
+def scope_of(vault: Path, git: bool | None = None,
+             also: tuple[str, ...] = ()) -> tuple[dict, dict]:
+    """What a read command on `vault`, and on the graphs labeled in `also`,
+    covered: (scope, label -> path for every graph and unindexed lane it
+    did not cover). The scope is what is printed."""
+    found = discover_graphs(vault)
+    label = graph_label(vault, Path(found["root"]))
+    others = [g for g in found["graphs"] if Path(g["path"]) != vault]
+    unindexed = [n for n in found["not_indexed"] if Path(n["path"]) != vault]
+    searched = [{"graph": label, "ingested_at": graph_ingested_at(vault)}]
+    searched += [{"graph": g["label"], "ingested_at": g["ingested_at"]}
+                 for g in others if g["label"] in also]
+    rest = [g for g in others if g["label"] not in also]
+    scope = {"searched": searched,
+             "not_searched": [g["label"] for g in rest],
+             "not_indexed": [n["label"] for n in unindexed],
+             "git": git}
+    paths = {r["label"]: r["path"] for r in rest + unindexed}
+    return scope, paths
+
+
+def sibling_graphs(vault: Path, labels: list[str] | None) -> list[tuple[str, str]]:
+    """(label, path) for `vault` first, then every other graph around it in
+    scope order, or only those named in `labels`. An unknown label exits."""
+    found = discover_graphs(vault)
+    first = (graph_label(vault, Path(found["root"])), str(vault))
+    others = [(g["label"], g["path"]) for g in found["graphs"]
+              if Path(g["path"]) != vault]
+    if labels is None:
+        return [first, *others]
+    known = {lbl for lbl, _ in others} | {first[0]}
+    missing = [lbl for lbl in labels if lbl not in known]
+    if missing:
+        sys.exit(f"error: no graph labeled {', '.join(map(repr, missing))};"
+                 f" graphs: {', '.join(sorted(known))}")
+    return [first, *[(lbl, p) for lbl, p in others if lbl in labels]]
+
+
+def scope_text(scope: dict) -> str:
+    searched = ", ".join(f"{g['graph']} (ingested {g['ingested_at'] or 'never'})"
+                         for g in scope["searched"])
+    return (f"scope: {searched}; not searched: "
+            f"{', '.join(scope['not_searched']) or 'none'}; not indexed: "
+            f"{', '.join(scope['not_indexed']) or 'none'}")
+
+
+def shell_path(p: str | Path) -> str:
+    """A path as a shell argument: relative to the current folder when it
+    is inside it, else from the home folder as `~/`, else absolute."""
+    p = Path(p)
+    with contextlib.suppress(ValueError, OSError):
+        return shlex.quote(p.relative_to(Path.cwd()).as_posix() or ".")
+    with contextlib.suppress(ValueError):
+        return "~/" + shlex.quote(p.relative_to(Path.home()).as_posix())
+    return shlex.quote(str(p))
+
+
+def shell_command(argv: list[str], swap: tuple[int, str] | None = None) -> str:
+    """`python3 <this script> <argv>`, with argv[i] replaced by a path."""
+    parts = [shlex.quote(a) for a in argv]
+    if swap is not None:
+        parts[swap[0]] = shell_path(swap[1])
+    return " ".join(["python3", shell_path(Path(__file__).resolve()), *parts])
+
+
+def widen_line(args: argparse.Namespace) -> str:
+    """The line after a zero-result answer: what was covered and the exact
+    command that covers the rest."""
+    scope, paths = args.scope_info
+    labels = ", ".join(g["graph"] for g in scope["searched"])
+    argv = [a for a in getattr(args, "argv", []) if a != "--json"]
+    steps = []
+    if scope["not_searched"] and argv:
+        if args.cmd in FEDERATED:
+            steps.append(shell_command(argv + ["--all"]))
+        elif args.vault in argv:
+            i = argv.index(args.vault)
+            steps += [shell_command(argv, (i, paths[lbl]))
+                      for lbl in scope["not_searched"]]
+    for lbl in scope["not_indexed"]:
+        folder = shell_path(paths[lbl])
+        script = shell_path(Path(__file__).resolve())
+        steps.append(f"python3 {script} init {folder} && "
+                     f"python3 {script} ingest {folder}")
+    if not steps:
+        return f"This covers only {labels}; no other graph was found."
+    return f"This covers only {labels}. To widen: {'; '.join(steps)}"
+
+
+def emit_scoped(args: argparse.Namespace, vault: Path, payload, render,
+                git: bool | None = None, also: tuple[str, ...] = ()) -> int:
+    """`emit` with the scope first: a text line on stdout, or one JSON line
+    on stderr so a parser's stdout stays byte-identical."""
+    args.scope_info = scope_of(vault, git, also)
+    if getattr(args, "json", False):
+        print(json.dumps({"scope": args.scope_info[0]}, sort_keys=True,
+                         ensure_ascii=False), file=sys.stderr)
+    else:
+        print(scope_text(args.scope_info[0]))
+    return emit(args, payload, render)
+
+
+# ---------- link statuses ----------
+# A link to a file gets its status when a command reads it, never at ingest,
+# so a `git add` or a holdback edit shows on the next query. First match
+# wins: unresolved, forbidden, external, resolved.
+FILE_STATUSES = ("resolved", "external", "forbidden", "unresolved")
+LINE_SUFFIX_RE = re.compile(r":\d+(?:-\d+)?$")
+
+
+def held_back(rel: str, patterns: list[str]) -> bool:
+    """A repo-relative path is held back when it, or a folder above it,
+    matches a `holdback` glob. As in gitignore, a pattern with a leading
+    `/` is anchored at the repo root, one with no other `/` matches at any
+    depth, and a trailing `/` means the folder and everything under it."""
+    parts = rel.split("/")
+    for pat in patterns:
+        if pat.startswith("/"):
+            segs = pat.strip("/").split("/")
+            if len(parts) >= len(segs) and all(
+                    fnmatch.fnmatchcase(parts[i], s) for i, s in enumerate(segs)):
+                return True
+        elif any(glob_match("/".join(parts[:i]), pat)
+                 for i in range(1, len(parts) + 1)):
+            return True
+    return False
+
+
+class LinkState:
+    """What one command run needs to give a link its status: the graph's
+    repo, what git tracks there (one `git ls-files`), and `holdback`."""
+
+    def __init__(self, vault: Path):
+        self.vault = vault
+        self.repo = repo_root_of(vault)
+        self.holdback = load_config(vault).get("holdback", [])
+        tracked = git_ls_files(self.repo) if self.repo else None
+        self.git = tracked is not None          # the check ran
+        self.files = {f for f in tracked or ()
+                      if not held_back(f, self.holdback)}
+        self.dirs = {f.rsplit("/", i)[0] for f in self.files
+                     for i in range(1, f.count("/") + 1)}
+
+    def target(self, repo_path: str, path: str) -> Path:
+        if repo_path and Path(repo_path).is_absolute():
+            return Path(repo_path)
+        if repo_path and self.repo is not None:
+            return self.repo / repo_path
+        return Path(os.path.normpath(self.vault / path))
+
+    def committed(self, p: Path) -> bool:
+        """Tracked in this graph's repo and not held back. A directory is
+        committed when a committed file sits under it."""
+        if not self.git:
+            return False
+        try:
+            rel = Path(os.path.normpath(p)).relative_to(self.repo).as_posix()
+        except ValueError:
+            return False
+        return rel in self.files or rel in self.dirs
+
+    def inside_repo(self, p: Path) -> bool:
+        if self.repo is None:
+            return False
+        try:
+            Path(os.path.normpath(p)).relative_to(self.repo)
+        except ValueError:
+            return False
+        return True
+
+    def status(self, target: Path, src: Path) -> str:
+        """A target outside the repo is `external`, never `forbidden`: the
+        tracked-state rule is about this repo's own files, and a path that
+        leaves it must not turn into advice to copy that file in."""
+        if not os.path.lexists(target):
+            return "unresolved"
+        if (self.committed(src) and self.inside_repo(target)
+                and not self.committed(target)):
+            return "forbidden"
+        try:
+            Path(os.path.normpath(target)).relative_to(self.vault)
+        except ValueError:
+            return "external"
+        return "resolved"
+
+
+def file_link_rows(con: sqlite3.Connection, state: LinkState,
+                   note: str | None = None) -> list[dict]:
+    """Every `file_links` row, or one note's, with its status, in the row
+    shape `links` prints."""
+    sql = ("SELECT f.src, n.path, f.section_id, f.target, f.path, f.syntax,"
+           " f.repo_path FROM file_links f JOIN notes n ON n.id = f.src")
+    rows = con.execute(sql + (" WHERE f.src=?" if note else "")
+                       + " ORDER BY f.src, f.target, f.syntax, f.section_id",
+                       (note,) if note else ()).fetchall()
+    out = []
+    for src, npath, sec, written, path, syntax, repo_path in rows:
+        target = state.target(repo_path, path)
+        out.append({"src": src, "dst": repo_relative(target, state.repo),
+                    "target": written, "syntax": syntax, "kind": "file",
+                    "status": state.status(target, state.vault / npath),
+                    "section_id": sec})
+    return out
+
+
+def code_span_rows(con: sqlite3.Connection, state: LinkState,
+                   note: str | None = None) -> list[dict]:
+    """The code spans in committed notes that name an uncommitted file. A
+    span counts only when it resolves to a file, against the repo root
+    first and then the note's folder; a span naming a folder never does."""
+    if not state.git:
+        return []
+    sql = ("SELECT c.note_id, n.path, c.section_id, c.text FROM code_spans c"
+           " JOIN notes n ON n.id = c.note_id")
+    rows = con.execute(sql + (" WHERE c.note_id=?" if note else "")
+                       + " ORDER BY c.note_id, c.text, c.section_id",
+                       (note,) if note else ()).fetchall()
+    out = []
+    for src, npath, sec, text in rows:
+        span = LINE_SUFFIX_RE.sub("", text)
+        if (not span or span.endswith("/") or span.startswith(("/", "~"))
+                or not state.committed(state.vault / npath)):
+            continue
+        bases = [state.repo, (state.vault / npath).parent]
+        # Only files inside the repo count; a span that climbs out of it is
+        # never looked up, so nothing outside the repo is named.
+        target = next((Path(os.path.normpath(b / span)) for b in bases
+                       if state.inside_repo(b / span)
+                       and Path(os.path.normpath(b / span)).is_file()), None)
+        if target is None or state.committed(target):
+            continue
+        out.append({"src": src, "dst": repo_relative(target, state.repo),
+                    "target": text, "syntax": "code", "kind": "file",
+                    "status": "forbidden", "section_id": sec})
+    return out
+
+
+def sibling_file_refs(vault: Path, target: Path) -> tuple[list[dict], tuple]:
+    """`backlinks --all` and `refs --all`: the links to files in every other
+    graph whose stored target is `target`, matched by repo-relative path.
+    Returns the rows and the labels of the graphs asked."""
+    key = repo_relative(Path(os.path.normpath(target)), repo_root_of(vault))
+    out, asked = [], []
+    for label, gpath in sibling_graphs(vault, None)[1:]:
+        asked.append(label)
+        try:
+            con = open_readonly(Path(gpath))
+            try:
+                rows = con.execute(
+                    "SELECT f.src, n.path, f.section_id,"
+                    " COALESCE(s.heading_path, ''), s.line_start, s.line_end,"
+                    " f.target, f.syntax FROM file_links f"
+                    " JOIN notes n ON n.id = f.src"
+                    " LEFT JOIN sections s ON s.id = f.section_id"
+                    " WHERE f.repo_path = ?"
+                    " ORDER BY f.src, s.line_start, f.target", (key,)).fetchall()
+            finally:
+                con.close()
+        except sqlite3.Error as e:
+            print(f"warning: graph {label} was not read ({e}); ingest it",
+                  file=sys.stderr)
+            continue
+        out += [{"graph": label, "src": r[0], "note_path": r[1],
+                 "section_id": r[2], "heading_path": r[3] or "(top)",
+                 "line_start": r[4], "line_end": r[5], "target": r[6],
+                 "syntax": r[7]} for r in rows]
+    return out, tuple(asked)
+
+
+def cmd_graphs(args: argparse.Namespace) -> int:
+    path = Path(args.path).expanduser()
+    if not path.exists():
+        sys.exit(f"error: path not found: {args.path}")
+    payload = discover_graphs(path)
+
+    def render(p):
+        print(f"workspace root: {p['root']}")
+        if not p["graphs"]:
+            print("no graphs")
+        for g in p["graphs"]:
+            line = f"{g['label']}  ingested {g['ingested_at'] or 'never'}"
+            if g["legacy"]:
+                line += f"  LEGACY - {g['hint']}"
+            print(line)
+        if p["not_indexed"]:
+            print("not indexed: "
+                  + ", ".join(n["label"] for n in p["not_indexed"]))
         return 0
     return emit(args, payload, render)
 
@@ -5564,6 +6203,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--recency-k", type=float, default=None,
                    help="recency weight for this call (config recency_k,"
                         f" else {RECENCY_K}); 0 disables recency")
+    p.add_argument("--all", action="store_true",
+                   help="also search every other graph in the workspace"
+                        " (`graphs` lists them), fused by rank; each hit"
+                        " names its graph")
+    p.add_argument("--graphs", default=None, metavar="LABEL,LABEL",
+                   help="like --all, but only these graphs besides this one")
 
     p = add("props", cmd_props, "query frontmatter properties")
     p.add_argument("--key", default=None,
@@ -5614,6 +6259,9 @@ def main(argv: list[str] | None = None) -> int:
     p = add("read", cmd_read, "one section, whole")
     p.add_argument("section_id")
     p.add_argument("--offset", type=int, default=0)
+    p.add_argument("--graph", default=None, metavar="LABEL",
+                   help="read from another graph in the workspace, by the"
+                        " label `graphs` and `search --all` print")
     p.add_argument("--session", default=None, metavar="ID", help=session_help)
 
     inferred_help = ("also traverse hot inferred relations (recorded by"
@@ -5621,6 +6269,10 @@ def main(argv: list[str] | None = None) -> int:
 
     p = add("backlinks", cmd_backlinks, "inbound edges + their section")
     p.add_argument("note")
+    p.add_argument("--all", action="store_true",
+                   help="also the links to this note's file from every other"
+                        " graph in the workspace, matched by repo-relative"
+                        " path")
     p.add_argument("--include-inferred", action="store_true",
                    help=inferred_help)
     p.add_argument("--anchors", action="store_true",
@@ -5631,6 +6283,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("note", nargs="?", default=None)
     p.add_argument("--unresolved", action="store_true",
                    help="only broken and ambiguous links (vault-wide if no note)")
+    p.add_argument("--forbidden", action="store_true",
+                   help="links and code spans from a committed note to a"
+                        " file that is not committed (vault-wide if no"
+                        " note); exits 3 when there are any")
     p.add_argument("--include-inferred", action="store_true",
                    help=inferred_help)
     p.add_argument("--anchors", action="store_true",
@@ -5710,6 +6366,9 @@ def main(argv: list[str] | None = None) -> int:
                               " a note")
     p.add_argument("path", help="vault-relative, as a note reaches it:"
                                 " ../src/tool.py for a file beside the vault")
+    p.add_argument("--all", action="store_true",
+                   help="also the links to this file from every other graph"
+                        " in the workspace, matched by repo-relative path")
 
     p = add("code", cmd_code, "the files a note links to, with what the"
                               " code-kg skill holds for each")
@@ -5793,7 +6452,18 @@ def main(argv: list[str] | None = None) -> int:
                    help=f"folders, and files, shown; default {TREE_LIMIT},"
                         " 0 for all")
 
-    return run_cli(ap.parse_args(argv))
+    p = sub.add_parser("graphs", help="every markdown-kg graph in the"
+                       " workspace around a path, with its label and age,"
+                       " and the lanes that hold notes but have no graph")
+    p.add_argument("path", help="a file or folder inside the workspace")
+    p.add_argument("--json", action="store_true",
+                   help="machine-readable output")
+    p.set_defaults(fn=cmd_graphs)
+
+    raw = list(sys.argv[1:] if argv is None else argv)
+    args = ap.parse_args(raw)
+    args.argv = raw         # the widen line rebuilds the exact command
+    return run_cli(args)
 
 
 if __name__ == "__main__":

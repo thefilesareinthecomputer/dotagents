@@ -4,6 +4,7 @@ from __future__ import annotations
 import filecmp
 import json
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -120,8 +121,10 @@ class TestSeed(Base):
         self.assertIn("`PROJECTS/TEST/.kg/`", result.stdout)
         self.assertIn("persistent memory", result.stdout)
         self.assertNotIn(str(self.tmp), result.stdout.split("next:", 1)[1])
-        into = run("--into", str(repo / "docs" / "vault"))
-        self.assertIn("Project knowledge vault: `docs/vault/`", into.stdout)
+        into = run("--into", str(repo / "kb"))
+        self.assertIn("This repo's project vault is `kb/` (graph `kb/.kg/`); graduated docs are in `docs/`.",
+                      into.stdout)
+        self.assertNotIn("DELIVERABLES", into.stdout)
         self.assertNotIn("next:", run("--target", str(repo), "--name", "DRY", "--dry-run").stdout)
 
     def test_name_must_be_a_single_visible_folder(self) -> None:
@@ -186,14 +189,14 @@ class TestInto(Base):
         self.assertTrue((dest / "index.md").exists())
 
     def test_into_seeds_each_offered_location(self) -> None:
-        for rel in ("kb", "knowledge", "knowledge-base", "docs/kb", "docs"):
+        for rel in ("kb", "knowledge", "knowledge-base"):
             with self.subTest(rel=rel), tempfile.TemporaryDirectory() as d:
                 repo = Path(d)
                 (repo / ".git").mkdir()
                 result = run("--into", str(repo / rel))
                 self.assertEqual(result.returncode, 0, result.stdout)
-                self.assertIn(f"Project knowledge vault: `{rel}/`", result.stdout)
-                self.assertIn(f"deliverables are in `{rel}-DELIVERABLES/`", result.stdout)
+                self.assertIn(f"This repo's project vault is `{rel}/`", result.stdout)
+                self.assertFalse((repo / f"{rel}-DELIVERABLES").exists())
 
     def test_into_refuses_a_folder_with_subfolders_that_is_not_a_vault(self) -> None:
         dest = self.tmp / "docs"
@@ -216,19 +219,31 @@ class TestInto(Base):
         flat.mkdir()
         (flat / "meeting.md").write_text("# Meeting\n")
         self.assertEqual(run("--into", str(flat)).returncode, 0)
+        # A vault from before the contract: index.md, log.md and 00-brd.md together.
         vault = self.tmp / "vault"
         (vault / "attachments").mkdir(parents=True)
-        (vault / "log.md").write_text("# Log\n")
+        for name in ("index.md", "log.md", "00-brd.md"):
+            (vault / name).write_text("# Note\n")
         result = run("--into", str(vault))
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertTrue((vault / "index.md").exists())
+        self.assertTrue((vault / "notes-learnings.md").exists())
+
+    def test_into_a_stray_index_or_log_does_not_skip_the_flat_check(self) -> None:
+        for marker in ("index.md", "log.md"):
+            with self.subTest(marker=marker), tempfile.TemporaryDirectory() as d:
+                dest = Path(d) / "docs"
+                (dest / "adr").mkdir(parents=True)
+                (dest / marker).write_text("# Docs\n")
+                result = run("--into", str(dest))
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertEqual(sorted(p.name for p in dest.iterdir()), ["adr", marker])
 
     def test_into_dry_run_writes_nothing(self) -> None:
         dest = self.tmp / "docs"
         result = run("--into", str(dest), "--dry-run")
         self.assertEqual(result.returncode, 0)
         self.assertFalse(dest.exists() or (self.tmp / "docs-DELIVERABLES").exists())
-        self.assertEqual(result.stdout.count("would write"), SEED_COUNT + DELIVERABLE_COUNT + 2)
+        self.assertEqual(result.stdout.count("would write"), SEED_COUNT + 1)
 
     def test_into_symlinked_folder_is_refused(self) -> None:
         elsewhere = self.tmp / "elsewhere"
@@ -252,6 +267,78 @@ class TestInto(Base):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertTrue((dest / ".kg" / "markdown-kg-config.json").is_file())
         self.assertIn("*.db*", (dest / ".kg" / ".gitignore").read_text().split())
+
+
+REPO_VARIANTS = SKILL / "templates" / "knowledge-vault-repo"
+LINT = SKILL / "scripts" / "vault_lint.py"
+
+
+class TestRepoMode(Base):
+    """--into derives the roles a repo owns: a SPEC.md skips the BRD and the north star."""
+
+    def repo(self, spec: str | None = "docs/SPEC.md") -> Path:
+        repo = self.tmp / "repo"
+        (repo / ".git").mkdir(parents=True)
+        if spec:
+            (repo / spec).parent.mkdir(parents=True, exist_ok=True)
+            (repo / spec).write_text("# Spec\n")
+        return repo
+
+    def test_a_repo_spec_skips_the_brd_and_north_star(self) -> None:
+        for spec in ("docs/SPEC.md", "SPEC.md"):
+            with self.subTest(spec=spec):
+                repo = self.repo(spec)
+                result = run("--into", str(repo / "kb"))
+                self.assertEqual(result.returncode, 0, result.stdout)
+                names = {p.name for p in (repo / "kb").iterdir()}
+                self.assertFalse(names & {"00-brd.md", "01-north-star.md"})
+                self.assertEqual(names, set(SEEDS) - {"00-brd.md", "01-north-star.md"})
+                self.assertIn("repo mode: the repo's SPEC.md owns 00-brd.md, 01-north-star.md", result.stdout)
+                for variant in REPO_VARIANTS.iterdir():
+                    self.assertTrue(filecmp.cmp(variant, repo / "kb" / variant.name, shallow=False),
+                                    variant.name)
+                shutil.rmtree(repo)
+
+    def test_without_a_spec_the_full_seed_lands(self) -> None:
+        repo = self.repo(None)
+        run("--into", str(repo / "kb"))
+        self.assertEqual({p.name for p in (repo / "kb").iterdir()}, set(SEEDS))
+        self.assertTrue(filecmp.cmp(TEMPLATE / "index.md", repo / "kb" / "index.md", shallow=False))
+
+    def test_the_variant_set_is_exactly_the_files_that_link_a_skipped_role(self) -> None:
+        linking = {p.name for p in TEMPLATE.iterdir()
+                   if p.name not in ("AGENTS.md", "01-north-star.md")
+                   and re.search(r"\[\[00-brd|\[\[01-north-star|\(00-brd\.md\)|\(01-north-star\.md\)",
+                                 p.read_text())}
+        self.assertEqual(linking, {p.name for p in REPO_VARIANTS.iterdir()})
+
+    def test_the_seed_lints_clean_and_a_rerun_changes_nothing(self) -> None:
+        repo = self.repo()
+        run("--into", str(repo / "kb"))
+        lint = subprocess.run([sys.executable, str(LINT), str(repo / "kb"), "--json"],
+                              capture_output=True, text=True)
+        self.assertEqual(lint.returncode, 0, lint.stdout)
+        before = {p.name: (p.stat().st_mtime_ns, p.read_bytes()) for p in (repo / "kb").iterdir()}
+        again = run("--into", str(repo / "kb"))
+        self.assertEqual(again.returncode, 0, again.stdout)
+        self.assertNotIn("00-brd", again.stdout.split("next:", 1)[0].replace("owns 00-brd", ""))
+        self.assertEqual({p.name: (p.stat().st_mtime_ns, p.read_bytes()) for p in (repo / "kb").iterdir()},
+                         before)
+
+    def test_the_pointer_offers_a_graph_for_docs(self) -> None:
+        repo = self.repo()
+        result = run("--into", str(repo / "kb"))
+        self.assertIn("init", result.stdout.split("next:", 1)[1])
+        self.assertIn(str(repo / "docs"), result.stdout)
+
+    @needs_kg
+    def test_the_graph_drops_the_rows_for_skipped_roles(self) -> None:
+        repo = self.repo()
+        result = run("--into", str(repo / "kb"), graph=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        paths = {r["path"] for r in config_rows(repo / "kb")["profiles"]}
+        self.assertNotIn("[0-9][0-9]-*.md", paths)
+        self.assertIn("notes-*.md", paths)
 
 
 class TestDeliverables(Base):
@@ -288,13 +375,14 @@ class TestDeliverables(Base):
         self.assertIn("symlink", result.stdout)
         self.assertFalse(any(elsewhere.iterdir()))
 
-    def test_into_dot_puts_the_deliverables_beside_the_vault(self) -> None:
+    def test_into_makes_no_deliverables_folder(self) -> None:
+        """A vault in a repo ships its ADRs and designs from the repo's docs/."""
         vault = self.tmp / "v"
         vault.mkdir()
         result = subprocess.run([sys.executable, str(SCAFFOLD), "--into", ".", "--no-graph"],
                                 capture_output=True, text=True, cwd=vault)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertTrue((self.tmp / "v-DELIVERABLES" / "AGENTS.md").is_file())
+        self.assertFalse((self.tmp / "v-DELIVERABLES").exists())
         self.assertFalse((vault / "v-DELIVERABLES").exists())
 
     def test_symlinked_deliverables_folder_is_refused(self) -> None:

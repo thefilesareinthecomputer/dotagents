@@ -103,7 +103,7 @@ root-cause section verbatim; the request list with positions and paraphrases; on
 line per durable fix saying whether you applied it, queued it in `tasks/todo.md`, or
 left it for the user. Never paste transcript text, diffs or tool output into it:
 the file is tracked and the transcript can hold secrets. Give the user the path in
-one line with the verdict. The folder's rules are in `tasks/AGENTS.md`.
+one line with the verdict. The folder's rules are in `tasks/AGENTS.md`. Where `docs/`, `tasks/` and `kb/` each fit is in the `project-knowledge-vault` skill's `references/lanes.md`.
 
 ## Boundaries
 
