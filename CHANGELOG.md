@@ -2,6 +2,31 @@
 
 What each push changes, newest first, for machines pulling this repo.
 
+## 2026-11-27
+
+### Action needed
+
+- Run `bash sync-skills.sh` to link the new `cli-design` skill.
+
+### Added
+
+- `cli-design` skill: a standard for command-line programs with a source tag on each rule, a reference for prompt loops and full-screen terminal programs, and `scripts/cli_probe.py`, which checks a built program's help, streams, exit codes, color and behavior without a terminal.
+- `skill-authoring` completion gate, step 4: a cold read of the skill and of its description alone, before any eval and before saving.
+
+- `deep-research --tailor`: builds a project skill, `research-solutions`, in the repo it runs in. The project skill holds that repo's target state, constraints and ruled-out options, calls `deep-research` for the facts, and checks each candidate against the constraints. The procedure is in `references/tailor.md`.
+- `ai-engineering` stack map, Section N: open-weight models for local agents by role, decision models with the local `/v1/systemone` API and a build-your-own path, runner behavior at depth on Apple Silicon, and the cost of self-hosting a larger model.
+- `ai-engineering` stack map: L.2 on small speech and omni models served through Ollama, a layer-by-layer index of the local agent stack, new training-tool rows in Section G, and a caution on open-weight model licenses.
+- `ai-engineering` catalog and reference catalog: the models, decision models, papers and training tools behind those sections, with field notes on llama.cpp batch memory and on what default Ollama tags resolve to on Apple Silicon.
+
+### Fixed
+
+- `cli-design` `cli_probe.py`: a program that hangs only on a terminal is reported as `no-hang` and its `no-color` check is skipped, where it was passed before.
+
+### Changed
+
+- `deep-research --tailor`: the draft project skill gets a `goldfish` cold read before delivery, and a draft the user rejects leads to an offer of `/interview-me` before the next edit. Both steps live in `references/tailor.md` and apply to `--tailor` only.
+- `deep-research --tailor`: the procedure says when the question to the user can be skipped, marks gitignored read paths as local, and has trigger cases for a project skill reported as written when no runner can probe them.
+
 ## 2026-11-26
 
 ### Action needed

@@ -1,0 +1,41 @@
+{
+  "skill_name": "cli-design",
+  "evals": [
+    {
+      "id": "contract-before-parser",
+      "prompt": "Write a command-line tool in Python that deletes build folders older than a given number of days under a project root.",
+      "expected_output": "A contract for the tool followed by an implementation that meets it, and a probe report.",
+      "expectations": [
+        "States the contract before or alongside the code: commands, input, result, exit codes, behavior without a terminal",
+        "Marks the command as destructive and offers --dry-run",
+        "Asks for confirmation on a terminal and requires --force or --yes when stdin is not a terminal",
+        "Writes the result to stdout and errors to stderr, and exits nonzero on a usage error",
+        "Runs cli_probe.py against the tool and reports its result, or says plainly that it was not run"
+      ]
+    },
+    {
+      "id": "audit-existing",
+      "prompt": "Audit tests/fixtures/bad_cli.py as a command-line program and tell me what to fix.",
+      "expected_output": "The probe's failures, each with its fix, and a list of what the probe could not check.",
+      "expectations": [
+        "Reads the entry point first and reports that it accepts an unknown flag without rejecting it; running cli_probe.py after that is acceptable, since the fixture does nothing harmful",
+        "Reports that help goes to stderr and exits nonzero",
+        "Reports that a usage error exits 0, writes to stdout and shows a stack trace",
+        "Reports color written when not on a terminal or with NO_COLOR set",
+        "Says what the probe cannot check, instead of presenting the probe as a full audit"
+      ]
+    },
+    {
+      "id": "session-interrupt",
+      "prompt": "Our prompt-loop program exits entirely when the user presses Ctrl-C during a long operation. What should it do instead, and how do we test it?",
+      "expected_output": "Guidance from references/interactive.md on interrupts, terminal restore and pseudo-terminal testing.",
+      "expectations": [
+        "Says Ctrl-C stops the operation in progress and returns to the prompt",
+        "Says the interrupt must reach child processes",
+        "Says to report the state after an interrupt, including an outcome that is unknown",
+        "Says to restore the terminal on every exit path",
+        "Recommends testing through a pseudo-terminal"
+      ]
+    }
+  ]
+}

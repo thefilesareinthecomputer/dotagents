@@ -1,7 +1,7 @@
 ---
 name: agent-stack-map
-description: Opinionated, comparison-table map of the modern OSS agent stack - frameworks, harnesses, memory, retrieval/context, skills, ingestion, tuning/RL, self-improvement, the NVIDIA NeMo stack, and media production (local speech and podcast pipelines) - with recommended architectures and a current shortlist. The analytical core of the ai-engineering skill.
-updated: 2026-10-19
+description: Opinionated, comparison-table map of the modern OSS agent stack - frameworks, harnesses, memory, retrieval/context, skills, ingestion, tuning/RL, self-improvement, the NVIDIA NeMo stack, media production (local speech and podcast pipelines), and open-weight models for local agents including decision models - with recommended architectures and a current shortlist. The analytical core of the ai-engineering skill.
+updated: 2026-11-27
 ---
 
 # Agent Stack Software Map
@@ -31,6 +31,26 @@ stack is usually one of each:
 
 Most "agent frameworks" are really orchestration layers and depend on separate
 memory, retrieval, and tool stacks. Choose per layer, not one box to rule them all.
+
+### The local agent stack, layer by layer (index, 2026-11-27)
+
+For a local-first build, each layer and the section that covers it:
+
+| Layer | Question it answers | Section |
+|---|---|---|
+| Models | Which open-weight model plays which role | N.1, N.2; G.2 (Inkling); J.4 (Nemotron 3) |
+| Decision models | Routing, gating and grading without generated text | N.3 |
+| Runtime and serving | How the local runners behave at depth, and the step up to a server | N.4, N.5; Adjacent infrastructure |
+| Harness and loop | The agent loop, context assembly and prefix-cache discipline | B.5, B.6; B.2 for harness mechanics |
+| Protocols and coordination | How agents, tools and sessions talk to each other | B.1, B.3, B.4 |
+| Memory | What persists across sessions | C; M.6 |
+| Knowledge and retrieval | What the agent reads before it reasons | D; M |
+| Tools and skills | What the agent can call | F |
+| Ingestion | Getting web pages and documents in | E |
+| Speech and multimodal | Voice in, voice out, image and audio input | L, L.1, L.2 |
+| Adaptation | Fine-tuning a helper or a decision model | G |
+| Evaluation and self-improvement | Proving a change helped | I; H, H.1 |
+| Governance and safety | What the agent may do, and who approved it | K |
 
 ---
 
@@ -543,6 +563,13 @@ Which other harnesses read `.agents/skills` comes only from secondary sources, a
 | TRL | Apache-2.0 | RLHF / post-training | HF Transformer RL: RLHF, DPO/PPO, post-training loops. | [repo](https://github.com/huggingface/trl) |
 | PEFT | Apache-2.0 | Adaptation | Parameter-efficient fine-tuning (LoRA-style). | [repo](https://github.com/huggingface/peft) |
 | Axolotl | Apache-2.0 | Training stack | Popular open fine-tuning stack. | [repo](https://github.com/axolotl-ai-cloud/axolotl) |
+| mlx-lm | MIT | Fine-tuning and serving on Apple Silicon | Apple's MLX package for running models and for LoRA or full fine-tuning of quantized models on a Mac. The first tool to try for a small helper or decision model on Apple hardware (added 2026-11-27). | [repo](https://github.com/ml-explore/mlx-lm) |
+| mlx-tune | Apache-2.0 | Fine-tuning on Apple Silicon | A community package with an Unsloth-style API on MLX; not an Unsloth project. Its last push predates this pass by five months, so check `link-ledger.md` before relying on it (added 2026-11-27). | [repo](https://github.com/ARahim3/mlx-tune) |
+| LlamaFactory | Apache-2.0 | Training stack | Web UI and CLI over many fine-tuning methods; runs on Apple's MPS backend with limits and has no native MLX path, per secondary sources (added 2026-11-27). | [repo](https://github.com/hiyouga/LlamaFactory) |
+| minimind | Apache-2.0 | Learning: train from scratch | Trains a 64M-parameter model from scratch in about two hours, with fine-tuning and LoRA steps and a GGUF export. It teaches the whole pipeline at toy scale; it does not fine-tune 1B to 9B models, and some of its datasets carry their own licenses (added 2026-11-27). | [repo](https://github.com/jingyaogong/minimind) |
+
+Unsloth also ships Unsloth Studio, a no-code interface for training, running and exporting models, whose interface code is AGPL-3.0. Reports that it trains natively on Apple Silicon came from secondary sources and were not confirmed on a primary page (2026-11-27).
+For a decision model specifically, the recipe and the training-free baseline to beat first are in N.3.
 
 ### G.1 - Weight-space programming: a frontier model edits weights directly (researched 2026-11-22)
 
@@ -570,7 +597,7 @@ Thinking Machines Lab releases its models with Apache 2.0 weights plus a separat
 
 The lab's own numbers lead in 32 of 48 benchmarks against same-class open models and are strongest on coding-agent suites. The lab also says it trails Qwen3.8-27B on multi-turn chat and many-constraint instructions, and that its knowledge is limited by its size. None of this was independently re-run here.
 
-**Stance:** the 3.4B-active looped design makes it the most capable model in this size class to try on a 32 GB or larger Mac for agentic coding, but it does not fit a 16 GB machine. Measure its speed on the runtime you will actually use before committing, because looped-layer support is days old in every local runtime.
+**Stance:** the 3.4B-active looped design makes it the most capable model in this size class to try on a 32 GB or larger Mac for agentic coding, but it does not fit a 16 GB machine. Measure its speed on the runtime you will actually use before committing, because looped-layer support is days old in every local runtime. First-hand runner behavior past 64k tokens is in N.4, and the models to compare it with are in N.2.
 
 ---
 
@@ -792,6 +819,10 @@ under the NVIDIA Open Model License; the Ultra announcement states **OpenMDW-1.1
 reconciled - check the specific model card before depending on either (verify).
 All agentic benchmark figures NVIDIA publishes for these (PinchBench 85.6% Super /
 91% Ultra, SWE-bench Verified 65-70.4%) are first-party and self-selected.
+
+**Nemotron 3.5 (added 2026-11-27).** The successor family is covered in N.2: Lightning
+(30B total, 3B active) and Bolt `e4b` run locally, and Super (120B, 80-90 GB on Ollama)
+still does not fit a 64 GB machine.
 
 ### J.5 - VSS: the video-corpus RAG architecture
 
@@ -1218,6 +1249,18 @@ SpeechTranscriber speed and accuracy claims comes from one vendor or press
 source ([Argmax](https://www.argmaxinc.com/blog/apple-and-argmax),
 [MacStories](https://www.macstories.net/stories/hands-on-how-apples-new-speech-apis-outpace-whisper-for-lightning-fast-transcription/)).
 
+### L.2 - Small speech and omni models served through Ollama (researched 2026-11-27)
+
+Read from each Ollama page on 2026-11-27; none was run in this pass.
+
+| Model | What it does | Size | License | Open questions |
+|---|---|---|---|---|
+| [Phonon](https://ollama.com/library/phonon) (Gradium, open weights 2026-10-20; [vendor page](https://gradium.ai/phonon), [code](https://github.com/gradium-ai/xn-ptts)) | Text to speech at 24 kHz mono, on Apple Silicon with Ollama 0.40.9 or later | 104 MB for the English 31M tag; 123-148 MB for the others | Apache 2.0 for the English 31M model; CC BY-NC 4.0 for every 40M tag | The Ollama page documents one voice, named `default`, and no voice cloning, and it points to a speech guide without showing the audio endpoint. The vendor's preference claims over Kokoro are its own. |
+| [LFM3-Omni](https://ollama.com/library/lfm3-omni) (Liquid AI, announced 2026-10-27) | One 2.17B model taking text, image, video and 16 kHz audio, replying in text, 24 kHz speech or both; no thinking mode | 2.0-2.4 GB | LFM Open License v1.0, free under $10M annual revenue | The page gives its context as 32K in the readme and 125K in the listing, and shows no audio example for the API. |
+| [d1-omni](https://ollama.com/library/d1-omni) (Liquid AI) | A decision model that accepts a short speech clip (N.3); it produces no speech | 850 MB | LFM Open License v1.0 | Speech input is English only, up to 30 seconds. |
+
+**Stance.** For English narration where an Apache license matters, Phonon's 31M tag is the smallest thing to try, and one documented voice makes it a poor fit for a two-host podcast until more voices are confirmed. LFM3-Omni is the candidate for a single-model voice assistant; measure its real context and its speech endpoint before designing around it. The comparisons in the tables above still decide a production pipeline.
+
 ---
 
 ## Section M - Knowledge graphs and markdown knowledge bases as agent grounding (researched 2026-10-29)
@@ -1326,6 +1369,101 @@ A memory index loaded every session is truncated past its limit, so keep one lin
 
 ---
 
+## Section N - Open-weight models for local agents (researched 2026-11-27)
+
+The model layer of a local agent: which open-weight model plays which role on a workstation, the decision-model category, how the local runners behave at depth, and what self-hosting a larger model costs.
+Sizes, context limits and capability badges are from each model's Ollama library page, read 2026-11-27, unless a row says otherwise.
+Ollama pages show only relative dates, so a release date appears only where a vendor or Hugging Face card gave one.
+Benchmark figures are vendor-reported and were not re-run here. First-hand runtime behavior is in `field-notes.md`.
+
+### N.1 - Pick by role, not one model
+
+| Role | What it needs | Where to look |
+|---|---|---|
+| Main agent model | Reliable native tool calls, 64k or more of usable context, a prefix cache that survives appended turns, and room for its context beside the weights | N.2 |
+| Small helper | Tool calls and a few GB, for summaries, titles, recaps and sub-tasks | N.2 |
+| Decision model | Typed probabilities with no generated text, for routing, gating and grading | N.3 |
+| Speech and multimodal | Speech in, speech out, image and audio input | Section L and L.2 |
+| Embeddings | Retrieval over notes and sessions | Sections C and D |
+
+A download size is not a memory budget. What a runner loads is the weights plus the KV cache plus a compute buffer, and the last two depend on the context and batch settings (N.4). Measure the loaded size at the context you will run.
+
+### N.2 - Main and helper models that fit a 64 GB machine
+
+| Model | Vendor and date | Design | Size on Ollama | Context | Capabilities | License | Notes |
+|---|---|---|---|---|---|---|---|
+| [Inkling 2 Mini](https://ollama.com/library/inkling-2-mini) | Thinking Machines, 2026-11-20 | 26.4B looped MoE (G.2) | 18-20 GB | 1M | tools, thinking, vision | Apache 2.0 plus an acceptable use policy | The newest model in this class. Runner behavior in N.4. |
+| [Flint 40B](https://ollama.com/library/flint) | Recursive, 2026-10-21 (press reports) | 39.8B MoE, about 2.5B active | 23 GB | 256K | tools, thinking; text only | Apache 2.0 | Vendor-reported SWE-bench Verified 74.2 and Terminal-Bench 2.1 54.9, the highest coding-agent scores among the models here that fit. The vendor recommends 48 GB of GPU memory. The page also shows 89.7 on SWE-bench Pro v2, which sits oddly beside 74.2 on Verified; treat it as unverified. |
+| [Nemotron 3.5 Lightning](https://ollama.com/library/nemotron-3.5-lightning) | NVIDIA, [Hugging Face card](https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16) dated 2026-08-11 | 30B hybrid Mamba-Transformer MoE, 3B active | 19-25 GB; `30b-mlx` 19 GB | 1M; 256K on the MLX tag | tools, thinking; text only | OpenMDW 1.1 per NVIDIA's catalog; the Ollama page shows none | NVIDIA's own card gives SWE-bench Verified 51.56 and Terminal-Bench 2.1 24.58, below Qwen3.6-35B-A3B (70.12, 44.38) and Gemma 4 26B-A4B (57.40, 37.22) on the same card. NVIDIA recommends temperature 1.0 and top_p 0.95, and the tag ships those as defaults. The MLX tag has an open Metal failure report (N.4). First-hand, 2026-11-27: on Apple Silicon, pulling `:30b` delivered safetensors weights in NVFP4 with a 262,144-token context and the NVIDIA Open Model Agreement as its license text, so the default tag there is not a GGUF and does not carry the 1M context the listing shows. |
+| [Ripple preview](https://ollama.com/library/ripple-preview) | Ricursive Intelligence | 65B dense | 39-46 GB | 1M in the description, 2M in the listing | tools, thinking; text only | Apache 2.0 | Loads in 64 GB but leaves little room for context, and a dense 65B model is slow next to the MoE rows. |
+| [MiMo v2.6](https://ollama.com/library/mimo-v2.6) | Xiaomi | 9B, a fine-tune of Qwen3.5-9B | 6.6-8.7 GB | 256K | tools, thinking, vision | MIT | A helper, or a cheap second opinion beside a main model. |
+| [Nemotron 3.5 Bolt](https://ollama.com/library/nemotron-3.5-bolt) `e4b` | NVIDIA | 8B total, 4B effective, post-trained from Gemma 4 E4B | 7.2-7.9 GB | 128K | tools, thinking, vision | OpenMDW 1.1 | A helper candidate; no benchmarks were found. The `latest` tag is a different 74B variant. |
+| [LFM3](https://ollama.com/library/lfm3) | Liquid AI, announced 2026-10-27 | 1.7B | 1.1-1.7 GB | 256K | tools, thinking; text only | LFM Open License v1.0, free under $10M annual revenue | The smallest tool-calling helper here. |
+
+Two that do not fit: [Nemotron 3.5 Super](https://ollama.com/library/nemotron-3.5-super) (120B total, 12B active, 80-90 GB) and Tencent [Hy4](https://ollama.com/library/hy4) (770B total; its flash variant is reported at 135 GB or more as GGUF, and Ollama lists Hy4 as cloud-only).
+
+**Stance.** The release date is not the ranking. On vendor-reported coding-agent scores, Flint leads the models that fit and Nemotron 3.5 Lightning trails the older Qwen3.6 and Gemma 4 MoE models. No published head-to-head includes Inkling 2 Mini, so the only comparison that counts is your own harness's task set, run on each candidate with the same sampling and context settings. Keep one profile per model: runner, quantization, context and batch settings, loaded size, prefill and decode speed at depth, cache reuse, and tool-call validity.
+
+### N.3 - Decision models
+
+A decision model does not write text. It takes a state (text, JSON or an image) plus typed questions and returns a probability for each answer in one forward pass with a single output token.
+The category started with TypeSafe's proprietary Jev API (reference catalog, "Model serving, inference & routing"), and open-weight models followed within weeks.
+
+**The local API.** Ollama serves these on `POST /v1/systemone` ([capability page](https://docs.ollama.com/capabilities/decision), [API reference](https://docs.ollama.com/api/systemone)), from v0.35.0. It is separate from `/api/chat`.
+A request carries `model`, `state` and named `questions`. Each question is a `choice` (pick one option), a `noul` (the probability a statement is true) or a `score` (2 to 10 levels, returned as a probability-weighted level).
+A response carries, per question, the answer, the full `probabilities` and a `confidence`. The docs say the confidence shows how concentrated the probabilities are, not how likely the answer is to be right.
+
+| Model | Vendor | Base and size | On disk | Context | Input | License | Published numbers |
+|---|---|---|---|---|---|---|---|
+| [strands-decider](https://ollama.com/library/strands-decider) | Strands Agents | Qwen3.5-2B base plus a trained decision head | 1.3-3.8 GB | 4K | text | Apache 2.0 | JevBench 180 to 183 of 231; median 33-43 ms and p95 344-385 ms on an M5 Pro, from its Ollama page |
+| [kev](https://ollama.com/library/kev) | Jared Palmer | Qwen3.5 bases at 0.8B, 4B and 9B, and a 27B | by size | 256K listed; the tag sets 73,728 | text | Apache 2.0 | JevBench public (231) and hard (111): 0.8B 146 and 39, 4B 175 and 60, 9B 184 and 66, 27B 202-205 and 83-86 |
+| [d1](https://ollama.com/library/d1) | Liquid AI, 2026-10-07 | LFM2.5-VL-3B | 3.7 GB | 32K | text, image | LFM Open License v1.0 | Vendor Decision Index 48.57; 16 to 50 ms per question on Jetson hardware |
+| [d1-omni](https://ollama.com/library/d1-omni) | Liquid AI, 2026-10-07 | 587M bidirectional encoder with vision and audio encoders | 850 MB | 125K listed | text, image, or one English speech clip up to 30 s | LFM Open License v1.0 | Vendor Decision Index 15.95 |
+| [autotrust-jev](https://ollama.com/library/autotrust-jev) | AutoTrust | 9B and 35B | 11 GB and 26 GB | 256K | text; image on the 35B | Apache 2.0 | Vendor yes/no AUROC 0.996 and rating error 0.103 on a 0 to 5 scale, for the 9B |
+| [pplx-decider-flash](https://ollama.com/library/pplx-decider-flash) | Perplexity | Qwen3.5-4B, distilled from the larger pplx-decider models | 5.6 GB | 256K | text, image | Apache 2.0 | none on the page |
+| [laya](https://ollama.com/library/laya) | Convai Innovations | ModernBERT-large encoder, 421M | 0.66-0.85 GB | 512 tokens per question | text | Apache 2.0 | first-hand notes below |
+| [tev1](https://ollama.com/library/tev1) | Together AI | 4B and 0.8B | 4.4 GB and about 0.8 GB | 256K listed; its readme says about 2,000 tokens | text | not stated | first-hand notes below |
+
+**First-hand, 2026-10-09 (field notes).** Used zero-shot as a tool-call risk gate on a labeled set of 126 calls, the two smallest models were not usable: tev1 0.8B recalled 0.12 of the risky calls and laya 0.36, each with 21 to 25 false escalations per 100 benign calls, and tev1's probabilities carried almost no signal to calibrate. Small decision models need a labeled set from your own domain before they gate anything.
+
+**Where one fits in an agent harness.** Each use is one request at a decision point, with several questions sharing the state:
+- **Routing** between a fast model and a stronger one: a `score` question on difficulty, escalating below a threshold tuned on your own traffic.
+- **Tool-call gating:** a `noul` question on the proposed call, with the user asked whenever the probability sits between two thresholds.
+- **Grading and memory relevance:** a `score` against a written legend, or one `noul` per candidate memory.
+
+**Building your own.** Two papers put the baseline in reach before any training:
+- ["Releasing the Inner Jev"](https://arxiv.org/abs/2610.17205) (v2, 2026-11-19) reads answer-letter logits at the last position of an ordinary instruction-tuned model. Untrained, Gemma 4 31B scores 79.6 on the authors' OpenDecisions set against 80.1 for Jev; a simple LoRA pass lifts it to 89.0 and lifts three smaller models by 7.8 to 15.7 points. The authors release models, training and serving code, OpenDecisions (2,352 questions) and DecisionBank (261,561 training decisions).
+- ["LLM-as-Jev"](https://arxiv.org/abs/2610.02076) (v3, 2026-10-13) gives a training-free readout on Qwen3.5-4B and a fine-tuning objective with KL anchors that helps smaller models most.
+- A vendor write-up, ["How to Build a Decision Model Like Jev"](https://oumi.ai/blog/how-to-build-a-decision-model-like-jev), is a reverse-engineering account from a company that sells fine-tuning; read it as a hypothesis.
+
+The order that follows from them: read logits from a general 4B model first and measure accuracy and calibration (expected calibration error, Brier score, a reliability plot) on your own labeled decisions; add a LoRA pass only if that baseline falls short; then fit one temperature on held-out data. Section G lists the tools.
+
+**Stance.** Treat a decision model as a cheap classifier whose thresholds you own, never as a calibrated oracle. Start with a general model's logits, because it costs nothing to try and the papers put it level with the trained models on the same base. Do not let any of them approve a risky action without a labeled test from your own domain.
+
+### N.4 - Runner behavior at depth on Apple Silicon (first-hand, 2026-11-24 to 2026-11-26)
+
+Measured on Ollama 0.40.18 on a 64 GB Apple Silicon Mac with Inkling 2 Mini; the numbers are in `field-notes.md`.
+
+- **MLX runner.** The MLX-backed tag is the fast path, and past roughly 64k tokens of context it crashed at random with a Metal watchdog error. An open report describes the same class of failure for the Nemotron 3.5 Lightning MLX tag ([ollama#17902](https://github.com/ollama/ollama/issues/17902)). Prefer a GGUF tag for a first test of any model above 64k, and confirm what a tag actually is with `ollama show` after pulling: a default tag can resolve to safetensors weights for the MLX runner on Apple Silicon even when the listing does not say so.
+- **llama.cpp runner.** A GGUF tag ran to 109k tokens with no crash and reused its prefix cache, with prefill 3 to 4 times slower and decode about half the MLX speed. The run was too short to prove the crash absent.
+- **The compute buffer scales with batch size times context.** With the default batch at a 131,072-token context, the runner reported a footprint near twice the machine's memory and the system hit a memory pressure warning. Sending `num_batch: 256` in the request options loaded the same model at 23.8 GB with every layer on the GPU. Set `num_batch` and `num_ctx` explicitly and record both with every measurement.
+- **`/api/ps` is not a memory reading.** Its `size` can exceed physical memory or sit far above the resident size, so read the process and the system's own counters.
+
+### N.5 - Self-hosting a flash-class model (reported 2026-11-27, secondary sources)
+
+The step above a 64 GB machine. Only the GLM-5.3-Flash listing was read directly; the rest comes from guides and trackers, so confirm sizes and licenses on the model cards before spending money.
+
+| Model | Open weights | Smallest usable build | What runs it |
+|---|---|---|---|
+| [GLM-5.3-Flash](https://ollama.com/library/glm-5.3-flash) (Z.ai, about 320B total, 18B active) | MIT | About 160-200 GB at 4-bit; 1 to 3-bit builds near 94-102 GB | A 192-256 GB Mac, or four rented H200-class GPUs behind vLLM or SGLang |
+| DeepSeek V4.1 Flash (552B backbone plus a 196.6B memory module) | MIT | About 300-400 GB at 2 to 3 bits | A 512 GB Mac Studio or eight H200-class GPUs |
+| DeepSeek V4 Flash (284B total, 13B active; the older line) | MIT | About 103 GB at 3-bit | A 128 GB machine |
+| Kimi K3.1 Pro (2.8T total, 104B active) | Modified MIT with a revenue clause for hosted services | About 1.56 TB | Multi-node servers only |
+
+On Ollama these are cloud tags, which run on Ollama's servers and are not self-hosting. Renting a node large enough for the 4-bit GLM build works out to tens of dollars an hour from per-GPU list prices, so it only beats API pricing at high utilization. The practical path is to build routing, caching and evaluation patterns on a local model now, behind an interface a larger model can later sit behind.
+
+---
+
 ## Recommended architectures by use case
 
 ### 1) Fastest path to a serious OSS agent stack
@@ -1359,6 +1497,10 @@ control plane, composable with local storage/memory/graph, and friendly to
 3. Letta + Ollama + external ingestion layer
 4. LlamaIndex + Ollama + graph/vector KB
 5. AnythingLLM for the fastest path to a serious local/private app
+
+For a hand-built local agent, the layer index under "How to read the stack" maps
+each layer to its section: model choice by role in N.1 and N.2, a decision model for
+routing and gating in N.3, runner settings in N.4, and the loop and cache in B.5.
 
 ---
 
@@ -1413,6 +1555,7 @@ control plane, composable with local storage/memory/graph, and friendly to
 - **Archived or closed (GitHub API, 2026-10-29)** - Kuzu (archived 2025-10-10; LadybugDB is the main fork), Airweave, Acontext, Supertonic (moved to an archive organization), and Daytona, whose public repo is archived with no license after the project closed its production code.
 - **Avoid (verdict 2026-10-29, tagged `avoid` in the catalog).** **OpenClaw** - 263 critical or high advisories in the 24 months to 2026-10, on top of the over-privileged design noted in Section B. **LiteLLM** - a malicious PyPI release (2026-03-24) and a known-exploited CVE (CVE-2026-42208, CISA KEV 2026-05-08) alongside 12 critical or high advisories; if a gateway is required, pin an audited version, verify hashes and keep it off shared networks. **Langflow** - 30 critical or high advisories, one exploited in the wild (CVE-2026-33017, CISA KEV 2026-03-25).
 - **Caution (verdict 2026-10-29, no tag).** Each published a dense run of critical or high advisories in 24 months without a supply-chain incident: **ArcadeDB** (30), **SurrealDB** (19), **FastGPT** (13), **Omnigent** (13 between 2026-06 and 2026-10, concentrated in its sandbox, policy and authentication layers - the features it is adopted for), **LightRAG** (12), **Paperclip** (9) and **RAGFlow** (8). Pin versions, keep their servers off untrusted networks, and re-read `advisories.md` before upgrading.
+- **Open-weight model licenses (2026-11-27)** - "open weights" covers several different grants. Liquid AI's LFM3, LFM3-Omni, d1 and d1-omni use the LFM Open License v1.0, free for commercial use only under $10M annual revenue. Nemotron 3.5 is OpenMDW 1.1 per NVIDIA's catalog, while the Ollama `nemotron-3.5-lightning:30b` tag carries the NVIDIA Open Model Agreement as its license text (read from the pulled tag, 2026-11-27); the two were not reconciled. Tencent Hy4 uses its own Tencent Hy License, with a separate license above a revenue or user threshold per secondary reports. Kimi K3.1 Pro is a modified MIT with a revenue clause for hosted services. Phonon's 40M tags are CC BY-NC 4.0, and only its English 31M model is Apache 2.0. tev1 states no model license. Inkling adds an acceptable use policy to Apache 2.0. Read the card for the exact tag before shipping anything built on one.
 - **No license** - 33 catalogued repos publish no license, so they are all rights reserved however popular; `link-ledger.md` marks each as `NO-LICENSE`. Their code can be read but not copied.
 
 ---
