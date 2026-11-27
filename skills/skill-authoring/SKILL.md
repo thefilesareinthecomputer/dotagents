@@ -84,6 +84,12 @@ truncation), so every marginal skill hides a better one.
   (`disable-model-invocation: true`) rather than inflating the description.
 - Consolidate overlapping skills; two skills competing for one trigger both
   lose.
+- **Cold-read every new or changed description** (completion gate, step 4). The
+  session that built a skill writes in the builder's vocabulary. Lead with the
+  name users say (the short common term, then its variants), then give the
+  description alone to a fresh-context reader and ask which everyday requests
+  it would and would not match, which common phrasings are missing, and which
+  nearby requests it would wrongly pull in.
 - Measured (2026-07-10, sonnet trigger evals across 16 skills): **situation
   clauses beat phrase lists** - describing the concrete moment ("ANY push
   intent, however casually phrased - do not just run git directly") moved
@@ -328,7 +334,13 @@ over the scripts the change touched. Then, in order:
    exists per the test convention above, covers unit, integration and end-to-end
    at whatever levels apply, and the full suite passes. A green suite is the
    evidence; "it worked when I ran it" is not.
-4. **Evals written AND run** - the two eval files answer different questions:
+4. **Cold read, before any eval and before saving** - run `goldfish` on the
+   skill (its SKILL.md and the files it names) and fix what it finds. Then give
+   the `description` alone to a fresh-context reader, per "Description
+   discipline", and fix the missing words. Where `goldfish` is not installed, a
+   fresh read-only subagent with the same brief does both. A skill or
+   description that has not had this read is not saved and not evaluated.
+5. **Evals written AND run** - the two eval files answer different questions:
    `evals/triggers.json` asks whether the skill **fires**, `evals/evals.json`
    asks whether it **behaves** once fired. Every model-invocable skill has
    `evals/triggers.json` carrying a minimum of 3 cases in both polarities (at
@@ -347,7 +359,7 @@ over the scripts the change touched. Then, in order:
    a file whose contents match the other file's schema.
 
 Only then commit. The audit checklist above covers structure; this gate covers
-quality, safety, correctness, and triggering. Both gates 3 and 4 report real
+quality, safety, correctness, and triggering. Gates 3, 4 and 5 report real
 results: a skipped suite, a waived failure or an unrun eval is stated plainly
 rather than implied to have passed.
 

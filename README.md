@@ -126,6 +126,7 @@ Each entry's own file is authoritative: a skill's frontmatter `description` is i
 |---|---|
 | `ai-slop-magic-eraser` | Rewrites prose to the user's voice with the meaning fixed, and flags what looks invented. |
 | `frontend-aesthetics` | Raises UI past the defaults that read as AI-generated, and verifies the rendered result in a browser. |
+| `cli-design` | Designs and audits command-line programs against a sourced standard, with a probe that tests a built program from outside. |
 | `compress-media` | `/compress-media` shrinks or converts video, audio and images with ffmpeg into a `_small` copy beside each original. |
 
 **Security and station**

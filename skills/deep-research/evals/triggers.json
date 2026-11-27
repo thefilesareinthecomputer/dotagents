@@ -52,5 +52,15 @@
    "why": "Belongs to ai-engineering's write mode, which owns the discovery pass and calls this skill as one of its tools. The deliverable is an updated catalog, not a brief."},
   {"name": "ai-tooling-research-starts-in-ai-engineering", "should_trigger": false,
    "query": "Research the current state of open-source agent memory frameworks thoroughly and tell me which ones are still maintained.",
-   "why": "A question about AI or agent tooling starts in ai-engineering, which answers from its dated catalog first and hands web research to this skill only where the catalog is stale."}
+   "why": "A question about AI or agent tooling starts in ai-engineering, which answers from its dated catalog first and hands web research to this skill only where the catalog is stale."},
+
+  {"name": "tailor-project-research-skill", "should_trigger": true,
+   "query": "This repo keeps hitting the same kind of open problem. Set up a research skill for this project that knows our constraints and where we are trying to get to, and save it here as a project skill.",
+   "why": "The tailor mode. A repo wants its own research skill shaped by its state, target and constraints; --tailor builds research-solutions as a wrapper around this skill."},
+  {"name": "tailor-wrap-research", "should_trigger": true,
+   "query": "Make a research-solutions skill for this repo that wraps the research skill and is customized to what this project needs.",
+   "why": "Names the wrapper directly. The procedure and skeleton live in references/tailor.md, so this skill owns the request and brings skill-authoring in for the frontmatter and evals."},
+  {"name": "new-skill-not-research", "should_trigger": false,
+   "query": "Write a project skill for this repo that formats our release notes from the merged pull requests.",
+   "why": "A new project skill with no research in it. That is skill-authoring's job; the tailor mode covers only a research wrapper."}
 ]
